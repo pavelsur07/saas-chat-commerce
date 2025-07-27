@@ -1,0 +1,5 @@
+/site/.readynode_modules
+
+vendor
+.git
+.DS_Store
