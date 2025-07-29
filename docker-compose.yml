@@ -47,6 +47,18 @@ services:
         volumes:
             - ./site:/app
         command: php bin/console
+    site-node-watch:
+        image: node:18-alpine
+        volumes:
+            - ./site:/app
+        working_dir: /app
+        command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && yarn run watch"
+        tty: true
+    site-node-cli:
+        image: node:18-alpine
+        volumes:
+            - ./site:/app
+        working_dir: /app
     site-postgres:
         image: postgres:15-alpine
         container_name: site-postgres
