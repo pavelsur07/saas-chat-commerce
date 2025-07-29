@@ -16,10 +16,19 @@ docker-build:
 site-clear:
 	docker run --rm -v ${PWD}/site:/app -w /app alpine sh -c 'rm -rf  .ready var/cache/* var/log/* var/test/*'
 
-site-init: site-composer-install site-wait-db site-migrations site-fixtures
+site-init: site-composer-install site-wait-db #site-migrations site-fixtures
 
 site-composer-install:
 	docker-compose run --rm site-php-cli composer install
+
+site-assets-install:
+	docker-compose run --rm site-node-cli yarn install
+
+site-assets-build:
+	docker-compose run --rm site-node-cli yarn build
+
+site-yarn-upgrade:
+	docker-compose run --rm site-node-cli yarn upgrade
 
 site-wait-db:
 	until docker-compose exec -T site-postgres pg_isready --timeout=0 --dbname=app ; do sleep 1 ; done
