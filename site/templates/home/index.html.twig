@@ -17,5 +17,9 @@
             <li>Your template at <code>/var/www/html/templates/home/index.html.twig</code></li>
             <li>Your template at MyTest<code>/var/www/html/templates/home/index.html.twig</code></li>
         </ul>
+
+        <div {{ react_component('Hello', { fullName: 'Fabien Upss' }) }}>
+            Loading... <i class="fas fa-cog fa-spin fa-3x"></i>
+        </div>
     </div>
 {% endblock %}
