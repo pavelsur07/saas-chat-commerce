@@ -1,4 +1,5 @@
 const Encore = require('@symfony/webpack-encore');
+const path = require('path');
 
 // Manually configure the runtime environment if not already configured yet by the "encore" command.
 // It's useful when you use tools that rely on webpack.config.js file.
@@ -27,8 +28,8 @@ Encore
 
     .enableReactPreset()
     .enableStimulusBridge('./assets/controllers.json')
-    .configureAliases({
-        '@symfony/stimulus-bridge/controllers.json': './assets/controllers.json',
+    .addAliases({
+        '@symfony/stimulus-bridge/controllers.json': path.resolve(__dirname, 'assets/controllers.json'),
     })
 
     // will require an extra script tag for runtime.js
