@@ -16,7 +16,7 @@ docker-build:
 site-clear:
 	docker run --rm -v ${PWD}/site:/app -w /app alpine sh -c 'rm -rf  .ready var/cache/* var/log/* var/test/*'
 
-site-init: site-composer-install site-wait-db #site-migrations site-fixtures
+site-init: site-composer-install site-assets-install site-wait-db #site-migrations site-fixtures
 
 site-composer-install:
 	docker-compose run --rm site-php-cli composer install
