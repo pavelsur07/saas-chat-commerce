@@ -11,67 +11,47 @@
 </head>
 <body>
 <div class="flex h-screen bg-gray-50 text-gray-900">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md flex flex-col">
-        <div class="p-4 text-xl font-semibold border-b">SaaS Service</div>
-        <div class="p-4 border-b">
-            <div class="font-bold text-lg">Company</div>
-            <input
-                type="text"
-                placeholder="Search..."
-                class="mt-2 w-full px-3 py-1 text-sm border rounded"
-            />
+    <!-- templates/layout/_sidebar.html.twig -->
+    <aside class="w-64 bg-gray-900 text-white h-screen flex flex-col">
+        <div class="px-6 py-4 text-xl font-bold border-b border-gray-700">
+            Convo Commerce
         </div>
-        <nav class="flex-1 p-4 space-y-2">
-            <a href="{{ path('dashboard') }}" class="block px-3 py-2 rounded bg-gray-100 font-medium">Dashboard</a>
-            <a href="{{ path('company.list') }}" class="block px-3 py-2 rounded hover:bg-gray-100">Company Switch</a>
-            <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Scenarios</a>
-            <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Chat</a>
-            <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Settings</a>
+
+        <nav class="flex-1 px-4 py-6 space-y-2 text-sm">
+            <a href="{{ path('dashboard') }}"
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
+                📬 Главная
+            </a>
+            <a href="#"
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
+                📬 Выбор компании
+            </a>
+            <a href="{{path('company.list')}} "
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
+                📬 Чат-центр
+            </a>
+            <a href="#"
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'scenario_' ? 'bg-gray-800' : '' }}">
+                🧠 Сценарии
+            </a>
+            <a href="#"
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
+                🤖 Каналы
+            </a>
+            <a href="#"
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'client_' ? 'bg-gray-800' : '' }}">
+                👥 Клиенты
+            </a>
+            <a href="{{ path('company_index') }}"
+               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
+                🏢 Компании
+            </a>
         </nav>
-        <!-- templates/layout/_sidebar.html.twig -->
-        <aside class="w-64 bg-gray-900 text-white h-screen flex flex-col">
-            <div class="px-6 py-4 text-xl font-bold border-b border-gray-700">
-                Convo Commerce
-            </div>
 
-            <nav class="flex-1 px-4 py-6 space-y-2 text-sm">
-                <a href="#"
-                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
-                    📬 Чат-центр
-                </a>
-                <a href="#"
-                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'scenario_' ? 'bg-gray-800' : '' }}">
-                    🧠 Сценарии
-                </a>
-                <a href="#"
-                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
-                    🤖 Каналы
-                </a>
-                <a href="#"
-                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'client_' ? 'bg-gray-800' : '' }}">
-                    👥 Клиенты
-                </a>
-                <a href="{{ path('company_index') }}"
-                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
-                    🏢 Компании
-                </a>
-            </nav>
-
-            <div class="px-4 py-3 border-t border-gray-700 text-xs text-gray-400">
-                {{ app.user.email }}<br>
-                Компания: {{ app.request.session.get('active_company_id') }}
-            </div>
-        </aside>
-
-
-
-
-        <div class="text-sm text-gray-500">
-            Текущая компания: {{ app.request.session.get('active_company_id') }}
+        <div class="px-4 py-3 border-t border-gray-700 text-xs text-gray-400">
+            {{ app.user.email }}<br>
+            Компания: {{ app.request.session.get('active_company_id') }}
         </div>
-
-
         <div class="p-4 border-t">
             <a href="{{ path('app_logout') }}" class="flex items-center gap-2 text-sm text-red-600 hover:underline">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
