@@ -16,36 +16,76 @@
         <div class="px-6 py-4 text-xl font-bold border-b border-gray-700">
             Convo Commerce
         </div>
+        <nav class="flex-1 px-4 py-6 space-y-6 text-sm">
 
-        <nav class="flex-1 px-4 py-6 space-y-2 text-sm">
-            <a href="{{ path('dashboard') }}"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
-                📬 Главная
-            </a>
-            <a href="{{ path('company_switch.list') }}"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
-                📬 Выбор компании
-            </a>
-            <a href="#"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
-                📬 Чат-центр
-            </a>
-            <a href="#"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'scenario_' ? 'bg-gray-800' : '' }}">
-                🧠 Сценарии
-            </a>
-            <a href="{{ path('telegram_bot.index') }}"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
-                🤖 Каналы
-            </a>
-            <a href="#"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'client_' ? 'bg-gray-800' : '' }}">
-                👥 Клиенты
-            </a>
-            <a href="{{ path('company_index') }}"
-               class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
-                🏢 Компании
-            </a>
+            <!-- Рабочая зона -->
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Рабочая зона</h3>
+
+                <a href="{{ path('dashboard') }}"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'dashboard' ? 'bg-gray-800' : '' }}">
+                    🏠 Главная
+                </a>
+
+                <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
+                    💬 Чат-центр <span class="text-xs text-gray-400">(в разработке)</span>
+                </a>
+
+                <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
+                    🧠 Сценарии <span class="text-xs text-gray-400">(в разработке)</span>
+                </a>
+
+                <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
+                    👥 Клиенты <span class="text-xs text-gray-400">(в разработке)</span>
+                </a>
+            </div>
+
+            <!-- Каналы продаж -->
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Каналы продаж</h3>
+
+                <a href="{{ path('telegram_bot.index') }}"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
+                    🤖 Telegram
+                </a>
+
+                <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
+                    🅰️ Avito <span class="text-xs text-gray-400">(в планах)</span>
+                </a>
+            </div>
+
+            <!-- Компания -->
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Компания</h3>
+
+                <a href="{{ path('company_switch.list') }}"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_switch' ? 'bg-gray-800' : '' }}">
+                    🔀 Выбор компании
+                </a>
+
+                <a href="{{ path('company_index') }}"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
+                    🏢 Мои компании
+                </a>
+            </div>
+
+            <!-- Профиль -->
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Профиль</h3>
+
+                <div class="text-xs text-gray-400 leading-tight mb-2">
+                    👤 <strong>{{ app.user.email }}</strong><br>
+                    🏢 Активная компания: <span class="text-white">{{ app.request.session.get('active_company_id') }}</span>
+                </div>
+
+                {#
+                <a href="{{ path('app_logout') }}"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 text-red-600">
+                    🚪 Выйти
+                </a>
+                #}
+            </div>
+
         </nav>
 
         <div class="px-4 py-3 border-t border-gray-700 text-xs text-gray-400">
