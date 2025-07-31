@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/bot')]
+#[Route('telegram/bot')]
 class TelegramWebhookController extends AbstractController
 {
     #[Route('/{token}', name: 'telegram.webhook', methods: ['POST'])]

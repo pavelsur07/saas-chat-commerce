@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h2 class="text-xl font-bold mb-4">{{ isEdit ? 'Редактировать' : 'Добавить' }} бота</h2>
+
+    {{ form_start(form) }}
+    {{ form_row(form.token) }}
+    <button type="submit"
+            class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded mt-3">
+        Сохранить
+    </button>
+    {{ form_end(form) }}
+{% endblock %}

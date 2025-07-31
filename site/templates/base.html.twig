@@ -34,7 +34,7 @@
                class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'scenario_' ? 'bg-gray-800' : '' }}">
                 🧠 Сценарии
             </a>
-            <a href="#"
+            <a href="{{ path('telegram_bot.index') }}"
                class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
                 🤖 Каналы
             </a>

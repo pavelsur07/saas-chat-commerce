@@ -26,10 +26,9 @@ class TelegramBot
     #[ORM\ManyToOne]
     private Company $company;
 
-    public function __construct(string $id,string $token, Company $company)
+    public function __construct(string $id, Company $company)
     {
         $this->id = $id;
-        $this->token = $token;
         $this->company = $company;
     }
 
