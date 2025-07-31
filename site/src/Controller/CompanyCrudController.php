@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Company;
 use App\Form\CompanyType;
 use App\Repository\CompanyRepository;
+use App\Service\CompanyManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,17 +27,24 @@ class CompanyCrudController extends AbstractController
     }
 
     #[Route('/create', name: 'company_create')]
-    public function create(Request $request, EntityManagerInterface $em): Response
+    public function create(Request $request,CompanyManager $companyManager, EntityManagerInterface $em): Response
     {
-        $user = $this->getUser();
-        $company = new Company(Uuid::uuid4()->toString(), $user);
-
-        $form = $this->createForm(CompanyType::class, $company);
+        $form = $this->createForm(CompanyType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em->persist($company);
-            $em->flush();
+            $data = $form->getData();
+
+            try {
+                $companyManager->createCompany(
+                    $data['name'],
+                    $data['slug'],
+                    $this->getUser()
+                );
+            } catch (\Exception $e) {
+                $this->addFlash('danger', $e->getMessage());
+                return $this->redirectToRoute('company_create');
+            }
 
             return $this->redirectToRoute('company_index');
         }

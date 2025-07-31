@@ -40,9 +40,16 @@ class AppFixtures extends Fixture
         $company2->setSlug('flowai');
         $manager->persist($company2);
 
+        // === User 1: Admin в Company 1 ===
         $userCompany1 = new UserCompany(Uuid::uuid4()->toString(),$user1, $company1);
         $userCompany1->setRole('admin');
         $manager->persist($userCompany1);
+
+        // === User 1: Admin в Company 2 ===
+        $userCompany1 = new UserCompany(Uuid::uuid4()->toString(),$user1, $company2);
+        $userCompany1->setRole('admin');
+        $manager->persist($userCompany1);
+
 
         // === User 2: Оператор в Company 1 ===
         $user2 = new User(Uuid::uuid4()->toString());
