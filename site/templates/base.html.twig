@@ -23,11 +23,15 @@
             />
         </div>
         <nav class="flex-1 p-4 space-y-2">
-            <a href="#" class="block px-3 py-2 rounded bg-gray-100 font-medium">Dashboard</a>
+            <a href="{{ path('dashboard') }}" class="block px-3 py-2 rounded bg-gray-100 font-medium">Dashboard</a>
+            <a href="{{ path('company.list') }}" class="block px-3 py-2 rounded hover:bg-gray-100">Company Switch</a>
             <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Scenarios</a>
             <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Chat</a>
             <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Settings</a>
         </nav>
+        <div class="text-sm text-gray-500">
+            Текущая компания: {{ app.request.session.get('active_company_id') }}
+        </div>
         <div class="p-4 border-t">
             <a href="{{ path('app_logout') }}" class="flex items-center gap-2 text-sm text-red-600 hover:underline">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
