@@ -8,6 +8,10 @@ use Webmozart\Assert\Assert;
 #[ORM\Table(name: '`messages`')]
 class Message
 {
+
+    public const IN='in';
+    public const OUT='out';
+
     #[ORM\Id]
     #[ORM\Column(type: 'guid', unique: true)]
     private ?string $id = null;
@@ -32,6 +36,7 @@ class Message
 
     public function __construct(string $id,Client $client, string $direction, ?string $text = null, ?array $payload = null)
     {
+        Assert::oneOf($direction, self::directionList());
         $this->id = $id;
         $this->client = $client;
         $this->channel = $client->getChannel();
@@ -39,6 +44,16 @@ class Message
         $this->text = $text;
         $this->payload = $payload;
         $this->createdAt = new \DateTimeImmutable();
+    }
+
+    public static function messageOut(string $id,Client $client, ?string $text = null, ?array $payload = null): self
+    {
+        return new self($id, $client, 'out', $text, $payload);
+    }
+
+    public static function messageIn(string $id,Client $client, ?string $text = null, ?array $payload = null): self
+    {
+        return new self($id, $client, 'in', $text, $payload);
     }
 
     public function getId(): ?string
@@ -111,4 +126,12 @@ class Message
         $this->createdAt = $createdAt;
     }
 
+
+    public function directionList(): array
+    {
+        return [
+            self::IN,
+            self::OUT,
+        ];
+    }
 }
