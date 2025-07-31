@@ -22,11 +22,11 @@
                class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
                 📬 Главная
             </a>
-            <a href="#"
+            <a href="{{ path('company_switch.list') }}"
                class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
                 📬 Выбор компании
             </a>
-            <a href="{{path('company.list')}} "
+            <a href="#"
                class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
                 📬 Чат-центр
             </a>

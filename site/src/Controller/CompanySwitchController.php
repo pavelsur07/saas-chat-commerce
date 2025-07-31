@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class CompanySwitchController extends AbstractController
 {
-    #[Route('/companies', name: 'company.list')]
+    #[Route('/companies', name: 'company_switch.list')]
     public function index(UserCompanyRepository $repo)
     {
         $companies = $repo->findBy(['user' => $this->getUser()]);
