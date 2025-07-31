@@ -10,13 +10,13 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 
-class CompanyController extends AbstractController
+class CompanySwitchController extends AbstractController
 {
     #[Route('/companies', name: 'company.list')]
     public function index(UserCompanyRepository $repo)
     {
         $companies = $repo->findBy(['user' => $this->getUser()]);
-        return $this->render('company/index.html.twig', ['companies' => $companies]);
+        return $this->render('company_switch/index.html.twig', ['companies' => $companies]);
     }
 
     #[Route('/companies/switch/{id}', name: 'company.switch')]

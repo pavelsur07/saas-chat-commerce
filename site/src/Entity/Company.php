@@ -22,10 +22,16 @@ class Company
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(string $id)
+    #[ORM\ManyToOne(inversedBy: 'ownedCompanies')]
+    #[ORM\JoinColumn(nullable: false)]
+    private User $owner;
+
+
+    public function __construct(string $id, User $owner)
     {
         Assert::uuid($id);
         $this->id = $id;
+        $this->owner = $owner;
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -67,5 +73,10 @@ class Company
     public function setCreatedAt(\DateTimeImmutable $createdAt): void
     {
         $this->createdAt = $createdAt;
+    }
+
+    public function getOwner(): User
+    {
+        return $this->owner;
     }
 }

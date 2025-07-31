@@ -20,17 +20,6 @@ class AppFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        // === Company 1 ===
-        $company1 = new Company(Uuid::uuid4()->toString());
-        $company1->setName('ConvoTech');
-        $company1->setSlug('convotech');
-        $manager->persist($company1);
-
-        // === Company 2 ===
-        $company2 = new Company(Uuid::uuid4()->toString());
-        $company2->setName('FlowAI Inc');
-        $company2->setSlug('flowai');
-        $manager->persist($company2);
 
         // === User 1: Admin в Company 1 ===
         $user1 = new User(Uuid::uuid4()->toString());
@@ -38,6 +27,18 @@ class AppFixtures extends Fixture
         $user1->setPassword($this->passwordHasher->hashPassword($user1, 'password'));
         $user1->setRoles(['ROLE_ADMIN']);
         $manager->persist($user1);
+
+        // === Company 1 ===
+        $company1 = new Company(Uuid::uuid4()->toString(), $user1);
+        $company1->setName('ConvoTech');
+        $company1->setSlug('convotech');
+        $manager->persist($company1);
+
+        // === Company 2 ===
+        $company2 = new Company(Uuid::uuid4()->toString(), $user1);
+        $company2->setName('FlowAI Inc');
+        $company2->setSlug('flowai');
+        $manager->persist($company2);
 
         $userCompany1 = new UserCompany(Uuid::uuid4()->toString(),$user1, $company1);
         $userCompany1->setRole('admin');

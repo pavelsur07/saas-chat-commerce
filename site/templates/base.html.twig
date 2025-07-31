@@ -29,9 +29,49 @@
             <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Chat</a>
             <a href="#" class="block px-3 py-2 rounded hover:bg-gray-100">Settings</a>
         </nav>
+        <!-- templates/layout/_sidebar.html.twig -->
+        <aside class="w-64 bg-gray-900 text-white h-screen flex flex-col">
+            <div class="px-6 py-4 text-xl font-bold border-b border-gray-700">
+                Convo Commerce
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-2 text-sm">
+                <a href="#"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'chat_' ? 'bg-gray-800' : '' }}">
+                    📬 Чат-центр
+                </a>
+                <a href="#"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'scenario_' ? 'bg-gray-800' : '' }}">
+                    🧠 Сценарии
+                </a>
+                <a href="#"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
+                    🤖 Каналы
+                </a>
+                <a href="#"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'client_' ? 'bg-gray-800' : '' }}">
+                    👥 Клиенты
+                </a>
+                <a href="{{ path('company_index') }}"
+                   class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
+                    🏢 Компании
+                </a>
+            </nav>
+
+            <div class="px-4 py-3 border-t border-gray-700 text-xs text-gray-400">
+                {{ app.user.email }}<br>
+                Компания: {{ app.request.session.get('active_company_id') }}
+            </div>
+        </aside>
+
+
+
+
         <div class="text-sm text-gray-500">
             Текущая компания: {{ app.request.session.get('active_company_id') }}
         </div>
+
+
         <div class="p-4 border-t">
             <a href="{{ path('app_logout') }}" class="flex items-center gap-2 text-sm text-red-600 hover:underline">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -49,36 +89,7 @@
         {% block body %}{% endblock %}
     </main>
 </div>
-{#<header>
-    <h1 class="text-3xl font-bold underline">
-        Hello world!
-    </h1>
 
-    <div class="collapse navbar-collapse" id="navbar-menu">
-        <div class="navbar navbar-light">
-            <div class="container-xl">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('app_home_index') }}" >
-                            #}{#<span class="nav-link-icon d-md-none d-lg-inline-block"><!-- Download SVG icon from http://tabler-icons.io/i/home -->
-                                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
-                            </span>#}{#
-                            <span class="nav-link-title">Главная</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-    </div>
-    <div class="page-wrapper">
-        <div class="page-body">
-            <div class="container-xl">
-                {% block body %}{% endblock %}
-            </div>
-        </div>
-    </div>
-</header>#}
 {% block javascripts %}
     {{ encore_entry_script_tags('app') }}
     {% block importmap %}{{ importmap('app') }}{% endblock %}

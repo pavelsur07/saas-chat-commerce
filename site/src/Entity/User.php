@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -39,6 +41,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?string $password = null;
 
+    #[ORM\OneToMany(targetEntity: Company::class, mappedBy: 'owner')]
+    private Collection $ownedCompanies;
+
     /**
      * @param string $id
      */
@@ -46,6 +51,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         Assert::uuid($id);
         $this->id = $id;
+        $this->ownedCompanies = new ArrayCollection();
     }
 
 
@@ -122,6 +128,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
 
         return $data;
+    }
+
+    public function getOwnedCompanies(): Collection
+    {
+        return $this->ownedCompanies;
     }
 
     #[\Deprecated]

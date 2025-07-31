@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1 class="text-xl font-bold mb-4">
+        {{ isEdit ? 'Редактировать компанию' : 'Создать новую компанию' }}
+    </h1>
+
+    {{ form_start(form) }}
+    <div class="space-y-4">
+        {{ form_row(form.name) }}
+        {{ form_row(form.slug) }}
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">
+            {{ isEdit ? 'Сохранить' : 'Создать' }}
+        </button>
+    </div>
+    {{ form_end(form) }}
+{% endblock %}
