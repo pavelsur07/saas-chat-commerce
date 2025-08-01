@@ -111,6 +111,6 @@ volumes:
 
 networks:
     traefik-public:
-        #external: true    # должна быть создана отдельно (или убрать external для автосоздания)
+        external: true    # должна быть создана отдельно (или убрать external для автосоздания)
     default:
         driver: bridge
