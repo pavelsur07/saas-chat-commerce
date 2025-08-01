@@ -22,9 +22,8 @@ WORKDIR /app
 
 COPY ./package.json ./yarn.lock ./
 
-#RUN yarn install && npm rebuild node-sass
+RUN yarn install && npm rebuild node-sass
 
-RUN yarn install && yarn build
 COPY ./ ./
 
 RUN yarn build
