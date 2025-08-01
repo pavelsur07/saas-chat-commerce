@@ -16,6 +16,17 @@ COPY ./composer.json ./composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-progress --no-scripts --optimize-autoloader \
     && rm -rf /root/.composer/cache
 
+FROM node:18-alpine AS node-builder
+
+WORKDIR /app
+
+COPY ./package.json ./yarn.lock ./
+
+RUN yarn install && npm rebuild node-sass
+
+COPY ./ ./
+
+RUN yarn build
 
 ### FPM ###
 FROM php:8.2-fpm-alpine
@@ -33,6 +44,7 @@ COPY ./docker/production/php/conf.d /usr/local/etc/php/conf.d
 WORKDIR /app
 
 COPY --from=builder /app ./
+COPY --from=node-builder /app/public/build ./public/build
 COPY ./ ./
 
 ENV APP_ENV prod
