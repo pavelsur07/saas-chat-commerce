@@ -3,3 +3,11 @@
 vendor
 .git
 .DS_Store
+.git
+node_modules
+vendor
+var
+*.zip
+tests
+.env.local
+.env.test
