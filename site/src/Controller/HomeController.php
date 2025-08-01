@@ -13,6 +13,7 @@ class HomeController extends AbstractController
     #[Route('/', name: 'dashboard')]
     public function index(): Response
     {
+        $this->addFlash('info', 'Welcome to your dashboard');
         return $this->render('home/index.html.twig',
             [
                 'controller_name' => 'DashboardController',
