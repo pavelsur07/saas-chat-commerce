@@ -82,15 +82,15 @@ services:
         container_name: symfony-redis
         restart: always
     
-    cloudflared:
-        image: cloudflare/cloudflared:latest
-        container_name: cloudflared
-        command: tunnel --no-autoupdate --url http://site:80
-        depends_on:
-            - site
-        networks:
-            - traefik-public
-        restart: unless-stopped
+    #cloudflared:
+    #    image: cloudflare/cloudflared:latest
+    #    container_name: cloudflared
+    #    command: tunnel --no-autoupdate --url http://site:80
+    #    depends_on:
+    #        - site
+    #    networks:
+    #        - traefik-public
+    #    restart: unless-stopped
 
 volumes:
     postgres_data:
