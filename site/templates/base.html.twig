@@ -115,8 +115,9 @@
 
             {% for type in flashTypes %}
                 {% for message in app.flashes(type) %}
-                    <div class="mb-4 border-l-4 p-4 {{ flashClasses[type] }}" role="alert">
-                        {{ message }}
+                    <div data-controller="flash" class="mb-4 border-l-4 p-4 {{ flashClasses[type] }} flex items-center justify-between" role="alert">
+                        <span>{{ message }}</span>
+                        <button type="button" class="ml-4 text-xl leading-none" data-action="flash#close">&times;</button>
                     </div>
                 {% endfor %}
             {% endfor %}
