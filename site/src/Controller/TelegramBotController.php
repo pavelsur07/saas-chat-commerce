@@ -36,7 +36,7 @@ class TelegramBotController extends AbstractController
         ]);
     }
 
-    #[Route('/create', name: 'telegram_bot.create')]
+    #[Route('/create', name: 'telegram_bot.create', methods: ['GET', 'POST'])]
     public function create(Request $request): Response
     {
         $company = $this->companyContext->getCompany();
