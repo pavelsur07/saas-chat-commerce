@@ -4,8 +4,9 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
+use App\Repository\MessageRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: MessageRepository::class)]
 #[ORM\Table(name: '`messages`')]
 class Message
 {
