@@ -44,7 +44,7 @@ class MessageController extends AbstractController
             return [
                 'id' => $message->getId(),
                 'text' => $message->getText(),
-                'direction' => Message::IN === $message->getDirection() ? 'incoming' : 'outgoing',
+                'direction' => Message::IN === $message->getDirection() ? 'in' : 'out',
                 'timestamp' => $message->getCreatedAt()->format(DATE_ATOM),
             ];
         }, $items);
