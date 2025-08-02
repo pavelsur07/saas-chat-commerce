@@ -9,7 +9,6 @@ use App\Repository\MessageRepository;
 use App\Repository\TelegramBotRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Nonstandard\Uuid;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class MessageController extends AbstractController
 {
@@ -44,7 +44,7 @@ class MessageController extends AbstractController
             return [
                 'id' => $message->getId(),
                 'text' => $message->getText(),
-                'direction' => $message->getDirection() === Message::IN ? 'incoming' : 'outgoing',
+                'direction' => Message::IN === $message->getDirection() ? 'incoming' : 'outgoing',
                 'timestamp' => $message->getCreatedAt()->format(DATE_ATOM),
             ];
         }, $items);
@@ -87,7 +87,7 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        if ($client->getChannel() !== Client::TELEGRAM) {
+        if (Client::TELEGRAM !== $client->getChannel()) {
             return new JsonResponse(['error' => 'Client is not from telegram'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -130,4 +130,3 @@ class MessageController extends AbstractController
         ]);
     }
 }
-
