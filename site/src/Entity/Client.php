@@ -2,10 +2,11 @@
 
 namespace App\Entity;
 
+use App\Repository\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: ClientRepository::class)]
 #[ORM\Table(name: '`clients`')]
 class Client
 {
