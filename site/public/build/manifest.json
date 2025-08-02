@@ -1,6 +1,9 @@
 {
-  "build/app.css": "/build/app.css",
   "build/app.js": "/build/app.js",
+  "build/chatCenter.js": "/build/chatCenter.js",
   "build/runtime.js": "/build/runtime.js",
-  "build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_react_jsx-runtime_js--bc73d6.js": "/build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_react_jsx-runtime_js--bc73d6.js"
+  "build/vendors-node_modules_react-dom_client_js-node_modules_react_jsx-runtime_js-node_modules_core--93b483.js": "/build/vendors-node_modules_react-dom_client_js-node_modules_react_jsx-runtime_js-node_modules_core--93b483.js",
+  "build/vendors-node_modules_core-js_modules_es_array_from_js-node_modules_core-js_modules_es_array_i-3d29fb.js": "/build/vendors-node_modules_core-js_modules_es_array_from_js-node_modules_core-js_modules_es_array_i-3d29fb.js",
+  "build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_core-js_modules_es_da-97ea9b.js": "/build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_core-js_modules_es_da-97ea9b.js",
+  "build/assets_styles_app_css.css": "/build/assets_styles_app_css.css"
 }

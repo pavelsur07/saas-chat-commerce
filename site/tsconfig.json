@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "lib": ["DOM", "ES6", "DOM.Iterable", "ScriptHost"],
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "esModuleInterop": true,
+        "strict": true,
+        "jsx": "react-jsx",
+        "sourceMap": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "baseUrl": "./assets",
+        "paths": {
+            "*": ["*"]
+        }
+    },
+    "include": [
+        "assets/**/*"
+    ]
+}
