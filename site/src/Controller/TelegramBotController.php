@@ -49,17 +49,23 @@ class TelegramBotController extends AbstractController
             if (!$this->telegramService->validateToken($bot->getToken())) {
                 $this->addFlash('danger', 'Неверный токен Telegram');
             } else {
-                $webhookUrl = $this->generateUrl('telegram.webhook', [
-                    'token' => $bot->getToken(),
-                ], UrlGeneratorInterface::ABSOLUTE_URL);
+                try {
+                    $webhookUrl = $this->generateUrl('telegram.webhook', [
+                        'token' => $bot->getToken(),
+                    ], UrlGeneratorInterface::ABSOLUTE_URL);
 
-                $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
-                $bot->setWebhookUrl($webhookUrl);
+                    $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
+                    $bot->setWebhookUrl($webhookUrl);
 
-                $this->em->persist($bot);
-                $this->em->flush();
+                    $this->em->persist($bot);
+                    $this->em->flush();
 
-                return $this->redirectToRoute('telegram_bot.index');
+                    $this->addFlash('success', 'Бот успешно создан');
+
+                    return $this->redirectToRoute('telegram_bot.index');
+                } catch (\Throwable $e) {
+                    $this->addFlash('danger', 'Ошибка при создании бота: ' . $e->getMessage());
+                }
             }
         }
 
