@@ -105,6 +105,21 @@
 
         <!-- Main content -->
         <main class="flex-1 p-8 overflow-auto">
+            {% set flashTypes = ['success', 'warning', 'danger', 'info'] %}
+            {% set flashClasses = {
+                'success': 'border-green-400 bg-green-100 text-green-700',
+                'warning': 'border-yellow-400 bg-yellow-100 text-yellow-700',
+                'danger':  'border-red-400 bg-red-100 text-red-700',
+                'info':    'border-blue-400 bg-blue-100 text-blue-700'
+            } %}
+
+            {% for type in flashTypes %}
+                {% for message in app.flashes(type) %}
+                    <div class="mb-4 border-l-4 p-4 {{ flashClasses[type] }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
 
             {% block body %}{% endblock %}
         </main>
