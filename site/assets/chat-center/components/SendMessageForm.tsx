@@ -14,14 +14,19 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
     const { register, handleSubmit, reset } = useForm<{ message: string }>();
 
     const onSubmit = async (data: { message: string }) => {
+
+        const message = data.message?.trim(); // ✂️ обрезаем пробелы
+        console.error( message );
+
         if (!clientId) return;
         try {
-            await axios.post(`/api/messages/${clientId}`, { text: data.message });
+            await axios.post(`/api/messages/${clientId}`, { text: message });
             reset();
             toast.success('Сообщение отправлено');
             onMessageSent();
         } catch (e) {
             toast.error('Ошибка при отправке');
+            console.error('Ошибка при POST /api/messages:', e);
         }
     };
 
