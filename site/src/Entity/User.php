@@ -44,16 +44,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Company::class, mappedBy: 'owner')]
     private Collection $ownedCompanies;
 
-    /**
-     * @param string $id
-     */
     public function __construct(string $id)
     {
         Assert::uuid($id);
         $this->id = $id;
         $this->ownedCompanies = new ArrayCollection();
     }
-
 
     public function getId(): ?string
     {

@@ -26,7 +26,7 @@ class UserCompany
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $joinedAt;
 
-    public function __construct(string $id,User $user, Company $company)
+    public function __construct(string $id, User $user, Company $company)
     {
         Assert::uuid($id);
         $this->id = $id;

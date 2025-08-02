@@ -26,7 +26,6 @@ class Company
     #[ORM\JoinColumn(nullable: false)]
     private User $owner;
 
-
     public function __construct(string $id, User $owner)
     {
         Assert::uuid($id);

@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Entity;
-// src/Entity/TelegramBot.php
 
+// src/Entity/TelegramBot.php
 
 use Doctrine\ORM\Mapping as ORM;
 

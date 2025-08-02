@@ -20,15 +20,16 @@ class CompanyManager
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private EventDispatcherInterface $dispatcher
-    ) {}
+        private EventDispatcherInterface $dispatcher,
+    ) {
+    }
 
     public function createCompany(string $name, string $slug, User $owner): Company
     {
         // Проверка уникальности slug TODO перенести в CompanyRepository
         $existing = $this->em->getRepository(Company::class)->findOneBy(['slug' => $slug]);
         if ($existing) {
-            throw new BadRequestHttpException("Компания с таким slug уже существует.");
+            throw new BadRequestHttpException('Компания с таким slug уже существует.');
         }
 
         // Создаём компанию
@@ -40,7 +41,7 @@ class CompanyManager
         $this->em->persist($company);
 
         // Связываем владельца
-        $userCompany = new UserCompany(Uuid::uuid4()->toString(),$owner, $company);
+        $userCompany = new UserCompany(Uuid::uuid4()->toString(), $owner, $company);
         $this->em->persist($userCompany);
 
         $this->em->flush();

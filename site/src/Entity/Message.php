@@ -4,13 +4,13 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
+
 #[ORM\Entity]
 #[ORM\Table(name: '`messages`')]
 class Message
 {
-
-    public const IN='in';
-    public const OUT='out';
+    public const IN = 'in';
+    public const OUT = 'out';
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid', unique: true)]
@@ -34,7 +34,7 @@ class Message
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(string $id,Client $client, string $direction, ?string $text = null, ?array $payload = null)
+    public function __construct(string $id, Client $client, string $direction, ?string $text = null, ?array $payload = null)
     {
         Assert::oneOf($direction, self::directionList());
         $this->id = $id;
@@ -46,12 +46,12 @@ class Message
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public static function messageOut(string $id,Client $client, ?string $text = null, ?array $payload = null): self
+    public static function messageOut(string $id, Client $client, ?string $text = null, ?array $payload = null): self
     {
         return new self($id, $client, 'out', $text, $payload);
     }
 
-    public static function messageIn(string $id,Client $client, ?string $text = null, ?array $payload = null): self
+    public static function messageIn(string $id, Client $client, ?string $text = null, ?array $payload = null): self
     {
         return new self($id, $client, 'in', $text, $payload);
     }
@@ -125,7 +125,6 @@ class Message
     {
         $this->createdAt = $createdAt;
     }
-
 
     public function directionList(): array
     {

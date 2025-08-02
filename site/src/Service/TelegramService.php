@@ -9,14 +9,14 @@ class TelegramService
     {
         $response = $this->sendTelegramRequest($token, 'getMe', []);
 
-        return isset($response['ok']) && $response['ok'] === true;
+        return isset($response['ok']) && true === $response['ok'];
     }
 
     public function setWebhook(string $token, string $webhookUrl): bool
     {
         $response = $this->sendTelegramRequest($token, 'setWebhook', ['url' => $webhookUrl]);
 
-        return isset($response['ok']) && $response['ok'] === true;
+        return isset($response['ok']) && true === $response['ok'];
     }
 
     private function sendTelegramRequest(string $token, string $method, array $params): array
@@ -33,14 +33,14 @@ class TelegramService
         $error = curl_error($ch);
         curl_close($ch);
 
-        if ($result === false) {
+        if (false === $result) {
             throw new \RuntimeException("Ошибка CURL: $error");
         }
 
         $data = json_decode($result, true);
 
-        if (!isset($data['ok']) || $data['ok'] !== true) {
-            throw new \RuntimeException('Ошибка Telegram API: ' . ($data['description'] ?? 'unknown'));
+        if (!isset($data['ok']) || true !== $data['ok']) {
+            throw new \RuntimeException('Ошибка Telegram API: '.($data['description'] ?? 'unknown'));
         }
 
         return $data;

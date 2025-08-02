@@ -7,7 +7,6 @@ use App\Form\CompanyType;
 use App\Repository\CompanyRepository;
 use App\Service\CompanyManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +26,7 @@ class CompanyCrudController extends AbstractController
     }
 
     #[Route('/create', name: 'company_create')]
-    public function create(Request $request,CompanyManager $companyManager, EntityManagerInterface $em): Response
+    public function create(Request $request, CompanyManager $companyManager, EntityManagerInterface $em): Response
     {
         $form = $this->createForm(CompanyType::class);
         $form->handleRequest($request);
@@ -43,6 +42,7 @@ class CompanyCrudController extends AbstractController
                 );
             } catch (\Exception $e) {
                 $this->addFlash('danger', $e->getMessage());
+
                 return $this->redirectToRoute('company_create');
             }
 
@@ -67,6 +67,7 @@ class CompanyCrudController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $em->flush();
+
             return $this->redirectToRoute('company_index');
         }
 
@@ -83,7 +84,7 @@ class CompanyCrudController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if ($this->isCsrfTokenValid('delete_company_' . $company->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete_company_'.$company->getId(), $request->request->get('_token'))) {
             $em->remove($company);
             $em->flush();
         }

@@ -2,15 +2,14 @@
 
 namespace App\Controller\Webhook;
 
-
 use App\Entity\Client;
 use App\Entity\Message;
 use App\Repository\TelegramBotRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Nonstandard\Uuid;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('telegram/bot')]
@@ -21,7 +20,7 @@ class TelegramWebhookController extends AbstractController
         string $token,
         Request $request,
         TelegramBotRepository $botRepo,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
     ): JsonResponse {
         $bot = $botRepo->findOneBy(['token' => $token, 'isActive' => true]);
         if (!$bot) {

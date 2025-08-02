@@ -5,16 +5,13 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 
-
 #[ORM\Entity]
 #[ORM\Table(name: '`clients`')]
 class Client
 {
-
-    public const TELEGRAM ='telegram';
-    public const WHATSAPP ='whatsapp';
-    public const INSTAGRAM ='instagram';
-
+    public const TELEGRAM = 'telegram';
+    public const WHATSAPP = 'whatsapp';
+    public const INSTAGRAM = 'instagram';
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid', unique: true)]
@@ -41,7 +38,7 @@ class Client
     #[ORM\ManyToOne]
     private Company $company;
 
-    public function __construct(string $id,string $channel, string $externalId, Company $company)
+    public function __construct(string $id, string $channel, string $externalId, Company $company)
     {
         Assert::uuid($id);
         Assert::oneOf($channel, self::channelList());
@@ -53,7 +50,7 @@ class Client
 
     public function getUniqueKey(): string
     {
-        return $this->channel . ':' . $this->externalId;
+        return $this->channel.':'.$this->externalId;
     }
 
     public function getId(): ?string

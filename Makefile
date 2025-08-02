@@ -30,6 +30,13 @@ site-assets-build:
 site-yarn-upgrade:
 	docker-compose run --rm site-node-cli yarn upgrade
 
+site-lint:
+	docker-compose run --rm site-php-cli composer lint
+	docker-compose run --rm site-php-cli composer php-cs-fixer fix -- --dry-run --diff
+
+site-cs-fix:
+	docker-compose run --rm site-php-cli composer php-cs-fixer fix
+
 site-wait-db:
 	until docker-compose exec -T site-postgres pg_isready --timeout=0 --dbname=app ; do sleep 1 ; done
 

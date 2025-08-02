@@ -80,6 +80,8 @@
         "symfony/polyfill-php82": "*"
     },
     "scripts": {
+        "lint": "phplint",
+        "php-cs-fixer": "php-cs-fixer --config=.php-cs-fixer.php",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd",
@@ -103,6 +105,8 @@
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "^4.1",
+        "friendsofphp/php-cs-fixer": "^3.85",
+        "overtrue/phplint": "^9.6",
         "phpunit/phpunit": "^11.5.28",
         "symfony/browser-kit": "7.3.*",
         "symfony/css-selector": "7.3.*",

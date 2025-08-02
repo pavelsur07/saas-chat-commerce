@@ -7,7 +7,8 @@ use App\Entity\User;
 use App\Repository\UserCompanyRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
-/*use Symfony\Component\Security\Core\Security;*/
+
+/* use Symfony\Component\Security\Core\Security; */
 
 class CompanyContextService
 {
@@ -16,8 +17,9 @@ class CompanyContextService
     public function __construct(
         private readonly RequestStack $requestStack,
         private readonly Security $security,
-        private readonly UserCompanyRepository $userCompanyRepository
-    ) {}
+        private readonly UserCompanyRepository $userCompanyRepository,
+    ) {
+    }
 
     public function getCompany(): ?Company
     {
@@ -35,7 +37,7 @@ class CompanyContextService
         $user = $this->security->getUser();
         $userCompany = $this->userCompanyRepository->findOneBy([
             'user' => $user,
-            'company' => $companyId
+            'company' => $companyId,
         ]);
 
         return $this->currentCompany = $userCompany?->getCompany();

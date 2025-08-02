@@ -12,8 +12,9 @@ class CompanyCreatedEvent extends Event
     public const NAME = 'company.created';
 
     public function __construct(
-        private Company $company
-    ) {}
+        private Company $company,
+    ) {
+    }
 
     public function getCompany(): Company
     {

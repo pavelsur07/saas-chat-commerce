@@ -20,8 +20,9 @@ class TelegramBotController extends AbstractController
     public function __construct(
         private TelegramService $telegramService,
         private CompanyContextService $companyContext,
-        private EntityManagerInterface $em
-    ) {}
+        private EntityManagerInterface $em,
+    ) {
+    }
 
     #[Route('/', name: 'telegram_bot.index')]
     public function index(): Response
@@ -49,7 +50,7 @@ class TelegramBotController extends AbstractController
                 $this->addFlash('danger', 'Неверный токен Telegram');
             } else {
                 $webhookUrl = $this->generateUrl('telegram.webhook', [
-                    'token' => $bot->getToken()
+                    'token' => $bot->getToken(),
                 ], UrlGeneratorInterface::ABSOLUTE_URL);
 
                 $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
