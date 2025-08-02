@@ -37,11 +37,6 @@ class TelegramBot
         return $this->id;
     }
 
-    public function setId(?string $id): void
-    {
-        $this->id = $id;
-    }
-
     public function getToken(): string
     {
         return $this->token;
@@ -75,10 +70,5 @@ class TelegramBot
     public function getCompany(): Company
     {
         return $this->company;
-    }
-
-    public function setCompany(Company $company): void
-    {
-        $this->company = $company;
     }
 }

@@ -48,8 +48,9 @@ class TelegramBotController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $token = $form->getData()['token'];
+            $bot->setToken($token);
             try {
-                if (!$this->telegramService->validateToken($token)) {
+                if (!$this->telegramService->validateToken($bot->getToken())) {
                     $form->get('token')->addError(new FormError('Неверный токен Telegram'));
                 }
 
@@ -65,7 +66,7 @@ class TelegramBotController extends AbstractController
 
                 $this->addFlash('success', 'Бот успешно создан');
             } catch (\Throwable$e) {
-                $this->addFlash('danger', 'Ошибка при создании бота: '.$e->getMessage());
+                $this->addFlash('danger', 'Ошибка при создании бота: '.$e->getMessage().' '.$token);
             }
 
             return $this->redirectToRoute('telegram_bot.index');
