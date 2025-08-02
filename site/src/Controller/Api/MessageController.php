@@ -92,6 +92,11 @@ class MessageController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
+
+        if (!is_array($data)) {
+            $data = $request->request->all();
+        }
+
         $text = $data['text'] ?? null;
 
         $errors = $validator->validate($text, [new Assert\NotBlank(), new Assert\Length(max: 1000)]);
