@@ -22,22 +22,13 @@ const MessageList: React.FC<Props> = ({ clientId }) => {
         axios.get(`/api/messages/${clientId}`).then((res) => setMessages(res.data.messages));
     }, [clientId]);
 
-    /*const [messages, setMessages] = useState<Message[]>([]);
-
-    useEffect(() => {
-        if (!clientId) return;
-        axios.get(`/api/messages/${clientId}`).then((res) => {
-            setMessages(res.data.messages); // ⬅️ исправили здесь
-        });
-    }, [clientId]);*/
-
     return (
         <div className="space-y-2">
             {messages.map((msg) => (
                 <div
                     key={msg.id}
                     className={`max-w-xs px-4 py-2 rounded-lg ${
-                        msg.direction === 'in' ? 'bg-gray-200 self-start' : 'bg-blue-500 text-white self-end'
+                        msg.direction === 'in' ? 'bg-gray-200 self-start' : 'bg-blue-500 text-white self-end ml-8'
                     }`}
                 >
                     <div>{msg.text}</div>
