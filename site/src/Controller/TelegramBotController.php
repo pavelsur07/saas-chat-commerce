@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Form\FormError;
 
 #[Route('telegram/bots')]
 class TelegramBotController extends AbstractController
@@ -46,10 +47,10 @@ class TelegramBotController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            if (!$this->telegramService->validateToken($bot->getToken())) {
-                $this->addFlash('danger', 'Неверный токен Telegram');
-            } else {
-                try {
+            try {
+                if (!$this->telegramService->validateToken($bot->getToken())) {
+                    $form->get('token')->addError(new FormError('Неверный токен Telegram'));
+                } else {
                     $webhookUrl = $this->generateUrl('telegram.webhook', [
                         'token' => $bot->getToken(),
                     ], UrlGeneratorInterface::ABSOLUTE_URL);
@@ -63,9 +64,9 @@ class TelegramBotController extends AbstractController
                     $this->addFlash('success', 'Бот успешно создан');
 
                     return $this->redirectToRoute('telegram_bot.index');
-                } catch (\Throwable $e) {
-                    $this->addFlash('danger', 'Ошибка при создании бота: ' . $e->getMessage());
                 }
+            } catch (\Throwable $e) {
+                $this->addFlash('danger', 'Ошибка при создании бота: ' . $e->getMessage());
             }
         }
 
