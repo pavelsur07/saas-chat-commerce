@@ -37,6 +37,10 @@ site-lint:
 site-cs-fix:
 	docker-compose run --rm site-php-cli composer php-cs-fixer fix
 
+site-test-unit:
+	docker-compose run --rm site-php-cli composer test run unit
+	docker-compose run --rm site-php-cli composer test -- --testsuite=unit
+
 site-wait-db:
 	until docker-compose exec -T site-postgres pg_isready --timeout=0 --dbname=app ; do sleep 1 ; done
 
