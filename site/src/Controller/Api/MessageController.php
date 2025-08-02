@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Service\TelegramService;
 
 class MessageController extends AbstractController
 {
@@ -70,7 +70,7 @@ class MessageController extends AbstractController
         ClientRepository $clients,
         TelegramBotRepository $bots,
         EntityManagerInterface $em,
-        HttpClientInterface $httpClient,
+        TelegramService $telegramService,
         ValidatorInterface $validator,
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
@@ -105,17 +105,7 @@ class MessageController extends AbstractController
         }
 
         try {
-            $response = $httpClient->request('POST', sprintf('https://api.telegram.org/bot%s/sendMessage', $bot->getToken()), [
-                'json' => [
-                    'chat_id' => $client->getExternalId(),
-                    'text' => $text,
-                ],
-            ]);
-
-            $result = $response->toArray(false);
-            if (!($result['ok'] ?? false)) {
-                throw new \RuntimeException('Telegram API error');
-            }
+            $telegramService->sendMessage($bot->getToken(), $client->getExternalId(), $text);
         } catch (\Throwable) {
             return new JsonResponse(['error' => 'Telegram API error'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
