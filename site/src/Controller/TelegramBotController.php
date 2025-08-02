@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Form\FormError;
 
-#[Route('telegram/bots')]
+#[Route('/telegram/bots')]
 class TelegramBotController extends AbstractController
 {
     public function __construct(
