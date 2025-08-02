@@ -66,7 +66,7 @@ class TelegramBotController extends AbstractController
 
                 $this->addFlash('success', 'Бот успешно создан');
             } catch (\Throwable$e) {
-                $this->addFlash('danger', 'Ошибка при создании бота: '.$e->getMessage().' '.$token);
+                $this->addFlash('danger', 'Ошибка при создании бота: '.$e->getMessage().' '.$token. ' '. $webhookUrl);
             }
 
             return $this->redirectToRoute('telegram_bot.index');
