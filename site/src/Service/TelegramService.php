@@ -23,7 +23,7 @@ class TelegramService
     {
         $this->sendTelegramRequest($token, 'sendMessage', [
             'chat_id' => $chatId,
-            'text'    => $text,
+            'text' => $text,
         ]);
     }
 
