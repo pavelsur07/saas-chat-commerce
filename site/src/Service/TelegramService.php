@@ -19,6 +19,14 @@ class TelegramService
         return isset($response['ok']) && true === $response['ok'];
     }
 
+    public function sendMessage(string $token, string $chatId, string $text): void
+    {
+        $this->sendTelegramRequest($token, 'sendMessage', [
+            'chat_id' => $chatId,
+            'text'    => $text,
+        ]);
+    }
+
     private function sendTelegramRequest(string $token, string $method, array $params): array
     {
         $url = "https://api.telegram.org/bot{$token}/{$method}";
