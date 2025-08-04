@@ -7,6 +7,7 @@ use App\Entity\Message;
 use App\Repository\ClientRepository;
 use App\Repository\MessageRepository;
 use App\Repository\TelegramBotRepository;
+use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Nonstandard\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,7 +18,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use App\Service\TelegramService;
 
 class MessageController extends AbstractController
 {
@@ -74,10 +74,12 @@ class MessageController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
+
         if (!$activeCompanyId) {
             return new JsonResponse(['error' => 'Active company not selected'], Response::HTTP_FORBIDDEN);
         }
 
+        /** @var Client $client */
         $client = $clients->find($client_id);
         if (!$client) {
             return new JsonResponse(['error' => 'Client not found'], Response::HTTP_NOT_FOUND);
@@ -104,16 +106,16 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Invalid text'], Response::HTTP_BAD_REQUEST);
         }
 
-        $bot = $bots->findOneBy(['company' => $client->getCompany(), 'isActive' => true]);
+        /*$bot = $bots->findOneBy(['company' => $client->getCompany(), 'isActive' => true]);
         if (!$bot) {
             return new JsonResponse(['error' => 'Active telegram bot not found'], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        }*/
 
-        try {
+        /*try {
             $telegramService->sendMessage($bot->getToken(), $client->getExternalId(), $text);
         } catch (\Throwable) {
             return new JsonResponse(['error' => 'Telegram API error'], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        }*/
 
         $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $text);
         $em->persist($message);

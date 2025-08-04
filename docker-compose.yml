@@ -81,16 +81,25 @@ services:
         image: redis:alpine
         container_name: symfony-redis
         restart: always
-    
-    #cloudflared:
-    #    image: cloudflare/cloudflared:latest
-    #    container_name: cloudflared
-    #    command: tunnel --no-autoupdate --url http://site:80
-    #    depends_on:
-    #        - site
-    #    networks:
-    #        - traefik-public
-    #    restart: unless-stopped
+    site-nginx-cloud:
+        image: nginx:alpine
+        container_name: site-nginx-cloud
+        volumes:
+            - ./site:/app
+            - ./site/docker/common/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+        networks:
+            - default
+        depends_on:
+            - site-php-fpm
+    cloudflared:
+        image: cloudflare/cloudflared:latest
+        container_name: cloudflared
+        command: tunnel --no-autoupdate --url http://site-nginx-cloud:80
+        depends_on:
+            - site
+        networks:
+            - traefik-public
+        restart: unless-stopped
 
 volumes:
     postgres_data:

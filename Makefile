@@ -50,6 +50,21 @@ site-migrations:
 site-fixtures:
 	docker-compose run --rm site-php-cli php bin/console doctrine:fixtures:load --no-interaction
 
+
+#Запустить Cloudflare Tunnel
+tunnel-start:
+	docker-compose up -d cloudflared
+
+# Получить HTTPS URL из cloudflared логов и сохранить в .env.local
+tunnel-expose:
+	@echo "⏳ Получаем публичный URL от cloudflared..."
+	@sleep 3
+	@docker logs cloudflared 2>&1 | grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' | head -n1 | \
+    xargs -I{} sh -c 'echo "WEBHOOK_BASE_URL={}" > site/.env.local && echo "✅ URL сохранён: {}"'
+
+# Полная команда: запуск + установка URL
+tunnel-init: tunnel-start tunnel-expose
+
 build: build-site
 
 build-site:
