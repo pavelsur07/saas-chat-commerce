@@ -106,16 +106,16 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Invalid text'], Response::HTTP_BAD_REQUEST);
         }
 
-        /*$bot = $bots->findOneBy(['company' => $client->getCompany(), 'isActive' => true]);
+        $bot = $bots->findOneBy(['company' => $client->getCompany(), 'isActive' => true]);
         if (!$bot) {
             return new JsonResponse(['error' => 'Active telegram bot not found'], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }*/
+        }
 
-        /*try {
+        try {
             $telegramService->sendMessage($bot->getToken(), $client->getExternalId(), $text);
         } catch (\Throwable) {
             return new JsonResponse(['error' => 'Telegram API error'], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }*/
+        }
 
         $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $text);
         $em->persist($message);
