@@ -6,11 +6,13 @@
     "require": {
         "php": ">=8.2",
         "ext-ctype": "*",
+        "ext-curl": "*",
         "ext-iconv": "*",
         "doctrine/dbal": "^3.10",
         "doctrine/doctrine-bundle": "^2.15",
         "doctrine/doctrine-migrations-bundle": "^3.4.2",
         "doctrine/orm": "^3.5",
+        "longman/telegram-bot": "^0.83.1",
         "phpdocumentor/reflection-docblock": "^5.6.2",
         "phpstan/phpdoc-parser": "^2.2",
         "ramsey/uuid": "^4.9",
@@ -47,8 +49,7 @@
         "symfony/webpack-encore-bundle": "^2.2",
         "symfony/yaml": "7.3.*",
         "twig/extra-bundle": "^2.12|^3.21",
-        "twig/twig": "^2.12|^3.21.1",
-        "ext-curl": "*"
+        "twig/twig": "^2.12|^3.21.1"
     },
     "config": {
         "allow-plugins": {
