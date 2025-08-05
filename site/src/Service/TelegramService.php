@@ -2,6 +2,9 @@
 
 namespace App\Service;
 
+use Longman\TelegramBot\Request;
+use Longman\TelegramBot\Telegram;
+
 // src/Service/TelegramService.php
 class TelegramService
 {
@@ -32,6 +35,38 @@ class TelegramService
             'chat_id' => $chatId,
             'text' => $text,
         ]);
+    }
+
+    /**
+     * Read messages from a telegram bot and return them as an array.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fetchMessages(string $token): array
+    {
+        $telegram = new Telegram($token, '');
+        $telegram->useGetUpdatesWithoutDatabase();
+
+        $response = Request::getUpdates();
+
+        if (!$response->isOk()) {
+            throw new \RuntimeException('Ошибка Telegram API: '.$response->getDescription());
+        }
+
+        $messages = [];
+
+        foreach ($response->getResult() as $update) {
+            $message = $update->getMessage();
+            if (null !== $message) {
+                $messages[] = [
+                    'message_id' => $message->getMessageId(),
+                    'chat_id' => $message->getChat()->getId(),
+                    'text' => $message->getText(),
+                ];
+            }
+        }
+
+        return $messages;
     }
 
     private function sendTelegramRequest(string $token, string $method, array $params): array
