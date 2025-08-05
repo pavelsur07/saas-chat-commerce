@@ -120,5 +120,26 @@ class TelegramBotController extends AbstractController
             ]);
         }*/
 
-    // + edit() и delete() при необходимости
+    #[Route('/{id}/delete', name: 'telegram_bot.delete', methods: ['POST'])]
+    public function delete(TelegramBot $bot, Request $request): Response
+    {
+        if ($bot->getCompany() !== $this->companyContext->getCompany()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if ($this->isCsrfTokenValid('delete_bot_'.$bot->getId(), $request->request->get('_token'))) {
+            try {
+                $this->telegramService->deleteWebhook($bot->getToken());
+            } catch (\Throwable $e) {
+                // Игнорируем ошибки удаления вебхука
+            }
+
+            $this->em->remove($bot);
+            $this->em->flush();
+
+            $this->addFlash('success', 'Бот удалён');
+        }
+
+        return $this->redirectToRoute('telegram_bot.index');
+    }
 }
