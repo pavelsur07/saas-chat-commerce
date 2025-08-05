@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\MessageRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
+use App\Entity\TelegramBot;
 
 #[ORM\Entity(repositoryClass: MessageRepository::class)]
 #[ORM\Table(name: '`messages`')]
@@ -32,10 +33,14 @@ class Message
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $payload = null; // любые дополнительные данные
 
+    #[ORM\ManyToOne(targetEntity: TelegramBot::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?TelegramBot $telegramBot = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(string $id, Client $client, string $direction, ?string $text = null, ?array $payload = null)
+    public function __construct(string $id, Client $client, string $direction, ?string $text = null, ?array $payload = null, ?TelegramBot $telegramBot = null)
     {
         Assert::oneOf($direction, self::directionList());
         $this->id = $id;
@@ -44,17 +49,18 @@ class Message
         $this->direction = $direction;
         $this->text = $text;
         $this->payload = $payload;
+        $this->telegramBot = $telegramBot;
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public static function messageOut(string $id, Client $client, ?string $text = null, ?array $payload = null): self
+    public static function messageOut(string $id, Client $client, TelegramBot $telegramBot, ?string $text = null, ?array $payload = null): self
     {
-        return new self($id, $client, 'out', $text, $payload);
+        return new self($id, $client, 'out', $text, $payload, $telegramBot);
     }
 
-    public static function messageIn(string $id, Client $client, ?string $text = null, ?array $payload = null): self
+    public static function messageIn(string $id, Client $client, TelegramBot $telegramBot, ?string $text = null, ?array $payload = null): self
     {
-        return new self($id, $client, 'in', $text, $payload);
+        return new self($id, $client, 'in', $text, $payload, $telegramBot);
     }
 
     public function getId(): ?string
@@ -115,6 +121,16 @@ class Message
     public function setPayload(?array $payload): void
     {
         $this->payload = $payload;
+    }
+
+    public function getTelegramBot(): ?TelegramBot
+    {
+        return $this->telegramBot;
+    }
+
+    public function setTelegramBot(?TelegramBot $telegramBot): void
+    {
+        $this->telegramBot = $telegramBot;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

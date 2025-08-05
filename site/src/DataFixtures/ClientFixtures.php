@@ -31,8 +31,8 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $telegramClient->setRawData(['chat' => ['id' => 123456789, 'username' => 'telegram_user']]);
         $manager->persist($telegramClient);
 
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'in', 'Привет!'));
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'out', 'Здравствуйте, чем могу помочь?'));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'in', 'Привет!', null, null));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'out', 'Здравствуйте, чем могу помочь?', null, null));
 
         // === WhatsApp Client ===
         $whatsappClient = new Client(Uuid::uuid4()->toString(), Client::WHATSAPP, '79001234567', $company1);
@@ -41,8 +41,8 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $whatsappClient->setRawData(['wa_id' => '79001234567']);
         $manager->persist($whatsappClient);
 
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $whatsappClient, 'in', 'Здравствуйте, вы доставляете в Казань?'));
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $whatsappClient, 'out', 'Да, доставка в Казань занимает 2 дня'));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $whatsappClient, 'in', 'Здравствуйте, вы доставляете в Казань?', null, null));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $whatsappClient, 'out', 'Да, доставка в Казань занимает 2 дня', null, null));
 
         // === Instagram Client ===
         $instaClient = new Client(Uuid::uuid4()->toString(), 'instagram', 'insta_001', $company2);
@@ -51,8 +51,8 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $instaClient->setRawData(['profile' => ['username' => '@insta_user']]);
         $manager->persist($instaClient);
 
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $instaClient, 'in', 'Это точно хлопок?'));
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $instaClient, 'out', 'Да, 100% органический хлопок!'));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $instaClient, 'in', 'Это точно хлопок?', null, null));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $instaClient, 'out', 'Да, 100% органический хлопок!', null, null));
 
         // Сохранение всех
         $manager->flush();
