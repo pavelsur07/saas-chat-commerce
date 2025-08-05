@@ -19,6 +19,13 @@ class TelegramService
         return isset($response['ok']) && true === $response['ok'];
     }
 
+    public function deleteWebhook(string $token): bool
+    {
+        $response = $this->sendTelegramRequest($token, 'deleteWebhook', []);
+
+        return isset($response['ok']) && true === $response['ok'];
+    }
+
     public function sendMessage(string $token, string $chatId, string $text): void
     {
         $this->sendTelegramRequest($token, 'sendMessage', [
