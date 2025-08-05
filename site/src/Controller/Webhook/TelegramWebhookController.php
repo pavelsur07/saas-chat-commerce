@@ -57,7 +57,13 @@ class TelegramWebhookController extends AbstractController
         }
 
         // Сохраняем сообщение
-        $message = new Message($client, $msg['text'] ?? '', 'in');
+        $message = Message::messageIn(
+            Uuid::uuid4()->toString(),
+            $client,
+            $bot,
+            $msg['text'] ?? null,
+            $msg
+        );
         $em->persist($message);
         $em->flush();
 
