@@ -14,6 +14,7 @@
             <th class="px-4 py-2">Token</th>
             <th class="px-4 py-2">Webhook</th>
             <th class="px-4 py-2">Статус</th>
+            <th class="px-4 py-2">Действия</th>
         </tr>
         </thead>
         <tbody>
@@ -22,6 +23,12 @@
                 <td class="px-4 py-2 text-xs">{{ bot.token|slice(0,15) ~ '...' }}</td>
                 <td class="px-4 py-2 text-xs">{{ bot.webhookUrl }}</td>
                 <td class="px-4 py-2">{{ bot.isActive ? '🟢 Активен' : '🔴 Отключён' }}</td>
+                <td class="px-4 py-2">
+                    <form method="post" action="{{ path('telegram_bot.delete', { id: bot.id }) }}" class="inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_bot_' ~ bot.id) }}">
+                        <button class="text-red-600" onclick="return confirm('Удалить бота?')">Удалить</button>
+                    </form>
+                </td>
             </tr>
         {% endfor %}
         </tbody>
