@@ -6,7 +6,6 @@ use App\Entity\Client;
 use App\Entity\Message;
 use App\Repository\ClientRepository;
 use App\Repository\MessageRepository;
-use App\Repository\TelegramBotRepository;
 use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Nonstandard\Uuid;
@@ -68,7 +67,7 @@ class MessageController extends AbstractController
         string $client_id,
         Request $request,
         ClientRepository $clients,
-        TelegramBotRepository $bots,
+        MessageRepository $messages,
         EntityManagerInterface $em,
         TelegramService $telegramService,
         ValidatorInterface $validator,
@@ -106,9 +105,10 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Invalid text'], Response::HTTP_BAD_REQUEST);
         }
 
-        $bot = $bots->findOneBy(['company' => $client->getCompany(), 'isActive' => true]);
+        $lastMessage = $messages->findLastInboundByClient($client);
+        $bot = $lastMessage?->getTelegramBot();
         if (!$bot) {
-            return new JsonResponse(['error' => 'Active telegram bot not found'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return new JsonResponse(['error' => 'Cannot determine bot for client'], Response::HTTP_BAD_REQUEST);
         }
 
         try {
@@ -117,7 +117,7 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Telegram API error'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $text);
+        $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $bot, $text);
         $em->persist($message);
         $em->flush();
 
