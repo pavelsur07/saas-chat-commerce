@@ -5,6 +5,7 @@ namespace App\DataFixtures;
 use App\Entity\Client;
 use App\Entity\Company;
 use App\Entity\Message;
+use App\Entity\TelegramBot;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
@@ -16,6 +17,7 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
     {
         return [
             CompanyFixtures::class,
+            TelegramBotFixtures::class,
         ];
     }
 
@@ -24,6 +26,8 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $company1 = $this->getReference(CompanyFixtures::REFERENCE_COMPANY_1, Company::class);
         $company2 = $this->getReference(CompanyFixtures::REFERENCE_COMPANY_2, Company::class);
 
+        $bot = $this->getReference(TelegramBotFixtures::TELEGRAM_BOT_REFERENCE, TelegramBot::class);
+
         // === Telegram Client ===
         $telegramClient = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, '123456789', $company1);
         $telegramClient->setUsername('telegram_user');
@@ -31,8 +35,8 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $telegramClient->setRawData(['chat' => ['id' => 123456789, 'username' => 'telegram_user']]);
         $manager->persist($telegramClient);
 
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'in', 'Привет!', null, null));
-        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'out', 'Здравствуйте, чем могу помочь?', null, null));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'in', 'Привет!', null, $bot));
+        $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'out', 'Здравствуйте, чем могу помочь?', null, $bot));
 
         // === WhatsApp Client ===
         $whatsappClient = new Client(Uuid::uuid4()->toString(), Client::WHATSAPP, '79001234567', $company1);

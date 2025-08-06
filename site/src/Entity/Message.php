@@ -5,7 +5,6 @@ namespace App\Entity;
 use App\Repository\MessageRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
-use App\Entity\TelegramBot;
 
 #[ORM\Entity(repositoryClass: MessageRepository::class)]
 #[ORM\Table(name: '`messages`')]
