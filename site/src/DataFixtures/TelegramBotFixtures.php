@@ -19,6 +19,7 @@ class TelegramBotFixtures extends Fixture implements DependentFixtureInterface
         $bot = new TelegramBot(Uuid::uuid4()->toString(), $company1);
         $bot->setToken(Uuid::uuid4()->toString());
         $bot->setIsActive(true);
+        $this->setReference(self::TELEGRAM_BOT_REFERENCE, $bot);
 
         $manager->persist($bot);
         $manager->flush();
