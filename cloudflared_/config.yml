@@ -1,7 +1,0 @@
-tunnel: telegram-dev-tunnel
-credentials-file: /etc/cloudflared/telegram-dev-tunnel.json
-
-ingress:
-    - hostname: --url #telegram-dev.yourdomain.com # если есть домен
-      service: http://site:80
-    - service: http_status:404
