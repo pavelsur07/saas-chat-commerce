@@ -98,6 +98,23 @@ class TelegramBotController extends AbstractController
         return $this->redirectToRoute('telegram_bot.index');
     }
 
+    #[Route('/{id}/fetch-messages', name: 'telegram_bot.fetch_messages', methods: ['GET'])]
+    public function fetchMessages(TelegramBot $bot): Response
+    {
+        if ($bot->getCompany() !== $this->companyContext->getCompany()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $messages = $this->telegramService->fetchMessages($bot->getToken());
+            $this->addFlash('success', 'Получено сообщений: '.\count($messages));
+        } catch (\Throwable $e) {
+            $this->addFlash('danger', 'Ошибка при получении сообщений: '.$e->getMessage());
+        }
+
+        return $this->redirectToRoute('telegram_bot.index');
+    }
+
     #[Route('/{id}/delete', name: 'telegram_bot.delete', methods: ['POST'])]
     public function delete(TelegramBot $bot, Request $request): Response
     {
