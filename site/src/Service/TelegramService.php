@@ -8,11 +8,14 @@ use Longman\TelegramBot\Telegram;
 // src/Service/TelegramService.php
 class TelegramService
 {
-    public function validateToken(string $token): bool
+    /**
+     * @return array<string, mixed>
+     */
+    public function validateToken(string $token): array
     {
         $response = $this->sendTelegramRequest($token, 'getMe', []);
 
-        return isset($response['ok']) && true === $response['ok'];
+        return $response['result'];
     }
 
     public function setWebhook(string $token, string $webhookUrl): bool
