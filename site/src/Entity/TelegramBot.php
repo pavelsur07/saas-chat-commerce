@@ -29,6 +29,9 @@ class TelegramBot
     #[ORM\Column]
     private bool $isActive = true;
 
+    #[ORM\Column(type: 'bigint', nullable: true)]
+    private ?int $lastUpdateId = null;
+
     #[ORM\ManyToOne]
     private Company $company;
 
@@ -96,5 +99,15 @@ class TelegramBot
     public function getCompany(): Company
     {
         return $this->company;
+    }
+
+    public function getLastUpdateId(): ?int
+    {
+        return $this->lastUpdateId;
+    }
+
+    public function setLastUpdateId(?int $lastUpdateId): void
+    {
+        $this->lastUpdateId = $lastUpdateId;
     }
 }
