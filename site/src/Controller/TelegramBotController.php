@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Client;
+use App\Entity\Message;
 use App\Entity\TelegramBot;
 use App\Form\TelegramBotType;
 use App\Service\CompanyContextService;
@@ -106,8 +108,43 @@ class TelegramBotController extends AbstractController
         }
 
         try {
-            $messages = $this->telegramService->fetchMessages($bot->getToken());
-            $this->addFlash('success', 'Получено сообщений: '.\count($messages));
+            $fetched = $this->telegramService->fetchMessages($bot->getToken());
+
+            $clientRepo = $this->em->getRepository(Client::class);
+            $savedCount = 0;
+
+            foreach ($fetched as $item) {
+                $chatId = (string) $item['chat_id'];
+
+                /** @var Client|null $client */
+                $client = $clientRepo->findOneBy([
+                    'channel' => Client::TELEGRAM,
+                    'externalId' => $chatId,
+                    'company' => $bot->getCompany(),
+                ]);
+
+                if (!$client) {
+                    $client = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, $chatId, $bot->getCompany());
+                    $this->em->persist($client);
+                }
+
+                $message = Message::messageIn(
+                    Uuid::uuid4()->toString(),
+                    $client,
+                    $bot,
+                    $item['text'] ?? null,
+                    $item
+                );
+
+                $this->em->persist($message);
+                ++$savedCount;
+            }
+
+            if ($savedCount > 0) {
+                $this->em->flush();
+            }
+
+            $this->addFlash('success', 'Получено сообщений: '.$savedCount);
         } catch (\Throwable $e) {
             $this->addFlash('danger', 'Ошибка при получении сообщений: '.$e->getMessage());
         }
