@@ -38,7 +38,7 @@ class TelegramBotController extends AbstractController
     }
 
     #[Route('/create', name: 'telegram_bot.create', methods: ['GET', 'POST'])]
-    public function test(Request $request): Response
+    public function create(Request $request): Response
     {
         $company = $this->companyContext->getCompany();
         $bot = new TelegramBot(Uuid::uuid4()->toString(), $company);
@@ -48,31 +48,22 @@ class TelegramBotController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $token = $form->getData()['token'];
-            $bot->setToken($token);
             try {
-                if (!$this->telegramService->validateToken($bot->getToken())) {
-                    $form->get('token')->addError(new FormError('Неверный токен Telegram'));
-                }
-
-                $webhookUrl = $this->generateUrl('telegram.webhook', [
-                    'token' => $bot->getToken(),
-                ], UrlGeneratorInterface::ABSOLUTE_URL);
-
-                // Принудительно заменить http на https
-                $webhookUrl = preg_replace('#^http://#', 'https://', $webhookUrl);
-
-                $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
-                $bot->setWebhookUrl($webhookUrl);
+                $info = $this->telegramService->validateToken($token);
+                $bot->setToken($token);
+                $bot->setUsername($info['username'] ?? null);
+                $bot->setFirstName($info['first_name'] ?? null);
+                $bot->setIsActive(true);
 
                 $this->em->persist($bot);
                 $this->em->flush();
 
                 $this->addFlash('success', 'Бот успешно создан');
-            } catch (\Throwable$e) {
-                $this->addFlash('danger', 'Ошибка при создании бота: '.$e->getMessage().' '.$token.' '.$webhookUrl);
-            }
 
-            return $this->redirectToRoute('telegram_bot.index');
+                return $this->redirectToRoute('telegram_bot.index');
+            } catch (\Throwable $e) {
+                $form->get('token')->addError(new FormError('Неверный токен Telegram'));
+            }
         }
 
         return $this->render('telegram_bot/form.html.twig', [
@@ -81,44 +72,31 @@ class TelegramBotController extends AbstractController
         ]);
     }
 
-    /*    #[Route('/create', name: 'telegram_bot.create', methods: ['GET', 'POST'])]
-        public function create(Request $request): Response
-        {
-            $company = $this->companyContext->getCompany();
-            $bot = new TelegramBot(Uuid::uuid4()->toString(), $company);
+    #[Route('/{id}/set-webhook', name: 'telegram_bot.set_webhook', methods: ['GET'])]
+    public function setWebhook(TelegramBot $bot): Response
+    {
+        if ($bot->getCompany() !== $this->companyContext->getCompany()) {
+            throw $this->createAccessDeniedException();
+        }
 
-            $form = $this->createForm(TelegramBotType::class, $bot);
-            $form->handleRequest($request);
+        try {
+            $webhookUrl = $this->generateUrl('telegram.webhook', [
+                'token' => $bot->getToken(),
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
 
-            if ($form->isSubmitted() && $form->isValid()) {
-                try {
-                    if (!$this->telegramService->validateToken($bot->getToken())) {
-                        $form->get('token')->addError(new FormError('Неверный токен Telegram'));
-                    } else {
-                        $webhookUrl = $this->generateUrl('telegram.webhook', [
-                            'token' => $bot->getToken(),
-                        ], UrlGeneratorInterface::ABSOLUTE_URL);
+            $webhookUrl = preg_replace('#^http://#', 'https://', $webhookUrl);
 
-                        $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
-                        $bot->setWebhookUrl($webhookUrl);
+            $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
+            $bot->setWebhookUrl($webhookUrl);
+            $this->em->flush();
 
-                        $this->em->persist($bot);
-                        $this->em->flush();
+            $this->addFlash('success', 'Webhook успешно установлен');
+        } catch (\Throwable $e) {
+            $this->addFlash('danger', 'Ошибка при установке webhook: '.$e->getMessage());
+        }
 
-                        $this->addFlash('success', 'Бот успешно создан');
-
-                        return $this->redirectToRoute('telegram_bot.index');
-                    }
-                } catch (\Throwable $e) {
-                    $this->addFlash('danger', 'Ошибка при создании бота: ' . $e->getMessage());
-                }
-            }
-
-            return $this->render('telegram_bot/form.html.twig', [
-                'form' => $form->createView(),
-                'isEdit' => false,
-            ]);
-        }*/
+        return $this->redirectToRoute('telegram_bot.index');
+    }
 
     #[Route('/{id}/delete', name: 'telegram_bot.delete', methods: ['POST'])]
     public function delete(TelegramBot $bot, Request $request): Response

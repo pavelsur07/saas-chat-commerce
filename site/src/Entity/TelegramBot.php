@@ -18,6 +18,12 @@ class TelegramBot
     private string $token;
 
     #[ORM\Column(length: 255, nullable: true)]
+    private ?string $username = null;
+
+    #[ORM\Column(length: 255, name: 'first_name', nullable: true)]
+    private ?string $firstName = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $webhookUrl = null;
 
     #[ORM\Column]
@@ -45,6 +51,26 @@ class TelegramBot
     public function setToken(string $token): void
     {
         $this->token = $token;
+    }
+
+    public function getUsername(): ?string
+    {
+        return $this->username;
+    }
+
+    public function setUsername(?string $username): void
+    {
+        $this->username = $username;
+    }
+
+    public function getFirstName(): ?string
+    {
+        return $this->firstName;
+    }
+
+    public function setFirstName(?string $firstName): void
+    {
+        $this->firstName = $firstName;
     }
 
     public function getWebhookUrl(): ?string
