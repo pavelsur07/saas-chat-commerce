@@ -5,6 +5,8 @@ namespace App\Repository;
 use App\Entity\Client;
 use App\Entity\TelegramBot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Query\Parameter;
 use Doctrine\Persistence\ManagerRegistry;
 
 class ClientRepository extends ServiceEntityRepository
@@ -16,14 +18,17 @@ class ClientRepository extends ServiceEntityRepository
 
     public function findOneByTelegramIdAndBot(int $telegramId, TelegramBot $bot): ?Client
     {
-        return $this->createQueryBuilder('c')
+        $results = $this->createQueryBuilder('c')
             ->andWhere('c.telegramId = :telegramId')
             ->andWhere('c.telegramBot = :bot')
-            ->setParameters([
-                'telegramId' => $telegramId,
-                'bot' => $bot,
-            ])
+            ->setParameters(new ArrayCollection([
+                new Parameter('telegramId', $telegramId),
+                new Parameter('bot', $bot),
+            ]))
             ->getQuery()
-            ->getOneOrNullResult();
+            ->getResult();
+        /* ->getOneOrNullResult(); */
+
+        return $results[0] ?? null;
     }
 }

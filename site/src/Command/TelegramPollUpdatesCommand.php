@@ -9,6 +9,7 @@ use App\Repository\ClientRepository;
 use App\Repository\MessageRepository;
 use App\Repository\TelegramBotRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -47,14 +48,26 @@ class TelegramPollUpdatesCommand extends Command
         $token = $bot->getToken();
         $offset = $bot->getLastUpdateId() + 1;
 
-        $response = $this->httpClient->request('GET', "https://api.telegram.org/bot{$token}/getUpdates", [
-            'query' => [
-                'offset' => $offset,
-                'timeout' => 0,
-            ],
-        ]);
+        try {
+            $response = $this->httpClient->request('GET', "https://api.telegram.org/bot{$token}/getUpdates", [
+                'query' => [
+                    'offset' => $offset,
+                    'timeout' => 0,
+                ],
+            ]);
+            $data = $response->toArray();
+        } catch (\Throwable $e) {
+            $data = [];
+        }
 
-        $data = $response->toArray();
+        /* $response = $this->httpClient->request('GET', "https://api.telegram.org/bot{$token}/getUpdates", [
+             'query' => [
+                 'offset' => $offset,
+                 'timeout' => 0,
+             ],
+         ]);*/
+
+        /* $data = $response->toArray(); */
 
         foreach ($data['result'] ?? [] as $update) {
             $this->handleUpdate($update, $bot);
@@ -77,22 +90,18 @@ class TelegramPollUpdatesCommand extends Command
         $client = $this->clientRepo->findOneByTelegramIdAndBot($telegramId, $bot);
 
         if (!$client) {
-            $client = (new Client())
-                ->setTelegramId($telegramId)
-                ->setFirstName($from['first_name'] ?? null)
-                ->setUsername($from['username'] ?? null)
-                ->setTelegramBot($bot)
-                ->setCompany($bot->getCompany());
+            $client = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, $telegramId, $bot->getCompany());
+            $client->setTelegramId(telegramId: $telegramId);
+            $client->setFirstName($from['first_name'] ?? null);
+            $client->setUsername($from['username'] ?? null);
+            $client->setTelegramBot($bot);
+            $client->setCompany($bot->getCompany());
 
             $this->em->persist($client);
         }
 
-        $message = (new Message())
-            ->setClient($client)
-            ->setTelegramBot($bot)
-            ->setType('incoming')
-            ->setContent($msg['text'] ?? '')
-            ->setSentAt((new \DateTime())->setTimestamp($msg['date'] ?? time()));
+        $text = $msg['text'] ?? '';
+        $message = new Message(Uuid::uuid4()->toString(), $client, Message::IN, $text, null, $bot);
 
         $this->em->persist($message);
     }

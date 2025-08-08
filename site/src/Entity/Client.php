@@ -39,6 +39,13 @@ class Client
     #[ORM\ManyToOne]
     private Company $company;
 
+    #[ORM\Column(type: 'bigint', nullable: true)]
+    private ?int $telegramId = null;
+
+    #[ORM\ManyToOne(targetEntity: TelegramBot::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?TelegramBot $telegramBot = null;
+
     public function __construct(string $id, string $channel, string $externalId, Company $company)
     {
         Assert::uuid($id);
@@ -47,6 +54,18 @@ class Client
         $this->channel = $channel;
         $this->externalId = $externalId;
         $this->company = $company;
+    }
+
+    public function getTelegramBot(): TelegramBot
+    {
+        return $this->telegramBot;
+    }
+
+    public function setTelegramBot(TelegramBot $telegramBot): static
+    {
+        $this->telegramBot = $telegramBot;
+
+        return $this;
     }
 
     public function getUniqueKey(): string
@@ -132,6 +151,16 @@ class Client
     public function setCompany(Company $company): void
     {
         $this->company = $company;
+    }
+
+    public function getTelegramId(): ?int
+    {
+        return $this->telegramId;
+    }
+
+    public function setTelegramId(?int $telegramId): void
+    {
+        $this->telegramId = $telegramId;
     }
 
     public static function channelList(): array
