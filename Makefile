@@ -16,13 +16,17 @@ docker-build:
 site-clear:
 	docker run --rm -v ${PWD}/site:/app -w /app alpine sh -c 'rm -rf  .ready var/cache/* var/log/* var/test/*'
 
-site-init: site-composer-install site-assets-install site-wait-db site-migrations site-fixtures
+site-init: site-composer-install site-assets-install socket-server-install site-wait-db site-migrations site-fixtures
 
 site-composer-install:
 	docker-compose run --rm site-php-cli composer install
 
 site-assets-install:
 	docker-compose run --rm site-node-cli yarn install
+
+
+socket-server-install:
+	docker-compose run --rm socket-server yarn install
 
 site-assets-build:
 	docker-compose run --rm site-node-cli yarn build

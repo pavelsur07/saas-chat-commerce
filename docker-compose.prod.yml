@@ -64,7 +64,6 @@ services:
             - traefik.http.services.myapp.loadbalancer.server.port=80
             - traefik.docker.network=traefik-public    # Явно указать сеть для Traefik
     
-    
     site-php-fpm:
         build:
             context: site
@@ -105,9 +104,9 @@ services:
             - postgres_data:/var/lib/postgresql/data
         networks:
             - default
-    redis-session:
+    redis-realtime:
         image: redis:alpine
-        container_name: redis-session
+        container_name: redis-realtime
         restart: always
         
 volumes:
