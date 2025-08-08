@@ -2,8 +2,7 @@ FROM php:8.2-cli-alpine AS builder
 
 RUN apk add --no-cache libpq-dev \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && pecl install redis \
-    && docker-php-ext-install pdo_pgsql opcache redis
+    && docker-php-ext-install pdo_pgsql opcache
 
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
@@ -34,8 +33,7 @@ FROM php:8.2-fpm-alpine
 
 RUN apk add --no-cache libpq-dev fcgi \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && pecl install redis \
-    && docker-php-ext-install pdo_pgsql opcache redis
+    && docker-php-ext-install pdo_pgsql opcache
 
 RUN mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 

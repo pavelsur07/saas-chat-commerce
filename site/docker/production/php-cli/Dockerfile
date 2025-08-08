@@ -2,8 +2,7 @@ FROM php:8.2-fpm-alpine AS builder
 
 RUN apk add --no-cache libpq-dev \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && pecl install redis \
-    && docker-php-ext-install pdo_pgsql opcache redis
+    && docker-php-ext-install pdo_pgsql opcache
 
 RUN apk add --no-cache unzip
 
@@ -24,8 +23,7 @@ FROM php:8.2-cli-alpine
 
 RUN apk add --no-cache libpq-dev bash coreutils \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && pecl install redis \
-    && docker-php-ext-install pdo_pgsql opcache redis
+    && docker-php-ext-install pdo_pgsql opcache
 
 RUN mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
