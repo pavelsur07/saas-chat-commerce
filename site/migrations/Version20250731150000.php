@@ -16,14 +16,14 @@ final class Version20250731150000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE "telegram_bots" ADD username VARCHAR(255) DEFAULT NULL');
-        $this->addSql('ALTER TABLE "telegram_bots" ADD first_name VARCHAR(255) DEFAULT NULL');
+        $this->addSql('ALTER TABLE "telegram_bots" ADD COLUMN IF NOT EXISTS username VARCHAR(255) DEFAULT NULL');
+        $this->addSql('ALTER TABLE "telegram_bots" ADD COLUMN IF NOT EXISTS first_name VARCHAR(255) DEFAULT NULL');
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE "telegram_bots" DROP username');
-        $this->addSql('ALTER TABLE "telegram_bots" DROP first_name');
+        $this->addSql('ALTER TABLE "telegram_bots" DROP COLUMN IF EXISTS username');
+        $this->addSql('ALTER TABLE "telegram_bots" DROP COLUMN IF EXISTS first_name');
     }
 }
 
