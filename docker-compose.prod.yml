@@ -104,6 +104,20 @@ services:
             - postgres_data:/var/lib/postgresql/data
         networks:
             - default
+    socket-server:
+        build:
+            context: socket-server
+        container_name: socket-server
+        restart: always
+        ports:
+            - "3001:3001"
+        volumes:
+            - ./socket-server:/app
+        networks:
+            - traefik-public
+            - default
+        depends_on:
+            - redis-realtime
     redis-realtime:
         image: redis:alpine
         container_name: redis-realtime
