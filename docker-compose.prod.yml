@@ -116,6 +116,7 @@ services:
         volumes:
             - ./socket-server:/app
         environment:
+            SOCKET_PATH: /socket.io
             PORT: 3001
             REDIS_URL: redis://redis-realtime:6379
         networks:
@@ -123,6 +124,12 @@ services:
             - default
         depends_on:
             - redis-realtime
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.socket.rule=Host(`localhost`) && PathPrefix(`/socket.io`)
+            - traefik.http.routers.socket.entrypoints=http
+            - traefik.http.services.socket.loadbalancer.server.port=3001
+    
     redis-realtime:
         image: redis:alpine
         container_name: redis-realtime
