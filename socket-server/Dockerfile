@@ -1,8 +1,11 @@
 FROM node:18-alpine
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
+
+COPY ./package*.json ./
+RUN npm install
+
 COPY . .
 EXPOSE 3001
-CMD ["node", "server.js"]
+
+CMD ["node", "server.js_"]
