@@ -126,9 +126,20 @@ services:
             - redis-realtime
         labels:
             - traefik.enable=true
-            - traefik.http.routers.socket.rule=Host(`localhost`) && PathPrefix(`/socket.io`)
-            - traefik.http.routers.socket.entrypoints=http
+            
+            # Правило: тот же хост + префикс пути /socket.io
+            - traefik.http.routers.socket.rule=Host(chat.2bstock.ru) && PathPrefix(/socket.io)
+            
+            # HTTPS-энтрипоинт и TLS (Traefik должен быть настроен с certresolver letsEncrypt)
+            - traefik.http.routers.socket.entrypoints=https
+            - traefik.http.routers.socket.tls=true
+            - traefik.http.routers.socket.tls.certresolver=letsEncrypt
+            
+            # Проксируем на порт контейнера с сокетами
             - traefik.http.services.socket.loadbalancer.server.port=3001
+            
+            # Не срезаем путь! Socket.IO ожидает ровно /socket.io
+            # (никаких StripPrefix, иначе отвалится)
     
     redis-realtime:
         image: redis:alpine
