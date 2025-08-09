@@ -1,3 +1,4 @@
+// socket-server/server.js
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
@@ -16,7 +17,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 const server = http.createServer(app);
 const io = new Server(server, {
     path: SOCKET_PATH,
-    transports: ['websocket','polling'], // оставим polling до проверки
+    transports: ['websocket','polling'], // polling оставляем на время проверки
     cors: { origin: ORIGIN, credentials: true },
 });
 
@@ -40,4 +41,6 @@ await sub.pSubscribe('chat.client.*', (message) => {
     } catch {}
 });
 
-server.listen(PORT, () => console.log(`[socket] :${PORT} path=${SOCKET_PATH}`));
+server.listen(PORT, () => {
+    console.log(`[socket-server] :${PORT} path=${SOCKET_PATH} origin=${ORIGIN}`);
+});

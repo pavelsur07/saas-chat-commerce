@@ -1,9 +1,8 @@
-FROM node:18-alpine
-
+# socket-server/Dockerfile
+FROM node:20-alpine
 WORKDIR /app
-
-COPY ./package*.json ./
-RUN npm install
-
+COPY package*.json ./
+RUN npm ci --omit=dev
 COPY . .
-CMD ["node", "server.js_"]
+EXPOSE 3001
+CMD ["node", "server.js"]
