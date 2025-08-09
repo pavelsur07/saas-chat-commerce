@@ -1,9 +1,10 @@
-// assets/chat-center/components/ChatLayout.tsx__
+// assets/chat-center/components/ChatLayout.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
 import ClientList from './ClientList';
 import MessageList from './MessageList';
 import SendMessageForm from './SendMessageForm';
+import { useSocket } from '../hooks/useSocket';
 
 type Client = {
     id: string;
@@ -16,11 +17,14 @@ const ChatLayout: React.FC = () => {
     const [reload, setReload] = useState(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
 
-    // Скролл вниз при новых сообщениях
+    // Реалтайм: при новом сообщении дергаем reload
+    useSocket(selectedClient?.id ?? null, () => {
+        setReload((prev) => !prev);
+    });
+
+    // автопрокрутка вниз при новых данных/смене клиента
     useEffect(() => {
-        if (bottomRef.current) {
-            bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
+        if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }, [selectedClient, reload]);
 
     return (
@@ -41,10 +45,11 @@ const ChatLayout: React.FC = () => {
           </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+                <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col space-y-2">
                     {selectedClient && (
                         <>
-                            <MessageList clientId={selectedClient.id} />
+                            {/* ВАЖНО: пробрасываем reload */}
+                            <MessageList clientId={selectedClient.id} reload={reload} />
                             <div ref={bottomRef} />
                         </>
                     )}
@@ -54,7 +59,8 @@ const ChatLayout: React.FC = () => {
                     {selectedClient && (
                         <SendMessageForm
                             clientId={selectedClient.id}
-                            onMessageSent={() => setReload(!reload)}
+                            // после отправки тоже обновляем ленту
+                            onMessageSent={() => setReload((prev) => !prev)}
                         />
                     )}
                 </div>
