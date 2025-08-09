@@ -15,10 +15,19 @@ const DEV_URL  = 'http://localhost:3001';
 const PROD_URL = 'https://chat.2bstock.ru';
 const PATH = '/socket.io';
 
+/*
 function getSocketUrl() {
     if (typeof window === 'undefined') return PROD_URL;
     const h = window.location.hostname;
     return h === 'localhost' || h === '127.0.0.1' ? DEV_URL : PROD_URL;
+}
+*/
+
+function getSocketUrl() {
+    if (typeof window === 'undefined') return PROD_URL;
+    const h = window.location.hostname;
+    const isDev = h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost');
+    return isDev ? DEV_URL : PROD_URL;
 }
 
 export function useSocket(

@@ -90,6 +90,8 @@ services:
         environment:
             PORT: 3001
             REDIS_URL: redis://redis-realtime:6379
+            SOCKET_PATH: /socket.io
+            SOCKET_ORIGIN: '*'
         depends_on:
             - redis-realtime
         networks:

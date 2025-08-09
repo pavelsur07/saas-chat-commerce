@@ -18,7 +18,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
     path: SOCKET_PATH,
     transports: ['websocket'], // polling оставляем на время проверки
-    cors: { origin: ORIGIN, credentials: true },
+    //cors: { origin: ORIGIN, credentials: true },
+    cors: { origin: ORIGIN === '*' ? true : ORIGIN, credentials: true },
 });
 
 const pub = createClient({ url: REDIS_URL });
