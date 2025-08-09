@@ -11,10 +11,12 @@ const SOCKET_PATH = process.env.SOCKET_PATH || '/socket.io';
 const ORIGIN = process.env.SOCKET_ORIGIN || 'https://chat.2bstock.ru';
 
 const app = express();
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
 const server = http.createServer(app);
 const io = new Server(server, {
     path: SOCKET_PATH,
-    transports: ['websocket', 'polling'], // ← оставим polling до валидации
+    transports: ['websocket','polling'], // оставим polling до проверки
     cors: { origin: ORIGIN, credentials: true },
 });
 
@@ -25,24 +27,10 @@ await sub.connect();
 io.adapter(createAdapter(pub, sub));
 
 io.on('connection', (socket) => {
-    console.log('[socket] connect', socket.id);
-
-    socket.on('join', ({ room }) => {
-        console.log('[socket] join', socket.id, room);
-        if (room) socket.join(room);
-    });
-
-    socket.on('leave', ({ room }) => {
-        console.log('[socket] leave', socket.id, room);
-        if (room) socket.leave(room);
-    });
-
-    socket.on('disconnect', (reason) => {
-        console.log('[socket] disconnect', socket.id, reason);
-    });
+    socket.on('join', ({ room }) => room && socket.join(room));
+    socket.on('leave', ({ room }) => room && socket.leave(room));
 });
 
-// chat.client.<id> → room client-<id>
 await sub.pSubscribe('chat.client.*', (message) => {
     try {
         const payload = JSON.parse(message);
@@ -52,6 +40,4 @@ await sub.pSubscribe('chat.client.*', (message) => {
     } catch {}
 });
 
-server.listen(PORT, () => {
-    console.log(`[socket-server] :${PORT} path=${SOCKET_PATH} origin=${ORIGIN}`);
-});
+server.listen(PORT, () => console.log(`[socket] :${PORT} path=${SOCKET_PATH}`));

@@ -112,10 +112,10 @@ services:
             context: socket-server
         container_name: socket-server
         restart: always
-        ports:
-            - "3001:3001"
-        volumes:
-            - ./socket-server:/app
+#        ports:
+#            - "3001:3001"
+#        volumes:
+#            - ./socket-server:/app
         environment:
             SOCKET_PATH: /socket.io
             PORT: 3001
@@ -123,6 +123,11 @@ services:
         networks:
             - traefik-public
             - default
+        healthcheck:
+            test: [ "CMD", "wget", "-qO-", "http://127.0.0.1:3001/health" ]
+            interval: 10s
+            timeout: 3s
+            retries: 10
         depends_on:
             - redis-realtime
         labels:
@@ -131,8 +136,8 @@ services:
             - traefik.http.routers.socket.entrypoints=https
             - traefik.http.routers.socket.tls=true
             - traefik.http.routers.socket.tls.certresolver=letsEncrypt
-            - traefik.http.routers.socket.service=socket
             - traefik.http.routers.socket.priority=100
+            - traefik.http.routers.socket.service=socket
             - traefik.http.services.socket.loadbalancer.server.port=3001
             - traefik.docker.network=traefik-public
 
