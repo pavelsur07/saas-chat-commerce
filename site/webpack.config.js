@@ -74,6 +74,11 @@ Encore
     // uncomment if you use React
     .enableReactPreset()
 
+    // expose socket url to the frontend build
+    .configureDefinePlugin((options) => {
+        options['process.env.SOCKET_URL'] = JSON.stringify(process.env.SOCKET_URL || '');
+    })
+
     // uncomment to get integrity="..." attributes on your script & link tags
     // requires WebpackEncoreBundle 1.4 or higher
     //.enableIntegrityHashes(Encore.isProduction())
