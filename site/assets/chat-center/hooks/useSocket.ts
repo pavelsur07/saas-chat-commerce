@@ -3,64 +3,22 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 type MessagePayload = {
-    id?: string;
     clientId: string;
     text: string;
     direction: 'in' | 'out';
+    id?: string;
     createdAt?: string;
     timestamp?: string;
 };
 
-// Мягкие типы для сборочных/рантайм-переменных
-declare const process: {
-    env: {
-        NODE_ENV?: 'development' | 'production' | string;
-        SOCKET_URL?: string;   // build-time override
-        SOCKET_PATH?: string;  // build-time override (необязательно)
-    };
-};
+const DEV_URL  = 'http://localhost:3001';
+const PROD_URL = 'https://chat.2bstock.ru';
+const PATH = '/socket.io';
 
-declare global {
-    interface Window {
-        __SOCKET_URL__?: string;  // runtime override (необязательно)
-        __SOCKET_PATH__?: string; // runtime override (необязательно)
-    }
-}
-
-const DEV_DEFAULT_URL = 'http://localhost:3001';
-const PROD_DEFAULT_URL = 'https://chat.2bstock.ru';
-const DEFAULT_PATH = '/socket.io';
-
-function detectIsProd(): boolean {
-    // 1) Если явно задан NODE_ENV=production — считаем продом
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') return true;
-
-    // 2) По домену: если открыто не на localhost/127.0.0.1 — вероятнее прод
-    if (typeof window !== 'undefined') {
-        const host = window.location.hostname;
-        if (host && host !== 'localhost' && host !== '127.0.0.1') return true;
-    }
-    return false;
-}
-
-function getSocketUrl(): string {
-    // 1) build-time env
-    if (typeof process !== 'undefined' && process.env?.SOCKET_URL) {
-        return process.env.SOCKET_URL;
-    }
-    // 2) runtime override
-    if (typeof window !== 'undefined' && window.__SOCKET_URL__) {
-        return window.__SOCKET_URL__!;
-    }
-    // 3) auto: dev vs prod
-    return detectIsProd() ? PROD_DEFAULT_URL : DEV_DEFAULT_URL;
-}
-
-function getSocketPath(): string {
-    // Пусть тоже можно переопределить при желании
-    const build = typeof process !== 'undefined' ? process.env?.SOCKET_PATH : undefined;
-    const runtime = typeof window !== 'undefined' ? window.__SOCKET_PATH__ : undefined;
-    return (runtime || build || DEFAULT_PATH);
+function getSocketUrl() {
+    if (typeof window === 'undefined') return PROD_URL;
+    const h = window.location.hostname;
+    return h === 'localhost' || h === '127.0.0.1' ? DEV_URL : PROD_URL;
 }
 
 export function useSocket(
@@ -72,14 +30,10 @@ export function useSocket(
     useEffect(() => {
         if (!clientId) return;
 
-        const url = getSocketUrl();
-        const path = getSocketPath();
-
-        const socket = io(url, {
-            path,
-            transports: ['websocket'],
+        const socket = io(getSocketUrl(), {
+            path: PATH,
+            transports: ['websocket', 'polling'], // ← временно оставляем два
             withCredentials: true,
-            autoConnect: true,
             reconnection: true,
             reconnectionAttempts: Infinity,
             reconnectionDelay: 500,
@@ -88,24 +42,23 @@ export function useSocket(
 
         socketRef.current = socket;
 
+        socket.on('connect', () => console.log('[socket] connected', socket.id));
+        socket.on('connect_error', (err) => console.error('[socket] connect_error', err.message));
+        socket.on('error', (err) => console.error('[socket] error', err));
+        socket.on('disconnect', (reason) => console.warn('[socket] disconnect', reason));
+
         const room = `client-${clientId}`;
         socket.emit('join', { room });
 
         const handler = (data: MessagePayload) => {
-            // Принимаем только сообщения текущего клиента
-            if (String(data.clientId) === String(clientId)) {
-                onMessage(data);
-            }
+            if (String(data.clientId) === String(clientId)) onMessage(data);
         };
         socket.on('new_message', handler);
 
         return () => {
-            try {
-                socket.emit('leave', { room });
-            } finally {
+            try { socket.emit('leave', { room }); } finally {
                 socket.off('new_message', handler);
                 socket.disconnect();
-                socketRef.current = null;
             }
         };
     }, [clientId, onMessage]);

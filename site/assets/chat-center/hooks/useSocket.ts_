@@ -1,4 +1,4 @@
-// assets/chat-center/hooks/useSocket.ts__
+// assets/chat-center/hooks/useSocket.ts
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -11,21 +11,56 @@ type MessagePayload = {
     timestamp?: string;
 };
 
-// allow using an env variable injected at build time
+// Мягкие типы для сборочных/рантайм-переменных
 declare const process: {
     env: {
-        SOCKET_URL?: string;
+        NODE_ENV?: 'development' | 'production' | string;
+        SOCKET_URL?: string;   // build-time override
+        SOCKET_PATH?: string;  // build-time override (необязательно)
     };
 };
 
+declare global {
+    interface Window {
+        __SOCKET_URL__?: string;  // runtime override (необязательно)
+        __SOCKET_PATH__?: string; // runtime override (необязательно)
+    }
+}
+
+const DEV_DEFAULT_URL = 'http://localhost:3001';
+const PROD_DEFAULT_URL = 'https://chat.2bstock.ru';
+const DEFAULT_PATH = '/socket.io';
+
+function detectIsProd(): boolean {
+    // 1) Если явно задан NODE_ENV=production — считаем продом
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') return true;
+
+    // 2) По домену: если открыто не на localhost/127.0.0.1 — вероятнее прод
+    if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        if (host && host !== 'localhost' && host !== '127.0.0.1') return true;
+    }
+    return false;
+}
+
 function getSocketUrl(): string {
-    if (typeof process !== 'undefined' && process.env.SOCKET_URL) {
+    // 1) build-time env
+    if (typeof process !== 'undefined' && process.env?.SOCKET_URL) {
         return process.env.SOCKET_URL;
     }
-    if (typeof window !== 'undefined' && (window as any).__SOCKET_URL__) {
-        return (window as any).__SOCKET_URL__;
+    // 2) runtime override
+    if (typeof window !== 'undefined' && window.__SOCKET_URL__) {
+        return window.__SOCKET_URL__!;
     }
-    return 'http://localhost:3001';
+    // 3) auto: dev vs prod
+    return detectIsProd() ? PROD_DEFAULT_URL : DEV_DEFAULT_URL;
+}
+
+function getSocketPath(): string {
+    // Пусть тоже можно переопределить при желании
+    const build = typeof process !== 'undefined' ? process.env?.SOCKET_PATH : undefined;
+    const runtime = typeof window !== 'undefined' ? window.__SOCKET_PATH__ : undefined;
+    return (runtime || build || DEFAULT_PATH);
 }
 
 export function useSocket(
@@ -37,16 +72,27 @@ export function useSocket(
     useEffect(() => {
         if (!clientId) return;
 
-        const socket = io(getSocketUrl(), {
+        const url = getSocketUrl();
+        const path = getSocketPath();
+
+        const socket = io(url, {
+            path,
             transports: ['websocket'],
+            withCredentials: true,
+            autoConnect: true,
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 500,
+            reconnectionDelayMax: 5000,
         });
+
         socketRef.current = socket;
 
         const room = `client-${clientId}`;
         socket.emit('join', { room });
 
         const handler = (data: MessagePayload) => {
-            // подстраховка: принимаем только сообщения для активного клиента
+            // Принимаем только сообщения текущего клиента
             if (String(data.clientId) === String(clientId)) {
                 onMessage(data);
             }
@@ -59,6 +105,7 @@ export function useSocket(
             } finally {
                 socket.off('new_message', handler);
                 socket.disconnect();
+                socketRef.current = null;
             }
         };
     }, [clientId, onMessage]);
