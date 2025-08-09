@@ -64,6 +64,7 @@ services:
             - traefik.http.routers.myapp.tls=true
             - traefik.http.routers.myapp.tls.certresolver=letsEncrypt
             - traefik.http.services.myapp.loadbalancer.server.port=80
+            - traefik.http.routers.myapp.priority=10
             - traefik.docker.network=traefik-public    # Явно указать сеть для Traefik
     
     site-php-fpm:
@@ -126,20 +127,15 @@ services:
             - redis-realtime
         labels:
             - traefik.enable=true
-            # Роутер: тот же хост + префикс пути /socket.io (ОБЯЗАТЕЛЬНО с обратными кавычками)
             - traefik.http.routers.socket.rule=Host(`chat.2bstock.ru`) && PathPrefix(`/socket.io`)
             - traefik.http.routers.socket.entrypoints=https
             - traefik.http.routers.socket.tls=true
             - traefik.http.routers.socket.tls.certresolver=letsEncrypt
-            
-            # Явно укажем, какой сервис использовать
             - traefik.http.routers.socket.service=socket
-            
-            # Бэкенд‑сервис: порт внутри контейнера
+            - traefik.http.routers.socket.priority=100
             - traefik.http.services.socket.loadbalancer.server.port=3001
-            
-            # ВАЖНО: указать сеть, по которой Traefik достучится до контейнера
             - traefik.docker.network=traefik-public
+
     
     redis-realtime:
         image: redis:alpine
