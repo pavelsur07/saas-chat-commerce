@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useSocket } from '../hooks/useSocket';
 
 type Message = {
     id: string;
@@ -12,15 +13,29 @@ type Message = {
 
 type Props = {
     clientId: string;
+    onNewMessage?: () => void;
 };
 
-const MessageList: React.FC<Props> = ({ clientId }) => {
+const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     const [messages, setMessages] = useState<Message[]>([]);
 
     useEffect(() => {
         if (!clientId) return;
         axios.get(`/api/messages/${clientId}`).then((res) => setMessages(res.data.messages));
     }, [clientId]);
+
+    useSocket(clientId, (payload) => {
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: payload.id || `${Date.now()}`,
+                text: payload.text,
+                direction: payload.direction,
+                createdAt: payload.createdAt || payload.timestamp || new Date().toISOString(),
+            },
+        ]);
+        onNewMessage && onNewMessage();
+    });
 
     return (
         <div className="space-y-2">
