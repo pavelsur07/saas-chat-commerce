@@ -104,5 +104,19 @@ class TelegramPollUpdatesCommand extends Command
         $message = new Message(Uuid::uuid4()->toString(), $client, Message::IN, $text, null, $bot);
 
         $this->em->persist($message);
+
+        $redis = new \Predis\Client([
+            'scheme' => 'tcp',
+            'host'   => 'redis-realtime',
+            'port'   => 6379,
+        ]);
+
+        $redis->publish("chat.client.{$client->getId()}", json_encode([
+            'id'        => $message->getId(),
+            'clientId'  => $client->getId(),
+            'text'      => $message->getText(),
+            'direction' => 'in',
+            'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
+        ]));
     }
 }

@@ -17,6 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Predis\Client as RedisClient;
 
 class MessageController extends AbstractController
 {
@@ -120,6 +121,21 @@ class MessageController extends AbstractController
         $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $bot, $text);
         $em->persist($message);
         $em->flush();
+
+        // после успешного сохранения исходящего
+        $redis = new RedisClient([
+            'scheme' => 'tcp',
+            'host'   => 'redis-realtime',
+            'port'   => 6379,
+        ]);
+
+        $redis->publish("chat.client.{$client->getId()}", json_encode([
+            'id'        => $message->getId(),
+            'clientId'  => $client->getId(),
+            'text'      => $message->getText(),
+            'direction' => 'out',
+            'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
+        ]));
 
         return new JsonResponse([
             'status' => 'success',

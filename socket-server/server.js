@@ -8,37 +8,32 @@ import { createAdapter } from '@socket.io/redis-adapter';
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
-    }
+    cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
-const pubClient = createClient({ url: process.env.REDIS_URL });
-const subClient = pubClient.duplicate();
-await pubClient.connect();
-await subClient.connect();
+const pub = createClient({ url: process.env.REDIS_URL });      // redis://redis-realtime:6379
+const sub = pub.duplicate();
+await pub.connect();
+await sub.connect();
 
-io.adapter(createAdapter(pubClient, subClient));
+io.adapter(createAdapter(pub, sub));
 
 io.on('connection', (socket) => {
-    console.log('✅ Socket connected:', socket.id);
+    socket.on('join', ({ room }) => socket.join(room));
+    socket.on('leave', ({ room }) => socket.leave(room));
+});
 
-    socket.on('join', (room) => {
-        socket.join(room);
-        console.log(`🔗 joined room ${room}`);
-    });
+// ВАЖНО: подписываемся по паттерну на все каналы клиентов
+await sub.pSubscribe('chat.client.*', (message, channel) => {
+    try {
+        const payload = JSON.parse(message);
+        const clientId = (payload.clientId || '').toString();
+        if (!clientId) return;
 
-    socket.on('send_message', ({ room, message }) => {
-        io.to(room).emit('new_message', message);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('❌ Socket disconnected:', socket.id);
-    });
+        // Отправляем в комнату конкретного клиента
+        io.to(`client-${clientId}`).emit('new_message', payload);
+    } catch (_) {}
 });
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-    console.log(`🚀 Socket.IO server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Socket.IO on :${PORT}`));
