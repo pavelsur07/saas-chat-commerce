@@ -46,6 +46,8 @@ services:
         build:
             context: site
             dockerfile: docker/production/nginx/Dockerfile
+            args:
+                SOCKET_URL: https://chat.2bstock.ru
         container_name: site-nginx
         restart: always
         depends_on:
