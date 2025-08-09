@@ -3,13 +3,21 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 type MessagePayload = {
+    id?: string;
     clientId: string;
     text: string;
     direction: 'in' | 'out';
-    timestamp?: string;
     createdAt?: string;
-    id?: string;
+    timestamp?: string;
 };
+
+function getSocketUrl(): string {
+    // можно пробросить через глобал или .env
+    if (typeof window !== 'undefined' && (window as any).__SOCKET_URL__) {
+        return (window as any).__SOCKET_URL__;
+    }
+    return 'http://localhost:3001'; // подставь свой публичный адрес/прокси на проде
+}
 
 export function useSocket(
     clientId: string | null,
@@ -20,25 +28,29 @@ export function useSocket(
     useEffect(() => {
         if (!clientId) return;
 
-        const socket = io('http://localhost:3001', {
-            transports: ['websocket'], // прод: поставь свой публичный адрес/прокси
+        const socket = io(getSocketUrl(), {
+            transports: ['websocket'],
         });
         socketRef.current = socket;
 
-        // вступаем в комнату клиента
-        socket.emit('join', { room: `client-${clientId}` });
+        const room = `client-${clientId}`;
+        socket.emit('join', { room });
 
-        // новые сообщения
         const handler = (data: MessagePayload) => {
-            if (data.clientId === clientId) onMessage(data);
+            // подстраховка: принимаем только сообщения для активного клиента
+            if (String(data.clientId) === String(clientId)) {
+                onMessage(data);
+            }
         };
         socket.on('new_message', handler);
 
-        // отписка при размонтировании/смене клиента
         return () => {
-            socket.emit('leave', { room: `client-${clientId}` });
-            socket.off('new_message', handler);
-            socket.disconnect();
+            try {
+                socket.emit('leave', { room });
+            } finally {
+                socket.off('new_message', handler);
+                socket.disconnect();
+            }
         };
     }, [clientId, onMessage]);
 }
