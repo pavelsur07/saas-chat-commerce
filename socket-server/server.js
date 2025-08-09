@@ -17,7 +17,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 const server = http.createServer(app);
 const io = new Server(server, {
     path: SOCKET_PATH,
-    transports: ['websocket','polling'], // polling оставляем на время проверки
+    transports: ['websocket'], // polling оставляем на время проверки
     cors: { origin: ORIGIN, credentials: true },
 });
 

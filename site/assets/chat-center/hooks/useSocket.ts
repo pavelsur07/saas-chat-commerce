@@ -32,7 +32,7 @@ export function useSocket(
 
         const socket = io(getSocketUrl(), {
             path: PATH,
-            transports: ['websocket', 'polling'], // ← временно оставляем два
+            transports: ['websocket'], // ← временно оставляем два
             withCredentials: true,
             reconnection: true,
             reconnectionAttempts: Infinity,
