@@ -22,10 +22,16 @@ RUN php /app/bin/console asset-map:compile
 RUN chown www-data:www-data ./var -R
 
 #----------------------------------------------------------
-FROM node:18-alpine AS node-builder
+#FROM node:18-alpine AS node-builder
+#ARG SOCKET_URL
+#ENV SOCKET_URL=${SOCKET_URL}
+#WORKDIR /app
+#COPY ./package.json ./yarn.lock ./
+#RUN yarn install && npm rebuild node-sass
+#COPY ./ ./
+#RUN yarn build
 
-ARG SOCKET_URL
-ENV SOCKET_URL=${SOCKET_URL}
+FROM node:18-alpine AS node-builder
 
 WORKDIR /app
 
