@@ -30,7 +30,7 @@ services:
             - traefik.enable=true
             
             # Глобальный роутер HTTP -> HTTPS
-            - traefik.http.routers.http-catchall.rule=HostRegexp(chat.2bstock.ru) || Host(www.chat.2bstock.ru)
+            # - traefik.http.routers.http-catchall.rule=HostRegexp(chat.2bstock.ru) || Host(www.chat.2bstock.ru)
             - traefik.http.routers.http-catchall.entrypoints=http
             - traefik.http.routers.http-catchall.middlewares=frontend-redirect,redirect-to-https
             - traefik.http.routers.http-catchall.priority=1          # Низкий приоритет, чтобы не мешать ACME
@@ -126,20 +126,20 @@ services:
             - redis-realtime
         labels:
             - traefik.enable=true
-            
-            # Правило: тот же хост + префикс пути /socket.io
-            - traefik.http.routers.socket.rule=Host(chat.2bstock.ru) && PathPrefix(/socket.io)
-            
-            # HTTPS-энтрипоинт и TLS (Traefik должен быть настроен с certresolver letsEncrypt)
+            # Роутер: тот же хост + префикс пути /socket.io (ОБЯЗАТЕЛЬНО с обратными кавычками)
+            - traefik.http.routers.socket.rule=Host(`chat.2bstock.ru`) && PathPrefix(`/socket.io`)
             - traefik.http.routers.socket.entrypoints=https
             - traefik.http.routers.socket.tls=true
             - traefik.http.routers.socket.tls.certresolver=letsEncrypt
             
-            # Проксируем на порт контейнера с сокетами
+            # Явно укажем, какой сервис использовать
+            - traefik.http.routers.socket.service=socket
+            
+            # Бэкенд‑сервис: порт внутри контейнера
             - traefik.http.services.socket.loadbalancer.server.port=3001
             
-            # Не срезаем путь! Socket.IO ожидает ровно /socket.io
-            # (никаких StripPrefix, иначе отвалится)
+            # ВАЖНО: указать сеть, по которой Traefik достучится до контейнера
+            - traefik.docker.network=traefik-public
     
     redis-realtime:
         image: redis:alpine
