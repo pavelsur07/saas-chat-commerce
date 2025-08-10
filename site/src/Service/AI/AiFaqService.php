@@ -11,6 +11,7 @@ use App\Entity\Company\User;
 use App\Repository\AI\AiFaqRepository;
 use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Ramsey\Uuid\Nonstandard\Uuid;
 
 final class AiFaqService

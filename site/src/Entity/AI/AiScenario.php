@@ -64,5 +64,108 @@ class AiScenario
         $this->touchCreated();
     }
 
-    // getters/setters...
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    public function getCompany(): Company
+    {
+        return $this->company;
+    }
+
+    public function setCompany(Company $company): void
+    {
+        $this->company = $company;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?User $createdBy): void
+    {
+        $this->createdBy = $createdBy;
+    }
+
+    public function getUpdatedBy(): ?User
+    {
+        return $this->updatedBy;
+    }
+
+    public function setUpdatedBy(?User $updatedBy): void
+    {
+        $this->updatedBy = $updatedBy;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): void
+    {
+        $this->name = $name;
+    }
+
+    public function getSlug(): string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(string $slug): void
+    {
+        $this->slug = $slug;
+    }
+
+    public function getVersion(): int
+    {
+        return $this->version;
+    }
+
+    public function setVersion(int $version): void
+    {
+        $this->version = $version;
+    }
+
+    public function getStatus(): ScenarioStatus
+    {
+        return $this->status;
+    }
+
+    public function setStatus(ScenarioStatus $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function getGraph(): array
+    {
+        return $this->graph;
+    }
+
+    public function setGraph(array $graph): void
+    {
+        $this->graph = $graph;
+    }
+
+    public function getPublishedAt(): ?\DateTimeImmutable
+    {
+        return $this->publishedAt;
+    }
+
+    public function setPublishedAt(?\DateTimeImmutable $publishedAt): void
+    {
+        $this->publishedAt = $publishedAt;
+    }
+
+    public function getNotes(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function setNotes(?string $notes): void
+    {
+        $this->notes = $notes;
+    }
 }
