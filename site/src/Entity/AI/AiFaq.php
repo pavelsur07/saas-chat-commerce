@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: AiFaqRepository::class)]
 #[ORM\Table(name: 'ai_faq')]
 #[ORM\Index(name: 'idx_ai_faq_company_active', columns: ['company_id', 'is_active'])]
-#[ORM\Index(name: 'idx_ai_faq_company_lang',   columns: ['company_id', 'language'])]
+#[ORM\Index(name: 'idx_ai_faq_company_lang', columns: ['company_id', 'language'])]
 class AiFaq
 {
     use Timestampable;

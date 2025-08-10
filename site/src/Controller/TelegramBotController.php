@@ -6,7 +6,7 @@ use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
 use App\Form\TelegramBotType;
-use App\Service\CompanyContextService;
+use App\Service\Company\CompanyContextService;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;

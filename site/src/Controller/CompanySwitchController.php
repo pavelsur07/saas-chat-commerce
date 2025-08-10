@@ -4,7 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Company\Company;
 use App\Repository\Company\UserCompanyRepository;
-use App\Service\CompanyContextService;
+use App\Service\Company\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
