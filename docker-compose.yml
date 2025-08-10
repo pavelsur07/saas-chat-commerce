@@ -101,6 +101,20 @@ services:
         image: redis:alpine
         container_name: redis-realtime
         restart: always
+    adminer:
+        image: adminer
+        restart: always
+        networks:
+            - traefik-public
+            - default
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+            - traefik.http.routers.adminer.rule=Host(`adminer.localhost`)
+            - traefik.http.routers.adminer.entrypoints=http
+            - traefik.http.services.adminer.loadBalancer.server.port=8080
+        depends_on:
+            - site-postgres
 
 volumes:
     postgres_data:

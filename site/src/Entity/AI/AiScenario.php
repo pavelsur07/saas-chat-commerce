@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: AiScenarioRepository::class)]
 #[ORM\Table(name: 'ai_scenario')]
 #[ORM\UniqueConstraint(name: 'uniq_company_slug_version', columns: ['company_id', 'slug', 'version'])]
+#[ORM\Index(name: 'idx_ai_scenario_company_slug_status', columns: ['company_id','slug','status'])]
 class AiScenario
 {
     use Timestampable;

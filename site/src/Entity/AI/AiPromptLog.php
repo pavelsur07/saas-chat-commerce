@@ -11,6 +11,9 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AiPromptLogRepository::class)]
 #[ORM\Table(name: 'ai_prompt_log')]
+#[ORM\Index(name: 'idx_ai_prompt_log_company_created_at', columns: ['company_id','created_at'])]
+#[ORM\Index(name: 'idx_ai_prompt_log_company_model_created', columns: ['company_id','model','created_at'])]
+#[ORM\Index(name: 'idx_ai_prompt_log_company_status_created', columns: ['company_id','status','created_at'])]
 class AiPromptLog
 {
     use Timestampable;
