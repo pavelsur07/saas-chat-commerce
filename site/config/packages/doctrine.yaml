@@ -1,6 +1,10 @@
 doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
+        types:
+            jsonb: 'App\Infrastructure\Doctrine\Type\JsonbType'
+            #mapping_types:
+            #    jsonb: jsonb
 
         # IMPORTANT: You MUST configure your server version,
         # either here or in the DATABASE_URL env var (see .env file)
