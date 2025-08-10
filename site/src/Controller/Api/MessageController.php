@@ -6,8 +6,9 @@ use App\Entity\Client;
 use App\Entity\Message;
 use App\Repository\ClientRepository;
 use App\Repository\MessageRepository;
-use App\Service\TelegramService;
+use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
+use Predis\Client as RedisClient;
 use Ramsey\Uuid\Nonstandard\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +18,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Predis\Client as RedisClient;
 
 class MessageController extends AbstractController
 {
@@ -125,14 +125,14 @@ class MessageController extends AbstractController
         // после успешного сохранения исходящего
         $redis = new RedisClient([
             'scheme' => 'tcp',
-            'host'   => 'redis-realtime',
-            'port'   => 6379,
+            'host' => 'redis-realtime',
+            'port' => 6379,
         ]);
 
         $redis->publish("chat.client.{$client->getId()}", json_encode([
-            'id'        => $message->getId(),
-            'clientId'  => $client->getId(),
-            'text'      => $message->getText(),
+            'id' => $message->getId(),
+            'clientId' => $client->getId(),
+            'text' => $message->getText(),
             'direction' => 'out',
             'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
         ]));

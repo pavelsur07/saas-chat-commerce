@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\Messaging;
 
 use Longman\TelegramBot\Request;
 use Longman\TelegramBot\Telegram;

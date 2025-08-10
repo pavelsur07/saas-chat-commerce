@@ -30,6 +30,7 @@ class ChatController extends AbstractController
             new ArrayInput([]),
             new NullOutput()
         );
+
         return $this->redirectToRoute('chat_center');
     }
 }
