@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\Company;
+use App\Entity\Company\Company;
 use App\Form\CompanyType;
-use App\Repository\CompanyRepository;
+use App\Repository\Company\CompanyRepository;
 use App\Service\CompanyManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

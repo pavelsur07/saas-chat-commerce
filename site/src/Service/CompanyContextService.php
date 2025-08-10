@@ -2,9 +2,9 @@
 
 namespace App\Service;
 
-use App\Entity\Company;
-use App\Entity\User;
-use App\Repository\UserCompanyRepository;
+use App\Entity\Company\Company;
+use App\Entity\Company\User;
+use App\Repository\Company\UserCompanyRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 

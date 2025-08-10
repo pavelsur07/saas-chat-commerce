@@ -2,10 +2,10 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\Client;
-use App\Entity\Message;
-use App\Repository\ClientRepository;
-use App\Repository\MessageRepository;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
+use App\Repository\Messaging\ClientRepository;
+use App\Repository\Messaging\MessageRepository;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Predis\Client as RedisClient;

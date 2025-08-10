@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Entity;
+namespace App\Entity\Messaging;
 
 // src/Entity/TelegramBot.php
 
+use App\Entity\Company\Company;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]

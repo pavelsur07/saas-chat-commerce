@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repository\Messaging;
 
-use App\Entity\Client;
-use App\Entity\TelegramBot;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\TelegramBot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Query\Parameter;

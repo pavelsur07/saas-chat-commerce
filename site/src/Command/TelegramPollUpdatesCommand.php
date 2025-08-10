@@ -2,12 +2,12 @@
 
 namespace App\Command;
 
-use App\Entity\Client;
-use App\Entity\Message;
-use App\Entity\TelegramBot;
-use App\Repository\ClientRepository;
-use App\Repository\MessageRepository;
-use App\Repository\TelegramBotRepository;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
+use App\Entity\Messaging\TelegramBot;
+use App\Repository\Messaging\ClientRepository;
+use App\Repository\Messaging\MessageRepository;
+use App\Repository\Messaging\TelegramBotRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Console\Attribute\AsCommand;

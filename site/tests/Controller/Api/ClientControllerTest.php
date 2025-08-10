@@ -2,9 +2,9 @@
 
 namespace App\Tests\Controller\Api;
 
-use App\Entity\Client;
-use App\Entity\Company;
-use App\Entity\User;
+use App\Entity\Company\Company;
+use App\Entity\Company\User;
+use App\Entity\Messaging\Client;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 

@@ -2,9 +2,9 @@
 
 namespace App\Controller\Webhook;
 
-use App\Entity\Client;
-use App\Entity\Message;
-use App\Repository\TelegramBotRepository;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
+use App\Repository\Messaging\TelegramBotRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Nonstandard\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

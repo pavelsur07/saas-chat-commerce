@@ -6,11 +6,10 @@ namespace App\Service;
 
 namespace App\Service;
 
-use App\Entity\Company;
-use App\Entity\User;
-use App\Entity\UserCompany;
+use App\Entity\Company\Company;
+use App\Entity\Company\User;
+use App\Entity\Company\UserCompany;
 use App\Event\CompanyCreatedEvent;
-use App\Repository\CompanyRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;

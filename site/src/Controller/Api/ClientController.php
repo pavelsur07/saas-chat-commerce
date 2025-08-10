@@ -2,9 +2,9 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\Client;
-use App\Repository\ClientRepository;
-use App\Repository\CompanyRepository;
+use App\Entity\Messaging\Client;
+use App\Repository\Company\CompanyRepository;
+use App\Repository\Messaging\ClientRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

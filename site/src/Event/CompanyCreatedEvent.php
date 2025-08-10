@@ -4,7 +4,7 @@ namespace App\Event;
 
 namespace App\Event;
 
-use App\Entity\Company;
+use App\Entity\Company\Company;
 use Symfony\Contracts\EventDispatcher\Event;
 
 class CompanyCreatedEvent extends Event

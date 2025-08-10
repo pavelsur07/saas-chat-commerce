@@ -2,8 +2,8 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\Company;
-use App\Entity\TelegramBot;
+use App\Entity\Company\Company;
+use App\Entity\Messaging\TelegramBot;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;

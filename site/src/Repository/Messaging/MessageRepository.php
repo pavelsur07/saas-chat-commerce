@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repository\Messaging;
 
-use App\Entity\Client;
-use App\Entity\Message;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 

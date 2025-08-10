@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\Client;
-use App\Entity\Message;
-use App\Entity\TelegramBot;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
+use App\Entity\Messaging\TelegramBot;
 use App\Form\TelegramBotType;
 use App\Service\CompanyContextService;
 use App\Service\Messaging\TelegramService;

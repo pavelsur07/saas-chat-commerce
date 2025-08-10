@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Entity;
+namespace App\Entity\Company;
 
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;

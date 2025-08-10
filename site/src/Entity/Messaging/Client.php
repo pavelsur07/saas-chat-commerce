@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Entity;
+namespace App\Entity\Messaging;
 
-use App\Repository\ClientRepository;
+use App\Entity\Company\Company;
+use App\Repository\Messaging\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 

@@ -2,8 +2,8 @@
 
 namespace App\Controller;
 
-use App\Entity\Company;
-use App\Repository\UserCompanyRepository;
+use App\Entity\Company\Company;
+use App\Repository\Company\UserCompanyRepository;
 use App\Service\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
