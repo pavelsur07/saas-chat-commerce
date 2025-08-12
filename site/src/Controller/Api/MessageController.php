@@ -6,7 +6,6 @@ use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;
-use App\Service\AI\LlmClient;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Predis\Client as RedisClient;
@@ -145,7 +144,6 @@ class MessageController extends AbstractController
             'messages' => [['role'=> $this->getUser(),'content'=>$text]],
             'feature' => 'agent_suggest_reply', // подпись для аналитики
         ]);*/
-
 
         return new JsonResponse([
             'status' => 'success',
