@@ -141,11 +141,11 @@ class MessageController extends AbstractController
 
         //  Отправка в AI и логирование
 
-        $res = $llm->chat([
+        /*$res = $llm->chat([
             'model' => 'gpt-4o-mini',
             'messages' => [['role'=> $this->getUser(),'content'=>$text]],
             'feature' => 'agent_suggest_reply', // подпись для аналитики
-        ]);
+        ]);*/
 
 
         return new JsonResponse([
