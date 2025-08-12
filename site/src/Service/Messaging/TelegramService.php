@@ -1,15 +1,16 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service\Messaging;
 
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Psr\Log\LoggerInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * TelegramService (refactored)
+ * TelegramService (refactored).
  *
  * Цели:
  * - Централизация вызовов Telegram API (один метод apiCall).
@@ -27,10 +28,12 @@ final class TelegramService
     public function __construct(
         private readonly HttpClientInterface $http,
         private readonly ?LoggerInterface $logger = null,
-    ) {}
+    ) {
+    }
 
     /**
-     * Проверка токена (getMe)
+     * Проверка токена (getMe).
+     *
      * @return array<string,mixed>
      */
     public function validateToken(string $token): array
@@ -39,7 +42,8 @@ final class TelegramService
     }
 
     /**
-     * Установка webhook
+     * Установка webhook.
+     *
      * @return array<string,mixed>
      */
     public function setWebhook(string $token, string $webhookUrl): array
@@ -51,7 +55,8 @@ final class TelegramService
     }
 
     /**
-     * Удаление webhook
+     * Удаление webhook.
+     *
      * @return array<string,mixed>
      */
     public function deleteWebhook(string $token): array
@@ -60,14 +65,15 @@ final class TelegramService
     }
 
     /**
-     * Отправка сообщения
+     * Отправка сообщения.
+     *
      * @return array<string,mixed>
      */
     public function sendMessage(string $token, string $chatId, string $text): array
     {
         return $this->apiCall($token, 'sendMessage', [
             'chat_id' => $chatId,
-            'text'    => $text,
+            'text' => $text,
             'parse_mode' => 'HTML',
             'disable_web_page_preview' => true,
         ]);
@@ -75,7 +81,8 @@ final class TelegramService
 
     /**
      * Получение новых сообщений (polling; совместимость).
-     * Возвращает нормализованные сообщения: [['message_id'=>..., 'chat_id'=>..., 'text'=>..., 'date'=>...], ...]
+     * Возвращает нормализованные сообщения: [['message_id'=>..., 'chat_id'=>..., 'text'=>..., 'date'=>...], ...].
+     *
      * @return array<int, array<string, mixed>>
      */
     public function fetchMessages(string $token): array
@@ -95,25 +102,28 @@ final class TelegramService
 
             $normalized[] = [
                 'message_id' => $m['message_id'] ?? null,
-                'chat_id'    => $m['chat']['id'] ?? null,
-                'text'       => $m['text'] ?? '',
-                'date'       => $m['date'] ?? null,
-                'username'   => $m['from']['username'] ?? null,
-                '_raw'       => $m,
+                'chat_id' => $m['chat']['id'] ?? null,
+                'text' => $m['text'] ?? '',
+                'date' => $m['date'] ?? null,
+                'username' => $m['from']['username'] ?? null,
+                '_raw' => $m,
             ];
         }
+
         return $normalized;
     }
 
     /**
      * Центральная точка для вызовов Telegram API.
      * Делает до 1 + RETRIES попыток с бэкоффом, логирует ошибки.
+     *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     private function apiCall(string $token, string $method, array $params = [], string $httpMethod = 'POST'): array
     {
-        $url = self::API_BASE . $token . '/' . $method;
+        $url = self::API_BASE.$token.'/'.$method;
         $attempt = 0;
         $lastException = null;
 
@@ -121,7 +131,7 @@ final class TelegramService
             try {
                 $options = ['timeout' => self::TIMEOUT_SEC];
 
-                if (strtoupper($httpMethod) === 'GET') {
+                if ('GET' === strtoupper($httpMethod)) {
                     if (!empty($params)) {
                         $options['query'] = $params;
                     }
@@ -137,7 +147,7 @@ final class TelegramService
 
                 if (!is_array($data)) {
                     $this->log('telegram.api.invalid_json', [
-                        'method' => $method, 'status' => $status, 'body' => $body
+                        'method' => $method, 'status' => $status, 'body' => $body,
                     ]);
                     throw new \RuntimeException('Invalid JSON from Telegram');
                 }
@@ -145,27 +155,27 @@ final class TelegramService
                 // Telegram-style errors
                 if (($data['ok'] ?? false) !== true) {
                     $description = $data['description'] ?? 'unknown';
-                    $errorCode   = (int)($data['error_code'] ?? 0);
+                    $errorCode = (int) ($data['error_code'] ?? 0);
 
                     // 429 Too Many Requests — уважаем retry_after
-                    if ($errorCode === 429 && isset($data['parameters']['retry_after'])) {
-                        $retrySec = (int)$data['parameters']['retry_after'];
+                    if (429 === $errorCode && isset($data['parameters']['retry_after'])) {
+                        $retrySec = (int) $data['parameters']['retry_after'];
                         $this->sleepMs(($retrySec * 1000) + self::RETRY_BASE_DELAY_MS);
-                        $attempt++;
+                        ++$attempt;
                         continue;
                     }
 
                     // 5xx — пробуем повторить
                     if ($errorCode >= 500 && $attempt < self::RETRIES) {
                         $this->sleepMs(self::RETRY_BASE_DELAY_MS * (1 + $attempt));
-                        $attempt++;
+                        ++$attempt;
                         continue;
                     }
 
                     $this->log('telegram.api.error', [
-                        'method' => $method, 'status' => $status, 'error' => $description, 'data' => $data
+                        'method' => $method, 'status' => $status, 'error' => $description, 'data' => $data,
                     ]);
-                    throw new \RuntimeException('Telegram API error: ' . $description);
+                    throw new \RuntimeException('Telegram API error: '.$description);
                 }
 
                 return $data;
@@ -181,7 +191,7 @@ final class TelegramService
                     break;
                 }
                 $this->sleepMs(self::RETRY_BASE_DELAY_MS * (1 + $attempt));
-                $attempt++;
+                ++$attempt;
             } catch (\Throwable $e) {
                 $lastException = $e;
                 $this->log('telegram.unexpected.exception', [
@@ -194,13 +204,13 @@ final class TelegramService
                     break;
                 }
                 $this->sleepMs(self::RETRY_BASE_DELAY_MS * (1 + $attempt));
-                $attempt++;
+                ++$attempt;
             }
         }
 
         // если дошли сюда — значит все попытки неудачны
         $message = $lastException ? $lastException->getMessage() : 'Unknown error';
-        throw new \RuntimeException('Telegram API call failed: ' . $message, previous: $lastException);
+        throw new \RuntimeException('Telegram API call failed: '.$message, previous: $lastException);
     }
 
     private function sleepMs(int $ms): void
@@ -210,12 +220,13 @@ final class TelegramService
 
     /**
      * Унифицированное логирование (опционально).
+     *
      * @param array<string, mixed> $context
      */
     private function log(string $event, array $context = []): void
     {
         if ($this->logger) {
-            $this->logger->info('[Telegram] ' . $event, $context);
+            $this->logger->info('[Telegram] '.$event, $context);
         }
     }
 }

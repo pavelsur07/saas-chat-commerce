@@ -18,3 +18,23 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+        # Базовый клиент к провайдеру
+    App\Service\AI\OpenAiClient:
+        arguments:
+            $http: '@http_client'
+            $apiKey: '%env(string:OPENAI_API_KEY)%'
+            $baseUrl: 'https://api.openai.com/v1'
+
+    # По умолчанию LlmClient — это OpenAiClient
+    App\Service\AI\LlmClient: '@App\Service\AI\OpenAiClient'
+
+    # Декоратор: теперь любой LlmClient будет обёрнут логированием
+    App\Service\AI\LlmClientWithLogging:
+        decorates: App\Service\AI\LlmClient
+        arguments:
+            - '@App\Service\AI\LlmClientWithLogging.inner'
+            - '@App\Service\AI\AiPromptLogService'
+            # Текущего пользователя можно внедрять по-своему; если не нужно — убери третий аргумент
+        autowire: true
+        autoconfigure: true
+
