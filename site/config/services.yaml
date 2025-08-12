@@ -38,3 +38,8 @@ services:
         autowire: true
         autoconfigure: true
 
+    App\Service\Messaging\TelegramService:
+        arguments:
+            $http: '@http_client'
+            $logger: '@logger'
+

@@ -73,7 +73,6 @@ class MessageController extends AbstractController
         EntityManagerInterface $em,
         TelegramService $telegramService,
         ValidatorInterface $validator,
-        LlmClient $llm
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
 
