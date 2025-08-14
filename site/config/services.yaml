@@ -34,7 +34,7 @@ services:
         arguments:
             - '@App\Service\AI\LlmClientWithLogging.inner'
             - '@App\Service\AI\AiPromptLogService'
-            # Текущего пользователя можно внедрять по-своему; если не нужно — убери третий аргумент
+            - '@security.token_storage' # безопасно и в HTTP, и в CLI
         autowire: true
         autoconfigure: true
 
