@@ -39,6 +39,9 @@ class Message
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $meta = null;
+
     public function __construct(string $id, Client $client, string $direction, ?string $text = null, ?array $payload = null, ?TelegramBot $telegramBot = null)
     {
         Assert::oneOf($direction, self::directionList());
@@ -67,9 +70,19 @@ class Message
         return $this->id;
     }
 
-    public function setId(?string $id): void
+    public function getMeta(): ?array
     {
-        $this->id = $id;
+        return $this->meta;
+    }
+
+    public function setMeta(?array $meta): void
+    {
+        $this->meta = $meta;
+    }
+
+    public function mergeMeta(array $extra): void
+    {
+        $this->meta = array_merge($this->meta ?? [], $extra);
     }
 
     public function getClient(): Client
