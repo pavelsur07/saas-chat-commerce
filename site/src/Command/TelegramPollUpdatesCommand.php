@@ -65,7 +65,8 @@ final class TelegramPollUpdatesCommand extends Command
         $updates = $this->telegram->getUpdates($bot, [
             'offset' => $offset ? $offset + 1 : null,
             'limit' => 50,
-            'timeout' => 20,
+            // без лонг-поллинга, чтобы не блокировать HTTP-запрос
+            'timeout' => 0,
         ]);
 
         if (!$updates) {
@@ -160,13 +161,15 @@ final class TelegramPollUpdatesCommand extends Command
                 // не падаем; запись в ai_prompt_log будет со status=error
             }
 
-            $this->em->flush();
             ++$accepted;
             $maxUpdateId = max($maxUpdateId, (int) $updateId);
         }
 
-        if ($maxUpdateId !== (int) ($bot->getLastUpdateId() ?? 0)) {
-            $bot->setLastUpdateId($maxUpdateId);
+        $updateIdChanged = $maxUpdateId !== (int) ($bot->getLastUpdateId() ?? 0);
+        if ($accepted > 0 || $updateIdChanged) {
+            if ($updateIdChanged) {
+                $bot->setLastUpdateId($maxUpdateId);
+            }
             $this->em->flush();
         }
 
