@@ -12,4 +12,15 @@ class TelegramBotRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, TelegramBot::class);
     }
+
+    /** @return TelegramBot[] */
+    public function findActive(): array
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.isActive = :true')->setParameter('true', true)
+            ->andWhere('b.token IS NOT NULL AND b.token <> \'\'')
+            ->orderBy('b.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

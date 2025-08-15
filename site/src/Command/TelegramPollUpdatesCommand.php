@@ -3,120 +3,135 @@
 namespace App\Command;
 
 use App\Entity\Messaging\Client;
-use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
-use App\Repository\Messaging\ClientRepository;
-use App\Repository\Messaging\MessageRepository;
 use App\Repository\Messaging\TelegramBotRepository;
+use App\Service\Messaging\Dto\InboundMessage;
+use App\Service\Messaging\MessageIngressService;
+use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[AsCommand(
     name: 'telegram:poll-updates',
-    description: 'Polls Telegram updates for all active bots.',
+    description: 'Poll Telegram updates for active bots and push inbound messages through the unified ingress pipeline'
 )]
-class TelegramPollUpdatesCommand extends Command
+final class TelegramPollUpdatesCommand extends Command
 {
     public function __construct(
-        private TelegramBotRepository $botRepo,
-        private ClientRepository $clientRepo,
-        private MessageRepository $messageRepo,
-        private EntityManagerInterface $em,
-        private HttpClientInterface $httpClient,
+        private readonly TelegramService $telegram,
+        private readonly TelegramBotRepository $botRepo,
+        private readonly MessageIngressService $ingress,
+        private readonly EntityManagerInterface $em,
     ) {
         parent::__construct();
     }
 
+    protected function configure(): void
+    {
+        $this
+            ->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Max updates per bot per call', 50)
+            ->addOption('timeout', null, InputOption::VALUE_OPTIONAL, 'Long-polling timeout (seconds)', 20);
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $bots = $this->botRepo->findBy(['isActive' => true]);
+        $limit = (int) $input->getOption('limit');
+        $timeout = (int) $input->getOption('timeout');
+
+        /** @var TelegramBot[] $bots */
+        $bots = $this->botRepo->findActive(); // только активные и с непустым токеном
+        if (!$bots) {
+            $output->writeln('<info>No active Telegram bots.</info>');
+
+            return Command::SUCCESS;
+        }
 
         foreach ($bots as $bot) {
-            $this->processBot($bot, $output);
+            try {
+                $offset = $bot->getLastUpdateId() ? ($bot->getLastUpdateId() + 1) : null;
+                $updates = $this->telegram->getUpdates($bot, [
+                    'offset' => $offset,
+                    'limit' => $limit,
+                    'timeout' => $timeout,
+                ]);
+
+                if (!$updates) {
+                    $output->writeln(sprintf('<comment>[%s] No updates.</comment>', (string) $bot->getId()));
+                    continue;
+                }
+
+                $maxUpdateId = $bot->getLastUpdateId();
+
+                foreach ($updates as $upd) {
+                    $updateId = $upd['update_id'] ?? null;
+                    $message = $upd['message'] ?? ($upd['edited_message'] ?? null);
+                    if (!$updateId || !$message || !is_array($message)) {
+                        $maxUpdateId = $this->maxId($maxUpdateId, $updateId);
+                        continue;
+                    }
+
+                    $text = (string) ($message['text'] ?? '');
+                    $chat = $message['chat'] ?? [];
+                    $chatId = (string) ($chat['id'] ?? '');
+
+                    // Обрабатываем только валидные текстовые входящие
+                    if ('' === $text || '' === $chatId) {
+                        $maxUpdateId = $this->maxId($maxUpdateId, $updateId);
+                        continue;
+                    }
+
+                    // ВАЖНО: externalId — всегда chat.id (строкой).
+                    // Это унифицирует с вебхуком и NormalizeMiddleware.
+                    $meta = [
+                        'username' => $chat['username'] ?? null,
+                        'firstName' => $chat['first_name'] ?? null,
+                        'lastName' => $chat['last_name'] ?? null,
+                        'company' => $bot->getCompany(),  // контекст компании для LLM
+                        'bot_id' => $bot->getId(),
+                        'update_id' => $updateId,
+                        'raw' => $upd,
+                    ];
+
+                    // ЕДИНЫЙ ВХОД → Pipeline (Normalize → Persist → AiEnrich)
+                    $this->ingress->accept(new InboundMessage(
+                        channel: Client::TELEGRAM,
+                        externalId: $chatId,
+                        text: $text,
+                        clientId: null,
+                        meta: $meta
+                    ));
+
+                    $maxUpdateId = $this->maxId($maxUpdateId, $updateId);
+                }
+
+                if (null !== $maxUpdateId && $maxUpdateId !== $bot->getLastUpdateId()) {
+                    $bot->setLastUpdateId((int) $maxUpdateId);
+                    $this->em->flush();
+                }
+
+                $output->writeln(sprintf('<info>[%s] done, lastUpdateId=%s</info>', (string) $bot->getId(), (string) $bot->getLastUpdateId()));
+            } catch (\Throwable $e) {
+                $output->writeln(sprintf('<error>[%s] poll error: %s</error>', (string) $bot->getId(), $e->getMessage()));
+                continue;
+            }
         }
 
         return Command::SUCCESS;
     }
 
-    private function processBot(TelegramBot $bot, OutputInterface $output): void
+    private function maxId(?int $a, ?int $b): ?int
     {
-        $token = $bot->getToken();
-        $offset = $bot->getLastUpdateId() + 1;
-
-        try {
-            $response = $this->httpClient->request('GET', "https://api.telegram.org/bot{$token}/getUpdates", [
-                'query' => [
-                    'offset' => $offset,
-                    'timeout' => 0,
-                ],
-            ]);
-            $data = $response->toArray();
-        } catch (\Throwable $e) {
-            $data = [];
+        if (null === $a) {
+            return $b;
+        }
+        if (null === $b) {
+            return $a;
         }
 
-        /* $response = $this->httpClient->request('GET', "https://api.telegram.org/bot{$token}/getUpdates", [
-             'query' => [
-                 'offset' => $offset,
-                 'timeout' => 0,
-             ],
-         ]);*/
-
-        /* $data = $response->toArray(); */
-
-        foreach ($data['result'] ?? [] as $update) {
-            $this->handleUpdate($update, $bot);
-            $bot->setLastUpdateId($update['update_id']);
-        }
-
-        $this->em->flush();
-    }
-
-    private function handleUpdate(array $update, TelegramBot $bot): void
-    {
-        if (!isset($update['message'])) {
-            return;
-        }
-
-        $msg = $update['message'];
-        $from = $msg['from'] ?? [];
-
-        $telegramId = $from['id'];
-        $client = $this->clientRepo->findOneByTelegramIdAndBot($telegramId, $bot);
-
-        if (!$client) {
-            $client = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, $telegramId, $bot->getCompany());
-            $client->setTelegramId(telegramId: $telegramId);
-            $client->setFirstName($from['first_name'] ?? null);
-            $client->setUsername($from['username'] ?? null);
-            $client->setTelegramBot($bot);
-            $client->setCompany($bot->getCompany());
-
-            $this->em->persist($client);
-        }
-
-        $text = $msg['text'] ?? '';
-        $message = new Message(Uuid::uuid4()->toString(), $client, Message::IN, $text, null, $bot);
-
-        $this->em->persist($message);
-
-        $redis = new \Predis\Client([
-            'scheme' => 'tcp',
-            'host' => 'redis-realtime',
-            'port' => 6379,
-        ]);
-
-        $redis->publish("chat.client.{$client->getId()}", json_encode([
-            'id' => $message->getId(),
-            'clientId' => $client->getId(),
-            'text' => $message->getText(),
-            'direction' => 'in',
-            'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
-        ]));
+        return max($a, $b);
     }
 }

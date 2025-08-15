@@ -45,6 +45,11 @@ services:
     # AI END Компоненты ------------------------------------------------------------------------------------------------
 
     # Message START Компоненты -----------------------------------------------------------------------------------------
+
+
+
+
+
     App\Service\Messaging\TelegramService:
         arguments:
             $http: '@http_client'
@@ -66,9 +71,13 @@ services:
                 - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
 
     # Middlewares
-    App\Service\Messaging\Middleware\NormalizeMiddleware: ~
     App\Service\Messaging\Middleware\PersistMiddleware: ~
     App\Service\Messaging\Middleware\AiEnrichMiddleware: ~
+    App\Service\Messaging\Middleware\NormalizeMiddleware:
+        arguments:
+            $clients: '@App\Repository\Messaging\ClientRepository'
+            $botRepo: '@App\Repository\Messaging\TelegramBotRepository'
+            $em: '@doctrine.orm.entity_manager'
 
     # Telegram adapter
     App\Service\Messaging\Channel\TelegramChannelAdapter: ~
