@@ -21,7 +21,13 @@ final class TelegramChannelAdapter implements ChannelAdapterInterface
 
     public function send(OutboundMessage $msg): void
     {
+        // Нужен токен бота. Берём из meta.
+        $token = $msg->meta['token'] ?? null;
+        if (!$token) {
+            throw new \InvalidArgumentException('Telegram token is required in OutboundMessage::meta["token"].');
+        }
+
         // recipientRef — это chatId
-        $this->telegram->sendMessage($msg->recipientRef, $msg->text);
+        $this->telegram->sendMessage($token, $msg->recipientRef, $msg->text);
     }
 }

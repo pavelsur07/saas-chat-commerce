@@ -115,12 +115,6 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Cannot determine bot for client'], Response::HTTP_BAD_REQUEST);
         }
 
-        try {
-            $telegramService->sendMessage($bot->getToken(), $client->getExternalId(), $text);
-        } catch (\Throwable) {
-            return new JsonResponse(['error' => 'Telegram API error'], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-
         $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $bot, $text);
         $em->persist($message);
         $em->flush();
@@ -128,7 +122,8 @@ class MessageController extends AbstractController
         $egress->send(new OutboundMessage(
             channel: $client->getChannel(),          // 'telegram'
             recipientRef: $client->getExternalId(),  // chatId
-            text: $text
+            text: $text,
+            meta: ['token' => $bot->getToken()]
         ));
 
         // после успешного сохранения исходящего
@@ -145,14 +140,6 @@ class MessageController extends AbstractController
             'direction' => 'out',
             'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
         ]));
-
-        //  Отправка в AI и логирование
-
-        /*$res = $llm->chat([
-            'model' => 'gpt-4o-mini',
-            'messages' => [['role'=> $this->getUser(),'content'=>$text]],
-            'feature' => 'agent_suggest_reply', // подпись для аналитики
-        ]);*/
 
         return new JsonResponse([
             'status' => 'success',
