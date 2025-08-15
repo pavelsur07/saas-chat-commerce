@@ -2,6 +2,7 @@
 
 namespace App\Repository\Messaging;
 
+use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -23,5 +24,18 @@ class MessageRepository extends ServiceEntityRepository
             ->orderBy('b.id', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    public function findLastInboundByClient(Client $client): ?Message
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.client = :client')
+            ->andWhere('m.direction = :direction')
+            ->setParameter('client', $client)
+            ->setParameter('direction', Message::IN)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }
