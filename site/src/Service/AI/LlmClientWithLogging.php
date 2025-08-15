@@ -1,10 +1,10 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Service\AI;
 
 use App\Entity\Company\User;
+use App\Service\AI\AiPromptLogService;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -13,35 +13,34 @@ final class LlmClientWithLogging implements LlmClient
     public function __construct(
         private readonly LlmClient $inner,
         private readonly AiPromptLogService $logService,
-        private readonly ?TokenStorageInterface $tokenStorage = null, // может быть null в CLI
-    ) {
-    }
+        private readonly ?TokenStorageInterface $tokenStorage = null // может быть null в CLI
+    ) {}
 
     public function chat(array $params): array
     {
-        $model = (string) ($params['model'] ?? 'gpt-4o-mini');
-        $feature = (string) ($params['feature'] ?? 'unknown');
-        $channel = (string) ($params['channel'] ?? 'system');
+        $model   = (string)($params['model'] ?? 'gpt-4o-mini');
+        $feature = (string)($params['feature'] ?? 'unknown');
+        $channel = (string)($params['channel'] ?? 'system');
 
         // короткий превью-промпт
         $promptPreview = '';
         if (!empty($params['messages'])) {
-            $userMsgs = array_values(array_filter($params['messages'], static fn ($m) => ($m['role'] ?? '') === 'user'));
-            $promptPreview = (string) ($userMsgs[0]['content'] ?? '');
+            $userMsgs = array_values(array_filter($params['messages'], static fn($m) => ($m['role'] ?? '') === 'user'));
+            $promptPreview = (string)($userMsgs[0]['content'] ?? '');
         } else {
-            $promptPreview = (string) ($params['prompt'] ?? '');
+            $promptPreview = (string)($params['prompt'] ?? '');
         }
 
         $startedAt = microtime(true);
         $status = 'ok';
         $errorMessage = null;
         $respText = '';
-        $usage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $usage = ['prompt_tokens'=>0,'completion_tokens'=>0,'total_tokens'=>0];
 
         try {
-            $result = $this->inner->chat($params);
-            $respText = (string) ($result['content'] ?? '');
-            $usage = $result['usage'] ?? $usage;
+            $result   = $this->inner->chat($params);
+            $respText = (string)($result['content'] ?? '');
+            $usage    = $result['usage'] ?? $usage;
         } catch (\Throwable $e) {
             $status = 'error';
             $errorMessage = substr($e->getMessage(), 0, 245);
@@ -52,21 +51,21 @@ final class LlmClientWithLogging implements LlmClient
             $user = $this->resolveCurrentUserOrNull();
 
             $this->logService->log([
-                'channel' => $channel,
-                'model' => $model,
-                'prompt' => $promptPreview,
-                'response' => $respText,
-                'promptTokens' => (int) ($usage['prompt_tokens'] ?? 0),
-                'completionTokens' => (int) ($usage['completion_tokens'] ?? 0),
-                'totalTokens' => (int) ($usage['total_tokens'] ?? 0),
-                'latencyMs' => $latencyMs,
-                'status' => $status,
-                'errorMessage' => $errorMessage,
-                'metadata' => ['feature' => $feature],
+                'channel'          => $channel,
+                'model'            => $model,
+                'prompt'           => $promptPreview,
+                'response'         => $respText,
+                'promptTokens'     => (int)($usage['prompt_tokens'] ?? 0),
+                'completionTokens' => (int)($usage['completion_tokens'] ?? 0),
+                'totalTokens'      => (int)($usage['total_tokens'] ?? 0),
+                'latencyMs'        => $latencyMs,
+                'status'           => $status,
+                'errorMessage'     => $errorMessage,
+                'metadata'         => ['feature' => $feature],
             ], $user);
         }
 
-        if ('ok' !== $status) {
+        if ($status !== 'ok') {
             return ['content' => '', 'usage' => $usage];
         }
 
