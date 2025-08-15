@@ -1,49 +1,47 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Command;
 
 use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
+use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\TelegramBotRepository;
-use App\Service\Messaging\Dto\InboundMessage;
-use App\Service\Messaging\MessageIngressService;
+use App\Service\AI\AiFeature;
+use App\Service\AI\LlmClient;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
     name: 'telegram:poll-updates',
-    description: 'Poll Telegram updates for active bots and push inbound messages through the unified ingress pipeline'
+    description: 'Polls Telegram updates for active bots, stores inbound messages, and logs AI.'
 )]
 final class TelegramPollUpdatesCommand extends Command
 {
     public function __construct(
-        private readonly TelegramService $telegram,
         private readonly TelegramBotRepository $botRepo,
-        private readonly MessageIngressService $ingress,
+        private readonly ClientRepository $clients,
         private readonly EntityManagerInterface $em,
+        private readonly TelegramService $telegram,
+        private readonly LlmClient $llm, // декоратор добавит лог в ai_prompt_log
     ) {
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Max updates per bot per call', 50)
-            ->addOption('timeout', null, InputOption::VALUE_OPTIONAL, 'Long-polling timeout (seconds)', 20);
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $limit = (int) $input->getOption('limit');
-        $timeout = (int) $input->getOption('timeout');
+        /* $bots = method_exists($this->botRepo, 'findActive')
+             ? $this->botRepo->findActive()
+             : $this->botRepo->findBy(['isActive' => true]);*/
+        $bots = $this->botRepo->findBy(['isActive' => true]);
 
-        /** @var TelegramBot[] $bots */
-        $bots = $this->botRepo->findActive(); // только активные и с непустым токеном
         if (!$bots) {
             $output->writeln('<info>No active Telegram bots.</info>');
 
@@ -52,86 +50,128 @@ final class TelegramPollUpdatesCommand extends Command
 
         foreach ($bots as $bot) {
             try {
-                $offset = $bot->getLastUpdateId() ? ($bot->getLastUpdateId() + 1) : null;
-                $updates = $this->telegram->getUpdates($bot, [
-                    'offset' => $offset,
-                    'limit' => $limit,
-                    'timeout' => $timeout,
-                ]);
-
-                if (!$updates) {
-                    $output->writeln(sprintf('<comment>[%s] No updates.</comment>', (string) $bot->getId()));
-                    continue;
-                }
-
-                $maxUpdateId = $bot->getLastUpdateId();
-
-                foreach ($updates as $upd) {
-                    $updateId = $upd['update_id'] ?? null;
-                    $message = $upd['message'] ?? ($upd['edited_message'] ?? null);
-                    if (!$updateId || !$message || !is_array($message)) {
-                        $maxUpdateId = $this->maxId($maxUpdateId, $updateId);
-                        continue;
-                    }
-
-                    $text = (string) ($message['text'] ?? '');
-                    $chat = $message['chat'] ?? [];
-                    $chatId = (string) ($chat['id'] ?? '');
-
-                    // Обрабатываем только валидные текстовые входящие
-                    if ('' === $text || '' === $chatId) {
-                        $maxUpdateId = $this->maxId($maxUpdateId, $updateId);
-                        continue;
-                    }
-
-                    // ВАЖНО: externalId — всегда chat.id (строкой).
-                    // Это унифицирует с вебхуком и NormalizeMiddleware.
-                    $meta = [
-                        'username' => $chat['username'] ?? null,
-                        'firstName' => $chat['first_name'] ?? null,
-                        'lastName' => $chat['last_name'] ?? null,
-                        'company' => $bot->getCompany(),  // контекст компании для LLM
-                        'bot_id' => $bot->getId(),
-                        'update_id' => $updateId,
-                        'raw' => $upd,
-                    ];
-
-                    // ЕДИНЫЙ ВХОД → Pipeline (Normalize → Persist → AiEnrich)
-                    $this->ingress->accept(new InboundMessage(
-                        channel: Client::TELEGRAM,
-                        externalId: $chatId,
-                        text: $text,
-                        clientId: null,
-                        meta: $meta
-                    ));
-
-                    $maxUpdateId = $this->maxId($maxUpdateId, $updateId);
-                }
-
-                if (null !== $maxUpdateId && $maxUpdateId !== $bot->getLastUpdateId()) {
-                    $bot->setLastUpdateId((int) $maxUpdateId);
-                    $this->em->flush();
-                }
-
-                $output->writeln(sprintf('<info>[%s] done, lastUpdateId=%s</info>', (string) $bot->getId(), (string) $bot->getLastUpdateId()));
+                $this->processBot($bot, $output);
             } catch (\Throwable $e) {
-                $output->writeln(sprintf('<error>[%s] poll error: %s</error>', (string) $bot->getId(), $e->getMessage()));
-                continue;
+                $output->writeln(sprintf('<error>[bot:%s] poll error: %s</error>', (string) $bot->getId(), $e->getMessage()));
             }
         }
 
         return Command::SUCCESS;
     }
 
-    private function maxId(?int $a, ?int $b): ?int
+    private function processBot(TelegramBot $bot, OutputInterface $output): void
     {
-        if (null === $a) {
-            return $b;
-        }
-        if (null === $b) {
-            return $a;
+        $offset = $bot->getLastUpdateId();
+        $updates = $this->telegram->getUpdates($bot, [
+            'offset' => $offset ? $offset + 1 : null,
+            'limit' => 50,
+            'timeout' => 20,
+        ]);
+
+        if (!$updates) {
+            $output->writeln(sprintf('<comment>[%s] No updates.</comment>', (string) $bot->getId()));
+
+            return;
         }
 
-        return max($a, $b);
+        $maxUpdateId = (int) ($offset ?? 0);
+        $accepted = 0;
+        $skipped = 0;
+
+        foreach ($updates as $upd) {
+            $updateId = $upd['update_id'] ?? null;
+            $message = $upd['message'] ?? ($upd['edited_message'] ?? null);
+
+            if (!$updateId) {
+                continue;
+            }
+
+            if (!$message || !is_array($message)) {
+                ++$skipped;
+                $maxUpdateId = max($maxUpdateId, (int) $updateId);
+                continue;
+            }
+
+            $text = (string) ($message['text'] ?? '');
+            $chat = $message['chat'] ?? [];
+            $chatId = isset($chat['id']) ? (string) $chat['id'] : '';
+
+            if ('' === $text || '' === $chatId) {
+                ++$skipped;
+                $maxUpdateId = max($maxUpdateId, (int) $updateId);
+                continue;
+            }
+
+            // ЕДИНЫЙ КЛЮЧ поиска клиента: channel + externalId (строкой!)
+            $client = $this->clients->findOneByChannelAndExternalId(Client::TELEGRAM, $chatId);
+
+            if (!$client) {
+                $client = new Client(
+                    id: Uuid::uuid4()->toString(),
+                    channel: Client::TELEGRAM,
+                    externalId: $chatId,
+                    company: $bot->getCompany()
+                );
+                $this->em->persist($client);
+            }
+
+            // Дополняем телеграм-полями (не используем их для поиска)
+            if (ctype_digit($chatId)) {
+                $client->setTelegramId((int) $chatId);
+            }
+            if (!$client->getTelegramBot()) {
+                $client->setTelegramBot($bot);
+            }
+            if (($chat['first_name'] ?? null) && !$client->getFirstName()) {
+                $client->setFirstName($chat['first_name']);
+            }
+            if (($chat['username'] ?? null) && !$client->getUsername()) {
+                $client->setUsername($chat['username']);
+            }
+
+            // Сохраняем входящее сообщение
+            $msg = new Message(
+                Uuid::uuid4()->toString(),
+                $client,
+                Message::IN,
+                $text,
+                $upd,   // сырой апдейт, если meta храните как json
+                $bot
+            );
+            $this->em->persist($msg);
+
+            // AI: классифицируем интент (декоратор запишет ai_prompt_log)
+            try {
+                $intentRes = $this->llm->chat([
+                    'model' => 'gpt-4o-mini',
+                    'messages' => [['role' => 'user', 'content' => $text]],
+                    'feature' => AiFeature::INTENT_CLASSIFY->value ?? 'intent_classify',
+                    'channel' => 'telegram',
+                ]);
+
+                $intent = trim((string) ($intentRes['content'] ?? ''));
+                $meta = $msg->getMeta();
+                if (!is_array($meta)) {
+                    $meta = [];
+                }
+                $meta['ai'] = array_merge($meta['ai'] ?? [], ['intent' => $intent]);
+                $msg->setMeta($meta);
+            } catch (\Throwable $e) {
+                // не падаем; запись в ai_prompt_log будет со status=error
+            }
+
+            $this->em->flush();
+            ++$accepted;
+            $maxUpdateId = max($maxUpdateId, (int) $updateId);
+        }
+
+        if ($maxUpdateId !== (int) ($bot->getLastUpdateId() ?? 0)) {
+            $bot->setLastUpdateId($maxUpdateId);
+            $this->em->flush();
+        }
+
+        $output->writeln(sprintf('<info>[bot:%s] accepted=%d skipped=%d lastUpdateId=%s</info>',
+            (string) $bot->getId(), $accepted, $skipped, (string) $bot->getLastUpdateId()
+        ));
     }
 }

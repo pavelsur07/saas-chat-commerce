@@ -46,10 +46,6 @@ services:
 
     # Message START Компоненты -----------------------------------------------------------------------------------------
 
-
-
-
-
     App\Service\Messaging\TelegramService:
         arguments:
             $http: '@http_client'
