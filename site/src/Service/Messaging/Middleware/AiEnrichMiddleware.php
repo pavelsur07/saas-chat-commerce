@@ -1,14 +1,15 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service\Messaging\Middleware;
 
-use App\Service\Messaging\Dto\InboundMessage;
-use App\Service\Messaging\Pipeline\MessageMiddlewareInterface;
 use App\Entity\Messaging\Message as DbMessage;
 use App\Repository\Messaging\MessageRepository;
 use App\Service\AI\AiFeature;
 use App\Service\AI\LlmClient;
+use App\Service\Messaging\Dto\InboundMessage;
+use App\Service\Messaging\Pipeline\MessageMiddlewareInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class AiEnrichMiddleware implements MessageMiddlewareInterface
@@ -16,16 +17,17 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
     public function __construct(
         private readonly LlmClient $llm,
         private readonly MessageRepository $messages,
-        private readonly EntityManagerInterface $em
-    ) {}
+        private readonly EntityManagerInterface $em,
+    ) {
+    }
 
     public function __invoke(InboundMessage $m, callable $next): void
     {
         $intentRes = $this->llm->chat([
-            'model'    => 'gpt-4o-mini',
-            'messages' => [['role'=>'user','content'=>$m->text]],
-            'feature'  => AiFeature::INTENT_CLASSIFY->value,
-            'channel'  => $m->channel,
+            'model' => 'gpt-4o-mini',
+            'messages' => [['role' => 'user', 'content' => $m->text]],
+            'feature' => AiFeature::INTENT_CLASSIFY->value,
+            'channel' => $m->channel,
         ]);
 
         if (!empty($m->meta['_persisted_message_id'])) {
@@ -33,7 +35,7 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
             $dbMsg = $this->messages->find($m->meta['_persisted_message_id']);
             if ($dbMsg) {
                 $meta = $dbMsg->getMeta() ?? [];
-                $meta['intent'] = trim((string)($intentRes['content'] ?? ''));
+                $meta['intent'] = trim((string) ($intentRes['content'] ?? ''));
                 $dbMsg->setMeta($meta);
                 $this->em->flush();
             }
@@ -41,13 +43,13 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
 
         // Подсказки оператору (по желанию вынести в очередь)
         $this->llm->chat([
-            'model'    => 'gpt-4o-mini',
+            'model' => 'gpt-4o-mini',
             'messages' => [
-                ['role'=>'system','content'=>'Коротко, 2 варианта, дружелюбно.'],
-                ['role'=>'user','content'=>sprintf("Клиент: %s\nДай 2 варианта ответа.", $m->text)]
+                ['role' => 'system', 'content' => 'Коротко, 2 варианта, дружелюбно.'],
+                ['role' => 'user', 'content' => sprintf("Клиент: %s\nДай 2 варианта ответа.", $m->text)],
             ],
-            'feature'  => AiFeature::AGENT_SUGGEST_REPLY->value,
-            'channel'  => $m->channel,
+            'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
+            'channel' => $m->channel,
         ]);
 
         $next($m);

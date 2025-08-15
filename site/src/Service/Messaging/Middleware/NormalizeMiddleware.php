@@ -1,12 +1,13 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service\Messaging\Middleware;
 
-use App\Service\Messaging\Dto\InboundMessage;
-use App\Service\Messaging\Pipeline\MessageMiddlewareInterface;
 use App\Entity\Messaging\Client;
 use App\Repository\Messaging\ClientRepository;
+use App\Service\Messaging\Dto\InboundMessage;
+use App\Service\Messaging\Pipeline\MessageMiddlewareInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Nonstandard\Uuid;
 
@@ -14,13 +15,15 @@ final class NormalizeMiddleware implements MessageMiddlewareInterface
 {
     public function __construct(
         private readonly ClientRepository $clients,
-        private readonly EntityManagerInterface $em
-    ) {}
+        private readonly EntityManagerInterface $em,
+    ) {
+    }
 
     public function __invoke(InboundMessage $m, callable $next): void
     {
         if ($m->clientId) {
             $next($m);
+
             return;
         }
 

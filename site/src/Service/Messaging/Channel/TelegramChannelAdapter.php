@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service\Messaging\Channel;
@@ -9,11 +10,13 @@ use App\Service\Messaging\TelegramService; // у вас уже есть этот
 
 final class TelegramChannelAdapter implements ChannelAdapterInterface
 {
-    public function __construct(private readonly TelegramService $telegram) {}
+    public function __construct(private readonly TelegramService $telegram)
+    {
+    }
 
     public function supports(string $channel): bool
     {
-        return $channel === 'telegram';
+        return 'telegram' === $channel;
     }
 
     public function send(OutboundMessage $msg): void

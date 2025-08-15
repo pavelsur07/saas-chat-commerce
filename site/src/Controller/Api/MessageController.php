@@ -6,6 +6,8 @@ use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;
+use App\Service\Messaging\Dto\OutboundMessage;
+use App\Service\Messaging\MessageEgressService;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Predis\Client as RedisClient;
@@ -18,8 +20,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use App\Service\Messaging\MessageEgressService;
-use App\Service\Messaging\Dto\OutboundMessage;
 
 class MessageController extends AbstractController
 {
@@ -74,7 +74,7 @@ class MessageController extends AbstractController
         EntityManagerInterface $em,
         TelegramService $telegramService,
         ValidatorInterface $validator,
-        MessageEgressService $egress
+        MessageEgressService $egress,
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
 
@@ -131,7 +131,6 @@ class MessageController extends AbstractController
             text: $text
         ));
 
-
         // после успешного сохранения исходящего
         $redis = new RedisClient([
             'scheme' => 'tcp',
@@ -146,8 +145,6 @@ class MessageController extends AbstractController
             'direction' => 'out',
             'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
         ]));
-
-
 
         //  Отправка в AI и логирование
 
