@@ -6,6 +6,8 @@ use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;
+use App\Service\Messaging\Dto\OutboundMessage;
+use App\Service\Messaging\MessageEgressService;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Predis\Client as RedisClient;
@@ -72,6 +74,7 @@ class MessageController extends AbstractController
         EntityManagerInterface $em,
         TelegramService $telegramService,
         ValidatorInterface $validator,
+        MessageEgressService $egress,
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
 
@@ -112,15 +115,16 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Cannot determine bot for client'], Response::HTTP_BAD_REQUEST);
         }
 
-        try {
-            $telegramService->sendMessage($bot->getToken(), $client->getExternalId(), $text);
-        } catch (\Throwable) {
-            return new JsonResponse(['error' => 'Telegram API error'], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-
         $message = Message::messageOut(Uuid::uuid4()->toString(), $client, $bot, $text);
         $em->persist($message);
         $em->flush();
+
+        $egress->send(new OutboundMessage(
+            channel: $client->getChannel(),          // 'telegram'
+            recipientRef: $client->getExternalId(),  // chatId
+            text: $text,
+            meta: ['token' => $bot->getToken()]
+        ));
 
         // после успешного сохранения исходящего
         $redis = new RedisClient([
@@ -136,14 +140,6 @@ class MessageController extends AbstractController
             'direction' => 'out',
             'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
         ]));
-
-        //  Отправка в AI и логирование
-
-        /*$res = $llm->chat([
-            'model' => 'gpt-4o-mini',
-            'messages' => [['role'=> $this->getUser(),'content'=>$text]],
-            'feature' => 'agent_suggest_reply', // подпись для аналитики
-        ]);*/
 
         return new JsonResponse([
             'status' => 'success',

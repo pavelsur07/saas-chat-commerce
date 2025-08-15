@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Messaging;
 
+use App\Entity\Messaging\TelegramBot;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
@@ -111,6 +112,34 @@ final class TelegramService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Получение обновлений (long-polling).
+     *
+     * @param array{offset?:int,limit?:int,timeout?:int,allowed_updates?:array} $opts
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function getUpdates(TelegramBot $bot, array $opts = []): array
+    {
+        $token = (string) ($bot->getToken() ?? '');
+        if ('' === $token) {
+            return []; // нет токена — тихо выходим
+        }
+
+        $payload = [
+            'offset' => $opts['offset'] ?? null,
+            'limit' => $opts['limit'] ?? 50,
+            'timeout' => $opts['timeout'] ?? 20,
+            'allowed_updates' => $opts['allowed_updates'] ?? ['message', 'edited_message'],
+        ];
+        $payload = array_filter($payload, static fn ($v) => null !== $v);
+
+        $resp = $this->apiCall($token, 'getUpdates', $payload);
+        $result = $resp['result'] ?? [];
+
+        return is_array($result) ? $result : [];
     }
 
     /**

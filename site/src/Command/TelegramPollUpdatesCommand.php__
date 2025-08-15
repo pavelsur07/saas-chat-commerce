@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Command;
+
+use App\Entity\Messaging\Client;
+use App\Repository\Messaging\TelegramBotRepository;
+use App\Service\Messaging\Dto\InboundMessage;
+use App\Service\Messaging\MessageIngressService;
+use App\Service\Messaging\TelegramService;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+
+#[AsCommand(
+    name: 'telegram:poll-updates',
+    description: 'Poll Telegram updates for all active bots and push inbound messages through the unified ingress pipeline'
+)]
+final class TelegramPollUpdatesCommand extends Command
+{
+    public function __construct(
+        private readonly TelegramService $telegram,
+        private readonly TelegramBotRepository $bots,
+        private readonly MessageIngressService $ingress,
+        private readonly EntityManagerInterface $em,
+    ) {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this
+            ->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Max updates per bot per iteration', 50)
+            ->addOption('timeout', null, InputOption::VALUE_OPTIONAL, 'Long-polling timeout (seconds)', 20)
+            ->addOption('once', null, InputOption::VALUE_NONE, 'Process once (no loop)'); // на всякий случай
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $limit = (int) $input->getOption('limit');
+        $timeout = (int) $input->getOption('timeout');
+        $once = (bool) $input->getOption('once');
+
+        $bots = $this->bots->findAll(); // при желании можно сделать findActive()
+        if (!$bots) {
+            $output->writeln('<info>No Telegram bots found.</info>');
+
+            return Command::SUCCESS;
+        }
+
+        foreach ($bots as $bot) {
+            try {
+                $offset = $bot->getLastUpdateId() ? ($bot->getLastUpdateId() + 1) : null;
+
+                $updates = $this->telegram->getUpdates($bot, [
+                    'offset' => $offset,
+                    'limit' => $limit,
+                    'timeout' => $timeout,
+                ]);
+
+                if (!is_array($updates) || [] === $updates) {
+                    $output->writeln(sprintf('<comment>[%s] No updates.</comment>', (string) $bot->getId()));
+                    continue;
+                }
+
+                $maxUpdateId = $bot->getLastUpdateId();
+
+                foreach ($updates as $upd) {
+                    $updateId = $upd['update_id'] ?? null;
+                    $message = $upd['message'] ?? ($upd['edited_message'] ?? null);
+
+                    if (!$updateId) {
+                        continue;
+                    }
+
+                    // Берём только текстовые входящие
+                    if (!$message || !is_array($message)) {
+                        // сюда можно добавить обработку callback_query и пр.
+                        $maxUpdateId = max((int) $maxUpdateId, (int) $updateId);
+                        continue;
+                    }
+
+                    $text = (string) ($message['text'] ?? '');
+                    $chat = $message['chat'] ?? [];
+                    $chatId = (string) ($chat['id'] ?? '');
+
+                    if ('' === $text || '' === $chatId) {
+                        $maxUpdateId = max((int) $maxUpdateId, (int) $updateId);
+                        continue;
+                    }
+
+                    // Собираем meta для нормализации клиента и AI-контекста
+                    $meta = [
+                        'username' => $chat['username'] ?? null,
+                        'firstName' => $chat['first_name'] ?? null,
+                        'lastName' => $chat['last_name'] ?? null,
+                        'company' => $bot->getCompany(), // ВАЖНО: контекст компании для LLM
+                        'update_id' => $updateId,
+                        'bot_id' => $bot->getId(),
+                        'raw' => $upd,               // чтобы можно было отладить
+                    ];
+
+                    // ЕДИНЫЙ ВХОД: запускает Pipeline (Normalize → Persist → AiEnrich)
+                    $this->ingress->accept(new InboundMessage(
+                        channel: Client::TELEGRAM,   // константа вашего проекта
+                        externalId: $chatId,         // ключ привязки клиента в нашем канале
+                        text: $text,
+                        clientId: null,              // найдётся/создастся в NormalizeMiddleware
+                        meta: $meta
+                    ));
+
+                    // Трекаем смещение
+                    if (null === $maxUpdateId || (int) $updateId > (int) $maxUpdateId) {
+                        $maxUpdateId = (int) $updateId;
+                    }
+                }
+
+                // Сохраняем новый offset
+                if (null !== $maxUpdateId && $maxUpdateId !== $bot->getLastUpdateId()) {
+                    $bot->setLastUpdateId($maxUpdateId);
+                    $this->em->flush();
+                }
+
+                $output->writeln(sprintf(
+                    '<info>[%s] processed, lastUpdateId=%s</info>',
+                    (string) $bot->getId(),
+                    (string) $bot->getLastUpdateId()
+                ));
+            } catch (\Throwable $e) {
+                $output->writeln(sprintf(
+                    '<error>[%s] poll error: %s</error>',
+                    (string) $bot->getId(),
+                    $e->getMessage()
+                ));
+                // продолжаем со следующего бота
+                continue;
+            }
+        }
+
+        // Если нужен постоянный лонг-поллинг — реализацию внешнего цикла делайте в supervisor/systemd/cron.
+        if ($once) {
+            return Command::SUCCESS;
+        }
+
+        return Command::SUCCESS;
+    }
+}
