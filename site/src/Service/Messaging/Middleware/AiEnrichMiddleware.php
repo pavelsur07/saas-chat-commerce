@@ -35,6 +35,9 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
             $dbMsg = $this->messages->find($m->meta['_persisted_message_id']);
             if ($dbMsg) {
                 $meta = $dbMsg->getMeta() ?? [];
+                if (!is_array($meta)) {
+                    $meta = [];
+                }
                 $meta['intent'] = trim((string) ($intentRes['content'] ?? ''));
                 $dbMsg->setMeta($meta);
                 $this->em->flush();

@@ -19,6 +19,8 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
         # Базовый клиент к провайдеру
+
+    # AI START Компоненты ----------------------------------------------------------------------------------------------------
     App\Service\AI\OpenAiClient:
         arguments:
             $http: '@http_client'
@@ -34,10 +36,15 @@ services:
         arguments:
             - '@App\Service\AI\LlmClientWithLogging.inner'
             - '@App\Service\AI\AiPromptLogService'
-            - '@security.token_storage' # безопасно и в HTTP, и в CLI
+            - '@security.token_storage'
+            - '@App\Service\Company\CompanyContextService'
+            - '%env(bool:AI_INJECT_COMPANY_SYSTEM)%'
         autowire: true
         autoconfigure: true
 
+    # AI END Компоненты ------------------------------------------------------------------------------------------------
+
+    # Message START Компоненты -----------------------------------------------------------------------------------------
     App\Service\Messaging\TelegramService:
         arguments:
             $http: '@http_client'
@@ -65,4 +72,6 @@ services:
 
     # Telegram adapter
     App\Service\Messaging\Channel\TelegramChannelAdapter: ~
+
+    # Message END Компоненты -------------------------------------------------------------------------------------------
 
