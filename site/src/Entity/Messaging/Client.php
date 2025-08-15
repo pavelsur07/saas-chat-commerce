@@ -57,7 +57,7 @@ class Client
         $this->company = $company;
     }
 
-    public function getTelegramBot(): TelegramBot
+    public function getTelegramBot(): ?TelegramBot
     {
         return $this->telegramBot;
     }
