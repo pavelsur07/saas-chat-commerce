@@ -119,7 +119,7 @@ final class TelegramPollUpdatesCommand extends Command
             if (ctype_digit($chatId)) {
                 $client->setTelegramId((int) $chatId);
             }
-            if (!$client->getTelegramBot()) {
+            if (null === $client->getTelegramBot()) {
                 $client->setTelegramBot($bot);
             }
             if (($chat['first_name'] ?? null) && !$client->getFirstName()) {
