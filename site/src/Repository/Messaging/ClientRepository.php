@@ -31,4 +31,13 @@ class ClientRepository extends ServiceEntityRepository
 
         return $results[0] ?? null;
     }
+
+    public function findOneByChannelAndExternalId(string $channel, string $externalId): ?Client
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.channel = :ch')->setParameter('ch', $channel)
+            ->andWhere('c.externalId = :ex')->setParameter('ex', $externalId)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

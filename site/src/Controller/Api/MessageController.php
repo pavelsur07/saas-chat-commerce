@@ -18,6 +18,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Service\Messaging\MessageEgressService;
+use App\Service\Messaging\Dto\OutboundMessage;
 
 class MessageController extends AbstractController
 {
@@ -72,6 +74,7 @@ class MessageController extends AbstractController
         EntityManagerInterface $em,
         TelegramService $telegramService,
         ValidatorInterface $validator,
+        MessageEgressService $egress
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
 
@@ -122,6 +125,13 @@ class MessageController extends AbstractController
         $em->persist($message);
         $em->flush();
 
+        $egress->send(new OutboundMessage(
+            channel: $client->getChannel(),          // 'telegram'
+            recipientRef: $client->getExternalId(),  // chatId
+            text: $text
+        ));
+
+
         // после успешного сохранения исходящего
         $redis = new RedisClient([
             'scheme' => 'tcp',
@@ -136,6 +146,8 @@ class MessageController extends AbstractController
             'direction' => 'out',
             'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
         ]));
+
+
 
         //  Отправка в AI и логирование
 

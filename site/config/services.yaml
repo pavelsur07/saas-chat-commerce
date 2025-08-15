@@ -43,3 +43,26 @@ services:
             $http: '@http_client'
             $logger: '@logger'
 
+        # PIPELINE
+    App\Service\Messaging\MessagePipeline:
+        arguments:
+            $middlewares:
+                - '@App\Service\Messaging\Middleware\NormalizeMiddleware'
+                - '@App\Service\Messaging\Middleware\PersistMiddleware'
+                - '@App\Service\Messaging\Middleware\AiEnrichMiddleware'
+
+    App\Service\Messaging\MessageIngressService: ~
+
+    App\Service\Messaging\MessageEgressService:
+        arguments:
+            $adapters:
+                - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
+
+    # Middlewares
+    App\Service\Messaging\Middleware\NormalizeMiddleware: ~
+    App\Service\Messaging\Middleware\PersistMiddleware: ~
+    App\Service\Messaging\Middleware\AiEnrichMiddleware: ~
+
+    # Telegram adapter
+    App\Service\Messaging\Channel\TelegramChannelAdapter: ~
+
