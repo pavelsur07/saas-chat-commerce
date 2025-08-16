@@ -9,7 +9,9 @@ import { createAdapter } from '@socket.io/redis-adapter';
 const PORT = process.env.PORT || 3001;
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis-realtime:6379';
 const SOCKET_PATH = process.env.SOCKET_PATH || '/socket.io';
-const ORIGIN = process.env.SOCKET_ORIGIN || 'https://chat.2bstock.ru';
+const isProd = process.env.NODE_ENV === 'prod';
+//const ORIGIN = process.env.SOCKET_ORIGIN || 'https://chat.2bstock.ru';
+const ORIGIN = process.env.SOCKET_ORIGIN || (isProd ? 'https://chat.2bstock.ru' : 'http://localhost:3001');
 
 const app = express();
 app.get('/health', (_req, res) => res.json({ ok: true }));
