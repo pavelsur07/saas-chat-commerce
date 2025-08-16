@@ -96,6 +96,7 @@ services:
         depends_on:
             - redis-realtime
         networks:
+            - traefik-public
             - default
 
     redis-realtime:
