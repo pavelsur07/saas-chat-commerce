@@ -85,6 +85,7 @@
         "lint": "phplint",
         "php-cs-fixer": "php-cs-fixer --config=.php-cs-fixer.php",
         "test": "phpunit --colors=always",
+        "test-coverage": "XDEBUG_MODE=coverage phpunit --colors=always --coverage-html var/test/coverage",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd",

@@ -162,4 +162,9 @@ class Message
             self::OUT,
         ];
     }
+
+    public function getBot()
+    {
+        return $this->getTelegramBot();
+    }
 }
