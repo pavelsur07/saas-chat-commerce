@@ -14,6 +14,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_ai_prompt_log_company_created_at', columns: ['company_id', 'created_at'])]
 #[ORM\Index(name: 'idx_ai_prompt_log_company_model_created', columns: ['company_id', 'model', 'created_at'])]
 #[ORM\Index(name: 'idx_ai_prompt_log_company_status_created', columns: ['company_id', 'status', 'created_at'])]
+// Новая: быстрая фильтрация по feature
+#[ORM\Index(name: 'idx_ai_prompt_log_company_feature_created', columns: ['company_id', 'feature', 'created_at'])]
 class AiPromptLog
 {
     use Timestampable;
@@ -29,6 +31,10 @@ class AiPromptLog
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $user = null;
+
+    // Новая колонка: тип операции (intent_classify, auto_reply и т.п.)
+    #[ORM\Column(type: 'string', length: 64)]
+    private string $feature;
 
     #[ORM\Column(type: 'string', length: 32)]
     private string $channel; // 'telegram','web','api','system'...
@@ -63,13 +69,17 @@ class AiPromptLog
     #[ORM\Column(type: 'decimal', precision: 10, scale: 5, nullable: true)]
     private ?string $costUsd = null;
 
-    #[ORM\Column(type: 'jsonb', nullable: true)]
-    private ?array $metadata = null; // любые доп. поля
-
-    public function __construct(string $id, Company $company, string $channel, string $model, string $prompt)
-    {
+    public function __construct(
+        string $id,
+        Company $company,
+        string $feature,
+        string $channel,
+        string $model,
+        string $prompt,
+    ) {
         $this->id = $id;
         $this->company = $company;
+        $this->feature = $feature;
         $this->channel = $channel;
         $this->model = $model;
         $this->prompt = $prompt;
@@ -104,6 +114,16 @@ class AiPromptLog
     public function setUser(?User $user): void
     {
         $this->user = $user;
+    }
+
+    public function getFeature(): string
+    {
+        return $this->feature;
+    }
+
+    public function setFeature(string $feature): void
+    {
+        $this->feature = $feature;
     }
 
     public function getChannel(): string

@@ -21,6 +21,14 @@ services:
         # Базовый клиент к провайдеру
 
     # AI START Компоненты ----------------------------------------------------------------------------------------------------
+    App\Service\AI\AiPromptLogService: ~
+
+    App\Service\AI\LlmClientWithLogging:
+        decorates: App\Service\AI\OpenAiClient
+        arguments:
+            - '@App\Service\AI\LlmClientWithLogging.inner'
+            - '@App\Service\AI\AiPromptLogService'
+
     App\Service\AI\OpenAiClient:
         arguments:
             $http: '@http_client'
@@ -31,52 +39,49 @@ services:
     App\Service\AI\LlmClient: '@App\Service\AI\OpenAiClient'
 
     # Декоратор: теперь любой LlmClient будет обёрнут логированием
-    App\Service\AI\LlmClientWithLogging:
-        decorates: App\Service\AI\LlmClient
-        arguments:
-            - '@App\Service\AI\LlmClientWithLogging.inner'
-            - '@App\Service\AI\AiPromptLogService'
-            - '@security.token_storage'
-            - '@App\Service\Company\CompanyContextService'
-            - '%env(bool:AI_INJECT_COMPANY_SYSTEM)%'
-        autowire: true
-        autoconfigure: true
+    # App\Service\AI\LlmClientWithLogging:
+    #    decorates: App\Service\AI\LlmClient
+    #    arguments:
+    #        - '@App\Service\AI\LlmClientWithLogging.inner'
+    #        - '@App\Service\AI\AiPromptLogService'
+    #        - '@security.token_storage'
+    #        - '@App\Service\Company\CompanyContextService'
+    #        - '%env(bool:AI_INJECT_COMPANY_SYSTEM)%'
+    #    autowire: true
+    #    autoconfigure: true
 
     # AI END Компоненты ------------------------------------------------------------------------------------------------
-
     # Message START Компоненты -----------------------------------------------------------------------------------------
-
-    App\Service\Messaging\TelegramService:
-        arguments:
-            $http: '@http_client'
-            $logger: '@logger'
+    #App\Service\Messaging\TelegramService:
+    #    arguments:
+    #        $http: '@http_client'
+    #        $logger: '@logger'
 
         # PIPELINE
-    App\Service\Messaging\MessagePipeline:
-        arguments:
-            $middlewares:
-                - '@App\Service\Messaging\Middleware\NormalizeMiddleware'
-                - '@App\Service\Messaging\Middleware\PersistMiddleware'
-                - '@App\Service\Messaging\Middleware\AiEnrichMiddleware'
+    #App\Service\Messaging\MessagePipeline:
+    #    arguments:
+    #        $middlewares:
+    #            - '@App\Service\Messaging\Middleware\NormalizeMiddleware'
+    #            - '@App\Service\Messaging\Middleware\PersistMiddleware'
+    #            - '@App\Service\Messaging\Middleware\AiEnrichMiddleware'
 
-    App\Service\Messaging\MessageIngressService: ~
+    #App\Service\Messaging\MessageIngressService: ~
 
-    App\Service\Messaging\MessageEgressService:
-        arguments:
-            $adapters:
-                - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
+    #App\Service\Messaging\MessageEgressService:
+    #    arguments:
+    #        $adapters:
+    #            - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
 
     # Middlewares
-    App\Service\Messaging\Middleware\PersistMiddleware: ~
-    App\Service\Messaging\Middleware\AiEnrichMiddleware: ~
-    App\Service\Messaging\Middleware\NormalizeMiddleware:
-        arguments:
-            $clients: '@App\Repository\Messaging\ClientRepository'
-            $botRepo: '@App\Repository\Messaging\TelegramBotRepository'
-            $em: '@doctrine.orm.entity_manager'
+    #App\Service\Messaging\Middleware\PersistMiddleware: ~
+    #App\Service\Messaging\Middleware\AiEnrichMiddleware: ~
+    #App\Service\Messaging\Middleware\NormalizeMiddleware:
+    #    arguments:
+    #        $clients: '@App\Repository\Messaging\ClientRepository'
+    #        $botRepo: '@App\Repository\Messaging\TelegramBotRepository'
+    #        $em: '@doctrine.orm.entity_manager'
 
     # Telegram adapter
-    App\Service\Messaging\Channel\TelegramChannelAdapter: ~
-
+    #App\Service\Messaging\Channel\TelegramChannelAdapter: ~
     # Message END Компоненты -------------------------------------------------------------------------------------------
 

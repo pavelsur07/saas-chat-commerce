@@ -115,9 +115,18 @@ class TelegramWebhookController extends AbstractController
                 $res = $llm->chat([
                     'model' => 'gpt-4o-mini',
                     'messages' => [['role' => 'user', 'content' => $text]],
+                    'feature' => AiFeature::INTENT_CLASSIFY,  // <-- важно
+                    'channel' => 'telegram',         // <-- важно
+                    'company' => $bot->getCompany(), // <-- обязательно Company
+                ]);
+
+                /*$res = $llm->chat([
+                    'model' => 'gpt-4o-mini',
+                    'messages' => [['role' => 'user', 'content' => $text]],
                     'feature' => AiFeature::INTENT_CLASSIFY->value ?? 'intent_classify',
                     'channel' => 'telegram',
-                ]);
+                ]);*/
+
                 $intent = trim((string) ($res['content'] ?? ''));
                 $meta = $message->getMeta() ?? [];
                 $meta['ai'] = array_merge($meta['ai'] ?? [], ['intent' => $intent]);
