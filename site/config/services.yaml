@@ -52,10 +52,10 @@ services:
 
     # AI END Компоненты ------------------------------------------------------------------------------------------------
     # Message START Компоненты -----------------------------------------------------------------------------------------
-    #App\Service\Messaging\TelegramService:
-    #    arguments:
-    #        $http: '@http_client'
-    #        $logger: '@logger'
+    App\Service\Messaging\TelegramService:
+        arguments:
+            $http: '@http_client'
+            $logger: '@logger'
 
         # PIPELINE
     #App\Service\Messaging\MessagePipeline:
