@@ -146,8 +146,10 @@ final class TelegramPollUpdatesCommand extends Command
                 $intentRes = $this->llm->chat([
                     'model' => 'gpt-4o-mini',
                     'messages' => [['role' => 'user', 'content' => $text]],
-                    'feature' => AiFeature::INTENT_CLASSIFY->value ?? 'intent_classify',
+                    'feature' => AiFeature::INTENT_CLASSIFY->value,
                     'channel' => 'telegram',
+                    // LlmClientWithLogging требует указания компании
+                    'company' => $bot->getCompany(),
                 ]);
 
                 $intent = trim((string) ($intentRes['content'] ?? ''));
