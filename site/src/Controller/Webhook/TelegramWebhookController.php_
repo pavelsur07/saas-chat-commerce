@@ -20,51 +20,35 @@ class TelegramWebhookController extends AbstractController
         '/webhook/telegram/bot/{token}',
         name: 'telegram.webhook',
         requirements: ['token' => '.+'],
-        methods: ['POST']
-    )]
+        methods: ['POST'])
+    ]
     public function handleWebhook(
         string $token,
         Request $request,
         TelegramBotRepository $botRepo,
         EntityManagerInterface $em,
-        LlmClient $llm, // декоратор логирует в ai_prompt_log
+        LlmClient $llm, // декоратор добавит лог в ai_prompt_log
     ): JsonResponse {
         $bot = $botRepo->findOneBy(['token' => $token, 'isActive' => true]);
         if (!$bot) {
             return new JsonResponse(['error' => 'Invalid bot'], 403);
         }
 
-        $data = json_decode($request->getContent(), true) ?? [];
-        $msg = $data['message'] ?? $data['edited_message'] ?? null;
-        if (!$msg) {
+        $data = json_decode($request->getContent(), true);
+        if (!isset($data['message'])) {
             return new JsonResponse(['ok' => true]);
         }
 
-        // Валидация наличия from.id и chat.id
-        $from = $msg['from'] ?? null;
-        $chat = $msg['chat'] ?? null;
+        $msg = $data['message'];
+        $chat = $msg['chat'];
 
-        if (!is_array($from) || !isset($from['id'])) {
-            // В этом тесте как раз нет from.id — корректно выходим
-            return new JsonResponse(['ok' => true]);
-        }
+        $telegramId = (string) $chat['id'];
+        $username = $chat['username'] ?? null;
+        $firstName = $chat['first_name'] ?? null;
+        $lastName = $chat['last_name'] ?? null;
 
-        if (!is_array($chat) || !isset($chat['id'])) {
-            // Без chat.id не можем привязать чат
-            return new JsonResponse(['ok' => true]);
-        }
-
-        $telegramId = (string) $chat['id']; // для private чат = user id
-        $username = $from['username'] ?? null;
-        $firstName = $from['first_name'] ?? null;
-        $lastName = $from['last_name'] ?? null;
-
-        // Найти или создать клиента по externalId+company
-        /** @var Client|null $client */
-        $client = $em->getRepository(Client::class)->findOneBy([
-            'externalId' => $telegramId,
-            'company' => $bot->getCompany(),
-        ]);
+        // Найти или создать клиента
+        $client = $em->getRepository(Client::class)->find($telegramId);
         if (!$client) {
             $client = new Client(
                 id: Uuid::uuid4()->toString(),
@@ -72,21 +56,20 @@ class TelegramWebhookController extends AbstractController
                 externalId: $telegramId,
                 company: $bot->getCompany()
             );
+
             $client->setUsername($username);
             $client->setFirstName($firstName);
             $client->setLastName($lastName);
             $em->persist($client);
         }
 
-        $text = $msg['text'] ?? null;
-
-        // Сохраняем сообщение (даже если text пуст — payload пригодится)
+        // Сохраняем сообщение
         $message = Message::messageIn(
             Uuid::uuid4()->toString(),
             $client,
             $bot,
-            $text,
-            $msg // сырой payload
+            $msg['text'] ?? null,
+            $msg
         );
         $em->persist($message);
         $em->flush();
@@ -98,6 +81,7 @@ class TelegramWebhookController extends AbstractController
                 'host' => $_ENV['REDIS_REALTIME_HOST'] ?? 'redis-realtime',
                 'port' => (int) ($_ENV['REDIS_REALTIME_PORT'] ?? 6379),
             ]);
+
             $redis->publish("chat.client.{$client->getId()}", json_encode([
                 'id' => $message->getId(),
                 'clientId' => $client->getId(),
@@ -105,27 +89,30 @@ class TelegramWebhookController extends AbstractController
                 'direction' => 'in',
                 'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
             ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-        } catch (\Throwable) {
-            // не роняем webhook
+        } catch (\Throwable $e) {
+            // не роняем webhook — просто можно залогировать через monolog, если нужно
         }
 
-        // AI: можно вызывать только если есть текст
+        // AI: классифицируем интент (декоратор запишет ai_prompt_log)
         try {
-            if (is_string($text) && '' !== $text) {
-                $res = $llm->chat([
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [['role' => 'user', 'content' => $text]],
-                    'feature' => AiFeature::INTENT_CLASSIFY->value ?? 'intent_classify',
-                    'channel' => 'telegram',
-                ]);
-                $intent = trim((string) ($res['content'] ?? ''));
-                $meta = $message->getMeta() ?? [];
-                $meta['ai'] = array_merge($meta['ai'] ?? [], ['intent' => $intent]);
-                $message->setMeta($meta);
-                $em->flush();
+            $intentRes = $llm->chat([
+                'model' => 'gpt-4o-mini',
+                'messages' => [['role' => 'user', 'content' => $msg['text'] ?? null]],
+                'feature' => AiFeature::INTENT_CLASSIFY->value ?? 'intent_classify',
+                'channel' => 'telegram',
+            ]);
+
+            $intent = trim((string) ($intentRes['content'] ?? ''));
+            $meta = $message->getMeta();
+            if (!is_array($meta)) {
+                $meta = [];
             }
-        } catch (\Throwable) {
-            // записей в ai_prompt_log достаточно; ошибку не пробрасываем
+            $meta['ai'] = array_merge($meta['ai'] ?? [], ['intent' => $intent]);
+            $message->setMeta($meta);
+
+            $em->flush();
+        } catch (\Throwable $e) {
+            // не падаем; запись в ai_prompt_log будет со status=error
         }
 
         return new JsonResponse(['ok' => true]);
