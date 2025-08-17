@@ -76,7 +76,7 @@ final class TelegramWebhookControllerTest extends WebTestCase
         // Используем клиента из setUp — НЕ вызываем createClient() заново
         $this->http->request(
             'POST',
-            '/bot/'.$this->botToken,
+            '/webhook/telegram/bot/'.$this->botToken,
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode($payload, JSON_UNESCAPED_UNICODE)
         );
@@ -114,7 +114,7 @@ final class TelegramWebhookControllerTest extends WebTestCase
 
         $this->http->request(
             'POST',
-            '/bot/'.$this->botToken,
+            '/webhook/telegram/bot/'.$this->botToken,
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode($payload, JSON_UNESCAPED_UNICODE)
         );

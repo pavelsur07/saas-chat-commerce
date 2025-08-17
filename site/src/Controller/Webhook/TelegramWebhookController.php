@@ -14,10 +14,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('telegram/bot')]
 class TelegramWebhookController extends AbstractController
 {
-    #[Route('/{token}', name: 'telegram.webhook', methods: ['POST'])]
+    #[Route(
+        '/webhook/telegram/bot/{token}',
+        name: 'telegram.webhook',
+        requirements: ['token' => '.+'],
+        methods: ['POST'])
+    ]
     public function handleWebhook(
         string $token,
         Request $request,
