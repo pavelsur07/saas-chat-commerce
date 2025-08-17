@@ -2,6 +2,7 @@
 
 namespace App\Entity\Messaging;
 
+use App\Entity\Company\Company;
 use App\Repository\Messaging\MessageRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
@@ -17,8 +18,13 @@ class Message
     #[ORM\Column(type: 'guid', unique: true)]
     private ?string $id = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: Client::class)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Client $client;
+
+    #[ORM\ManyToOne(targetEntity: Company::class)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private Company $company;                // ✅ Новое поле
 
     #[ORM\Column(length: 20)]
     private string $channel; // дублируется для удобства фильтрации
@@ -45,14 +51,24 @@ class Message
     public function __construct(string $id, Client $client, string $direction, ?string $text = null, ?array $payload = null, ?TelegramBot $telegramBot = null)
     {
         Assert::oneOf($direction, self::directionList());
+
         $this->id = $id;
         $this->client = $client;
+        $this->company = $client->getCompany(); // ✅ фиксируем компанию при создании
         $this->channel = $client->getChannel();
         $this->direction = $direction;
         $this->text = $text;
         $this->payload = $payload;
         $this->telegramBot = $telegramBot;
         $this->createdAt = new \DateTimeImmutable();
+
+        if ($telegramBot) {
+            Assert::eq(
+                $telegramBot->getCompany()->getId(),
+                $this->company->getId(),
+                'TelegramBot company mismatch with message company'
+            );
+        }
     }
 
     public static function messageOut(string $id, Client $client, TelegramBot $telegramBot, ?string $text = null, ?array $payload = null): self
@@ -93,6 +109,16 @@ class Message
     public function setClient(Client $client): void
     {
         $this->client = $client;
+    }
+
+    public function getCompany(): Company
+    {
+        return $this->company;
+    }
+
+    private function setCompany(Company $company): void
+    {
+        $this->company = $company;
     }
 
     public function getChannel(): string

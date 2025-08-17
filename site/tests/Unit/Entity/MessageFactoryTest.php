@@ -32,8 +32,7 @@ final class MessageFactoryTest extends TestCase
 
         self::assertSame('in', $m->getDirection());
         self::assertSame($client, $m->getClient());
-        // self::assertSame($company, $m->getCompany());
-        self::assertSame($company, $m->getClient()->getCompany());
+        self::assertSame($company, $m->getCompany());
         self::assertSame($bot, $m->getBot());
         self::assertSame($text, $m->getText());
         self::assertInstanceOf(\DateTimeInterface::class, $m->getCreatedAt());
