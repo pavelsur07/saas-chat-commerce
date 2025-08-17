@@ -57,7 +57,16 @@ services:
             $http: '@http_client'
             $logger: '@logger'
 
-        # PIPELINE
+    App\Service\Messaging\MessageIngressService: ~
+    App\Service\Messaging\MessageEgressService:
+        arguments:
+            $adapters:
+                - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
+
+    # Telegram adapter
+    App\Service\Messaging\Channel\TelegramChannelAdapter: ~
+
+    # PIPELINE
     #App\Service\Messaging\MessagePipeline:
     #    arguments:
     #        $middlewares:
@@ -65,12 +74,6 @@ services:
     #            - '@App\Service\Messaging\Middleware\PersistMiddleware'
     #            - '@App\Service\Messaging\Middleware\AiEnrichMiddleware'
 
-    #App\Service\Messaging\MessageIngressService: ~
-
-    #App\Service\Messaging\MessageEgressService:
-    #    arguments:
-    #        $adapters:
-    #            - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
 
     # Middlewares
     #App\Service\Messaging\Middleware\PersistMiddleware: ~
@@ -81,7 +84,6 @@ services:
     #        $botRepo: '@App\Repository\Messaging\TelegramBotRepository'
     #        $em: '@doctrine.orm.entity_manager'
 
-    # Telegram adapter
-    #App\Service\Messaging\Channel\TelegramChannelAdapter: ~
+
     # Message END Компоненты -------------------------------------------------------------------------------------------
 
