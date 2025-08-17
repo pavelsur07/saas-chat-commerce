@@ -73,6 +73,14 @@
                     </a>
                 </div>
 
+                {% if is_granted('ROLE_ADMIN') %}
+                    <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Администрирование</h3>
+                    <a href="{{ path('admin.ai_logs') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'admin.ai_logs' ? 'bg-gray-800' : '' }}">
+                        🧪 AI Logs
+                    </a>
+                {% endif %}
+
                 <!-- Профиль -->
                 <div>
                     <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Профиль</h3>
@@ -89,6 +97,8 @@
                     </a>
                     #}
                 </div>
+
+
 
             </nav>
 

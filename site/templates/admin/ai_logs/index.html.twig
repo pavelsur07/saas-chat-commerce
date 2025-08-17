@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}AI Logs (last 50){% endblock %}
+
+{% block body %}
+    <div class="max-w-full">
+        <h1 class="text-xl font-semibold mb-4">AI Logs — последние 50</h1>
+
+        <div class="overflow-x-auto border rounded-lg bg-white">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="text-left p-2">#</th>
+                    <th class="text-left p-2">Created</th>
+                    <th class="text-left p-2">Company</th>
+                    <th class="text-left p-2">Kind</th>
+                    <th class="text-left p-2">Model</th>
+                    <th class="text-left p-2">Success</th>
+                    <th class="text-left p-2">Latency</th>
+                    <th class="text-left p-2 w-1/2">Input</th>
+                    <th class="text-left p-2 w-1/2">Output</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for r in logs %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 align-top">{{ loop.index }}</td>
+                        <td class="p-2 align-top text-xs text-gray-600">{{ r.created_at|date('Y-m-d H:i:s') }}</td>
+                        <td class="p-2 align-top"><code class="text-xs">{{ r.company_id }}</code></td>
+                        <td class="p-2 align-top">
+            <span class="px-2 py-0.5 rounded text-xs {{ r.kind == 'intent_classify' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700' }}">
+              {{ r.kind }}
+            </span>
+                        </td>
+                        <td class="p-2 align-top text-xs">{{ r.model }}</td>
+                        <td class="p-2 align-top">
+                            {% if r.success %}
+                                <span class="text-green-600 font-medium">OK</span>
+                            {% else %}
+                                <span class="text-red-600 font-medium">ERR</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-2 align-top text-xs">{{ r.latency_ms ?? '—' }} ms</td>
+                        <td class="p-2 align-top">
+            <pre class="whitespace-pre-wrap text-xs leading-snug bg-gray-50 p-2 rounded border overflow-x-auto">
+{{ r.input_json is iterable ? r.input_json|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) : r.input_json }}
+            </pre>
+                        </td>
+                        <td class="p-2 align-top">
+            <pre class="whitespace-pre-wrap text-xs leading-snug bg-gray-50 p-2 rounded border overflow-x-auto">
+{{ r.output_json is iterable ? r.output_json|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) : r.output_json }}
+            </pre>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="9" class="p-4 text-center text-gray-500">Пока нет записей.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
