@@ -2,7 +2,9 @@
 
 namespace App\AI;
 
-use App\Repository\AI\AiPromptLogRepository;
+use App\Entity\Company\Company;
+use App\Repository\Messaging\ClientRepository;
+use App\Service\AI\AiFeature;
 use App\Service\AI\LlmClient;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -10,9 +12,9 @@ final class SuggestionService
 {
     public function __construct(
         private readonly LlmClient $llm,
-        private readonly AiPromptLogRepository $logRepo,
         private readonly ConversationContextProvider $contextProvider,
         private readonly SuggestionPromptBuilder $promptBuilder,
+        private readonly ClientRepository $clients,
         #[Autowire('%ai.suggestions.model%')] private readonly string $model,
         #[Autowire('%ai.suggestions.temperature%')] private readonly float $temperature,
         #[Autowire('%ai.suggestions.max_history%')] private readonly int $maxHistory,
@@ -24,69 +26,44 @@ final class SuggestionService
     /**
      * @return string[] max 4 suggestions
      */
-    public function suggest(string $companyId, string $clientId): array
+    public function suggest(Company $company, string $clientId): array
     {
         $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
         $prompt = $this->promptBuilder->build($context);
 
-        $started = \microtime(true);
-        $meta = [
-            'model' => $this->model,
-            'temperature' => $this->temperature,
-            'timeout_seconds' => $this->timeoutSeconds,
-        ];
+        // Определяем канал клиента (telegram/whatsapp/instagram/...)
+        $client = $this->clients->find($clientId);
+        $channel = $client?->getChannel() ?? 'system'; // Нужно разработать механизм точного определения канала
 
         try {
-            // Предполагается, что completeJson гарантирует JSON-строку либо бросает исключение/возвращает строку
-            $raw = $this->llm->completeJson(
-                prompt: $prompt,
-                model: $this->model,
-                temperature: $this->temperature,
-                timeoutSeconds: $this->timeoutSeconds
+            $result = $this->llm->chat([
+                'company' => $company, // для логирования через декоратор
+                'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
+                'channel' => $channel,
+                'model' => $this->model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Ты помощник оператора. Верни строго JSON вида {"suggestions":[...]}'],
+                    ['role' => 'user',   'content' => $prompt],
+                ],
+                'temperature' => $this->temperature,
+                'max_tokens' => 400,
+            ]);
+
+            $content = (string) ($result['content'] ?? '');
+            $decoded = json_decode($content, true);
+            $list = is_array($decoded['suggestions'] ?? null) ? $decoded['suggestions'] : [];
+
+            // Нормализация и ограничение 3–4 вариантов
+            $list = array_values(
+                array_filter(
+                    array_map(static fn ($s) => trim((string) $s), $list),
+                    static fn ($s) => '' !== $s
+                )
             );
 
-            $latency = (int) ((\microtime(true) - $started) * 1000);
-            $meta['latency_ms'] = $latency;
-
-            $decoded = \json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
-            $suggestions = $decoded['suggestions'] ?? [];
-
-            if (!\is_array($suggestions)) {
-                $suggestions = [];
-            }
-
-            // Ограничим 3–4 вариантов
-            $suggestions = array_values(array_filter(array_map('trim', $suggestions), fn ($s) => '' !== $s));
-            $suggestions = \array_slice($suggestions, 0, 4);
-
-            $this->logRepo->save(
-                feature: 'suggest',
-                companyId: $companyId,
-                clientId: $clientId,
-                prompt: $prompt,
-                response: \json_encode(['suggestions' => $suggestions], JSON_UNESCAPED_UNICODE),
-                meta: $meta
-            );
-
-            return $suggestions;
+            return array_slice($list, 0, 4);
         } catch (\Throwable $e) {
-            $latency = (int) ((\microtime(true) - $started) * 1000);
-            $meta['latency_ms'] = $latency;
-            $meta['error'] = [
-                'type' => \get_class($e),
-                'message' => $e->getMessage(),
-            ];
-
-            $this->logRepo->save(
-                feature: 'suggest',
-                companyId: $companyId,
-                clientId: $clientId,
-                prompt: $prompt,
-                response: null,
-                meta: $meta
-            );
-
-            // В MVP не валим UX — возвращаем пустой массив
+            // В MVP — тихий фоллбек
             return [];
         }
     }

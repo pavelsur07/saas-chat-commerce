@@ -4,7 +4,7 @@ namespace App\AI;
 
 use App\Repository\Messaging\MessageRepository;
 
-final class ConversationContextProvider
+class ConversationContextProvider
 {
     public function __construct(private MessageRepository $messages)
     {
@@ -13,7 +13,7 @@ final class ConversationContextProvider
     /**
      * @return array<int,array{role:string,text:string,createdAt:\DateTimeInterface}>
      */
-    public function getContext(int $clientId, int $limit = 12, int $maxChars = 4000): array
+    public function getContext(string $clientId, int $limit = 12, int $maxChars = 4000): array
     {
         $items = $this->messages->findLastByClient($clientId, $limit);
 
@@ -21,7 +21,7 @@ final class ConversationContextProvider
         $chars = 0;
 
         foreach ($items as $m) {
-            $role = $m->isIncoming() ? 'user' : 'agent';
+            $role = 'in' === $m->getDirection() ? 'user' : 'agent';
             $text = trim((string) $m->getText());
             if ('' === $text) {
                 continue;

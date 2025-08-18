@@ -41,7 +41,7 @@ class ClientRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    public function belongsToCompany(int $clientId, int $companyId): bool
+    public function belongsToCompany(string $clientId, string $companyId): bool
     {
         return (bool) $this->createQueryBuilder('c')
             ->select('COUNT(c.id)')

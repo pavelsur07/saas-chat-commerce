@@ -45,7 +45,7 @@ class MessageRepository extends ServiceEntityRepository
      *
      * @return Message[]
      */
-    public function findLastByClient(int $clientId, int $limit = 12): array
+    public function findLastByClient(string $clientId, int $limit = 12): array
     {
         $qb = $this->createQueryBuilder('m')
             ->andWhere('m.client = :clientId')

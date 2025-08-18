@@ -7,7 +7,6 @@ use App\Repository\Messaging\ClientRepository;
 use App\Service\Company\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -23,19 +22,19 @@ final class SuggestionController extends AbstractController
     }
 
     #[Route('/{clientId}', name: 'api_suggestions_generate', methods: ['POST'])]
-    public function generate(int $clientId, Request $request): JsonResponse
+    public function generate(string $clientId): JsonResponse
     {
-        $companyId = $this->companyContext->getCurrentCompanyIdOrThrow();
+        $company = $this->companyContext->getCompany();
+        if (!$company) {
+            return $this->json(['error' => 'No active company'], 403);
+        }
 
-        // Валидация принадлежности клиента компании
-        if (!$this->clients->belongsToCompany($clientId, $companyId)) {
+        if (!$this->clients->belongsToCompany($clientId, $company->getId())) {
             return $this->json(['error' => 'Forbidden'], 403);
         }
 
-        $data = [
-            'suggestions' => $this->suggestions->suggest($companyId, $clientId),
-        ];
-
-        return $this->json($data);
+        return $this->json([
+            'suggestions' => $this->suggestions->suggest($company, $clientId),
+        ]);
     }
 }
