@@ -49,4 +49,8 @@ class CompanyContextService
         $session->set('active_company_id', $company->getId());
         $this->currentCompany = $company;
     }
+
+    public function getCurrentCompanyIdOrThrow()
+    {
+    }
 }

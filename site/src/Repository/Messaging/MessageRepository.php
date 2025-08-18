@@ -38,4 +38,24 @@ class MessageRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Возвращает последние сообщения клиента (новые в конце массива),
+     * упорядоченные по createdAt ASC (для удобства построения истории).
+     *
+     * @return Message[]
+     */
+    public function findLastByClient(int $clientId, int $limit = 12): array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->andWhere('m.client = :clientId')
+            ->setParameter('clientId', $clientId)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit);
+
+        $items = $qb->getQuery()->getResult();
+
+        // Переворачиваем, чтобы сверху были старые, снизу новые
+        return array_reverse($items);
+    }
 }

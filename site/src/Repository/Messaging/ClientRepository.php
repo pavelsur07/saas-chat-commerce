@@ -40,4 +40,16 @@ class ClientRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function belongsToCompany(int $clientId, int $companyId): bool
+    {
+        return (bool) $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->andWhere('c.id = :cid')
+            ->andWhere('c.company = :coid')
+            ->setParameter('cid', $clientId)
+            ->setParameter('coid', $companyId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

@@ -31,4 +31,26 @@ class AiPromptLogRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()->getResult();
     }
+
+    /*    public function save(
+            string $feature,
+            int $companyId,
+            int $clientId,
+            ?string $prompt,
+            ?string $response,
+            array $meta = []
+        ): void {
+            $log = new AiPromptLog();
+            $log->setFeature($feature);
+            $log->setCompanyId($companyId);
+            $log->setClientId($clientId);
+            $log->setPrompt($prompt);
+            $log->setResponse($response);
+            $log->setMeta($meta);
+            $log->setCreatedAt(new \DateTimeImmutable());
+
+            $em = $this->getEntityManager();
+            $em->persist($log);
+            $em->flush();
+        }*/
 }

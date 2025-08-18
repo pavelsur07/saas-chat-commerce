@@ -66,6 +66,20 @@ services:
     # Telegram adapter
     App\Service\Messaging\Channel\TelegramChannelAdapter: ~
 
+    # Suggestion
+    App\AI\ConversationContextProvider: ~
+    App\AI\SuggestionPromptBuilder:
+        arguments:
+            $maxSuggestions: 4
+    App\AI\SuggestionService:
+        arguments:
+            $model: '%ai.suggestions.model%'
+            $temperature: '%ai.suggestions.temperature%'
+            $maxHistory: '%ai.suggestions.max_history%'
+            $maxChars: '%ai.suggestions.max_chars%'
+            $timeoutSeconds: '%ai.suggestions.timeout_seconds%'
+
+
     # PIPELINE
     #App\Service\Messaging\MessagePipeline:
     #    arguments:
