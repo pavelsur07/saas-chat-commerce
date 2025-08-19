@@ -5,6 +5,7 @@
 namespace App\Tests\Unit\Entity;
 
 use App\Entity\Company\Company;
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
@@ -16,7 +17,11 @@ final class MessageFactoryTest extends TestCase
     public function testMessageInSetsDirectionCompanyBotAndText(): void
     {
         $company = $this->createMock(Company::class);
+
+        /* $client = $this->createMock(Client::class); */
         $client = $this->createMock(Client::class);
+        $client->method('getChannel')->willReturn(Channel::TELEGRAM); // ✅ критично
+        $client->method('getId')->willReturn('f9c3c9a0-...');         // если нужно
         $client->method('getCompany')->willReturn($company);
 
         $bot = $this->createMock(TelegramBot::class);

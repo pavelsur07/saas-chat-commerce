@@ -6,6 +6,7 @@ use App\AI\ConversationContextProvider;
 use App\AI\SuggestionPromptBuilder;
 use App\AI\SuggestionService;
 use App\Entity\Company\Company;
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Repository\Messaging\ClientRepository;
 use App\Service\AI\LlmClient;
@@ -16,21 +17,21 @@ final class SuggestionServiceTest extends TestCase
 {
     public function testSuggestParsesJsonAndReturnsUpToFourItems(): void
     {
-        $company = new Company(Uuid::uuid4()->toString(), 'Acme', 'acme');
+        $company = $this->createMock(Company::class);            // ✅ не вызываем конструктор
+        $clientId = Uuid::uuid4()->toString();
 
-        $client = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, '123', $company);
         $clientRepo = $this->createMock(ClientRepository::class);
-        $clientRepo->method('find')->willReturn($client);
+        $client = $this->createMock(Client::class);
+        $client->method('getChannel')->willReturn(Channel::TELEGRAM); // ✅ вернуть enum
+        $clientRepo->method('find')->with($clientId)->willReturn($client);
 
         $ctx = $this->createMock(ConversationContextProvider::class);
         $ctx->method('getContext')->willReturn([['role' => 'user', 'text' => 'Привет!']]);
 
-        $llm = new class implements LlmClient {
-            public function chat(array $params): array
-            {
-                return ['content' => json_encode(['suggestions' => ['ok1', 'ok2', 'ok3', 'ok4', 'ok5']], JSON_UNESCAPED_UNICODE)];
-            }
-        };
+        $llm = $this->createMock(LlmClient::class);
+        $llm->method('chat')->willReturn([
+            'content' => json_encode(['suggestions' => ['ok1', 'ok2', 'ok3', 'ok4', 'ok5']], JSON_UNESCAPED_UNICODE),
+        ]);
 
         $service = new SuggestionService(
             llm: $llm,
@@ -41,30 +42,28 @@ final class SuggestionServiceTest extends TestCase
             temperature: 0.7,
             maxHistory: 12,
             maxChars: 4000,
-            timeoutSeconds: 10,
+            timeoutSeconds: 10
         );
 
-        $result = $service->suggest($company, $client->getId());
-        self::assertCount(4, $result);
+        $result = $service->suggest($company, $clientId);
         self::assertSame(['ok1', 'ok2', 'ok3', 'ok4'], $result);
     }
 
     public function testSuggestReturnsEmptyOnInvalidJson(): void
     {
-        $company = new Company(Uuid::uuid4()->toString(), 'Acme', 'acme');
-        $client = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, '123', $company);
+        $company = $this->createMock(Company::class);
+        $clientId = Uuid::uuid4()->toString();
+
         $clientRepo = $this->createMock(ClientRepository::class);
-        $clientRepo->method('find')->willReturn($client);
+        $client = $this->createMock(Client::class);
+        $client->method('getChannel')->willReturn(Channel::TELEGRAM);
+        $clientRepo->method('find')->with($clientId)->willReturn($client);
 
         $ctx = $this->createMock(ConversationContextProvider::class);
         $ctx->method('getContext')->willReturn([]);
 
-        $llm = new class implements LlmClient {
-            public function chat(array $params): array
-            {
-                return ['content' => 'not a json'];
-            }
-        };
+        $llm = $this->createMock(LlmClient::class);
+        $llm->method('chat')->willReturn(['content' => 'not a json']); // ❌
 
         $service = new SuggestionService(
             llm: $llm,
@@ -75,10 +74,10 @@ final class SuggestionServiceTest extends TestCase
             temperature: 0.7,
             maxHistory: 12,
             maxChars: 4000,
-            timeoutSeconds: 10,
+            timeoutSeconds: 10
         );
 
-        $result = $service->suggest($company, $client->getId());
+        $result = $service->suggest($company, $clientId);
         self::assertSame([], $result);
     }
 }
