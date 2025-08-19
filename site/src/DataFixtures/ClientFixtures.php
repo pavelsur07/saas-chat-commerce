@@ -3,6 +3,7 @@
 namespace App\DataFixtures;
 
 use App\Entity\Company\Company;
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
@@ -29,7 +30,7 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $bot = $this->getReference(TelegramBotFixtures::TELEGRAM_BOT_REFERENCE, TelegramBot::class);
 
         // === Telegram Client ===
-        $telegramClient = new Client(Uuid::uuid4()->toString(), Client::TELEGRAM, '123456789', $company1);
+        $telegramClient = new Client(Uuid::uuid4()->toString(), Channel::TELEGRAM->value, '123456789', $company1);
         $telegramClient->setUsername('telegram_user');
         $telegramClient->setFirstName('Alex');
         $telegramClient->setRawData(['chat' => ['id' => 123456789, 'username' => 'telegram_user']]);
@@ -39,7 +40,7 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $manager->persist(new Message(Uuid::uuid4()->toString(), $telegramClient, 'out', 'Здравствуйте, чем могу помочь?', null, $bot));
 
         // === WhatsApp Client ===
-        $whatsappClient = new Client(Uuid::uuid4()->toString(), Client::WHATSAPP, '79001234567', $company1);
+        $whatsappClient = new Client(Uuid::uuid4()->toString(), Channel::WHATSAPP->value, '79001234567', $company1);
         $whatsappClient->setFirstName('Ivan');
         $whatsappClient->setUsername('+7 900 123-45-67');
         $whatsappClient->setRawData(['wa_id' => '79001234567']);
@@ -49,7 +50,7 @@ class ClientFixtures extends Fixture implements DependentFixtureInterface
         $manager->persist(new Message(Uuid::uuid4()->toString(), $whatsappClient, 'out', 'Да, доставка в Казань занимает 2 дня', null, null));
 
         // === Instagram Client ===
-        $instaClient = new Client(Uuid::uuid4()->toString(), 'instagram', 'insta_001', $company2);
+        $instaClient = new Client(Uuid::uuid4()->toString(), Channel::INSTAGRAM, 'insta_001', $company2);
         $instaClient->setUsername('@insta_user');
         $instaClient->setFirstName('Olga');
         $instaClient->setRawData(['profile' => ['username' => '@insta_user']]);

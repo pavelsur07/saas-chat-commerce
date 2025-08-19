@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
@@ -147,7 +148,7 @@ final class TelegramPollUpdatesCommand extends Command
                     'model' => 'gpt-4o-mini',
                     'messages' => [['role' => 'user', 'content' => $text]],
                     'feature' => AiFeature::INTENT_CLASSIFY->value,
-                    'channel' => 'telegram',
+                    'channel' => Channel::TELEGRAM->value,
                     // LlmClientWithLogging требует указания компании
                     'company' => $bot->getCompany(),
                 ]);

@@ -3,6 +3,7 @@ doctrine:
         url: '%env(resolve:DATABASE_URL)%'
         types:
             jsonb: 'App\Infrastructure\Doctrine\Type\JsonbType'
+            channel_enum: 'App\Infrastructure\Doctrine\Type\ChannelType'
             #mapping_types:
             #    jsonb: jsonb
 

@@ -120,7 +120,7 @@ class MessageController extends AbstractController
         $em->flush();
 
         $egress->send(new OutboundMessage(
-            channel: $client->getChannel(),          // 'telegram'
+            channel: $client->getChannel()->value,          // 'telegram'
             recipientRef: $client->getExternalId(),  // chatId
             text: $text,
             meta: ['token' => $bot->getToken()]

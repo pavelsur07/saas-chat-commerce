@@ -3,6 +3,7 @@
 namespace App\Entity\Messaging;
 
 use App\Entity\Company\Company;
+use App\Entity\Messaging\Channel\Channel;
 use App\Repository\Messaging\MessageRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
@@ -26,8 +27,8 @@ class Message
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Company $company;                // ✅ Новое поле
 
-    #[ORM\Column(length: 20)]
-    private string $channel; // дублируется для удобства фильтрации
+    #[ORM\Column(type: 'channel_enum', nullable: false)]
+    private Channel $channel; // дублируется для удобства фильтрации
 
     #[ORM\Column(length: 20)]
     private string $direction; // in / out
@@ -55,7 +56,7 @@ class Message
         $this->id = $id;
         $this->client = $client;
         $this->company = $client->getCompany(); // ✅ фиксируем компанию при создании
-        $this->channel = $client->getChannel();
+        $this->setChannel($client->getChannel());
         $this->direction = $direction;
         $this->text = $text;
         $this->payload = $payload;
@@ -121,15 +122,31 @@ class Message
         $this->company = $company;
     }
 
-    public function getChannel(): string
+    public function getChannel(): Channel
     {
         return $this->channel;
     }
 
-    public function setChannel(string $channel): void
+    public function setChannel(Channel|string $channel): self
     {
+        if (!$channel instanceof Channel) {
+            $channel = Channel::tryFromCaseInsensitive((string) $channel)
+                ?? throw new \InvalidArgumentException('Unknown channel');
+        }
         $this->channel = $channel;
+
+        return $this;
     }
+
+    /* public function getChannel(): string
+     {
+         return $this->channel;
+     }
+
+     public function setChannel(string $channel): void
+     {
+         $this->channel = $channel;
+     }*/
 
     public function getDirection(): string
     {

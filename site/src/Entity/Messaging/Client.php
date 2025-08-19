@@ -3,6 +3,7 @@
 namespace App\Entity\Messaging;
 
 use App\Entity\Company\Company;
+use App\Entity\Messaging\Channel\Channel;
 use App\Repository\Messaging\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
@@ -19,8 +20,8 @@ class Client
     #[ORM\Column(type: 'guid', unique: true)]
     private ?string $id = null;
 
-    #[ORM\Column(length: 50)]
-    private string $channel; // telegram, whatsapp, instagram, site
+    #[ORM\Column(type: 'channel_enum', nullable: true)]
+    private Channel $channel; // telegram, whatsapp, instagram, site
 
     #[ORM\Column(length: 255)]
     private string $externalId; // telegram_id, wa_id и т.д.
@@ -47,12 +48,11 @@ class Client
     #[ORM\JoinColumn(nullable: true)]
     private ?TelegramBot $telegramBot = null;
 
-    public function __construct(string $id, string $channel, string $externalId, Company $company)
+    public function __construct(string $id, Channel|string $channel, string $externalId, Company $company)
     {
         Assert::uuid($id);
-        Assert::oneOf($channel, self::channelList());
         $this->id = $id;
-        $this->channel = $channel;
+        $this->setChannel($channel);
         $this->externalId = $externalId;
         $this->company = $company;
     }
@@ -84,14 +84,20 @@ class Client
         $this->id = $id;
     }
 
-    public function getChannel(): string
+    public function getChannel(): Channel
     {
         return $this->channel;
     }
 
-    public function setChannel(string $channel): void
+    public function setChannel(Channel|string $channel): self
     {
+        if (!$channel instanceof Channel) {
+            $channel = Channel::tryFromCaseInsensitive((string) $channel)
+                ?? throw new \InvalidArgumentException('Unknown channel');
+        }
         $this->channel = $channel;
+
+        return $this;
     }
 
     public function getExternalId(): string

@@ -2,6 +2,7 @@
 
 namespace App\Controller\Webhook;
 
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Messaging\TelegramBotRepository;
@@ -117,7 +118,7 @@ class TelegramWebhookController extends AbstractController
                     'messages' => [['role' => 'user', 'content' => $text]],
                     // LlmClientWithLogging expects feature as string
                     'feature' => AiFeature::INTENT_CLASSIFY->value,
-                    'channel' => 'telegram',
+                    'channel' => Channel::TELEGRAM->value,
                     'company' => $bot->getCompany(),
                 ]);
 
