@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Messaging\ClientRepository;
@@ -119,8 +120,15 @@ class MessageController extends AbstractController
         $em->persist($message);
         $em->flush();
 
+        /* $egress->send(new OutboundMessage(
+             channel: $client->getChannel()->value,          // 'telegram'
+             recipientRef: $client->getExternalId(),  // chatId
+             text: $text,
+             meta: ['token' => $bot->getToken()]
+         ));*/
+
         $egress->send(new OutboundMessage(
-            channel: $client->getChannel()->value,          // 'telegram'
+            channel: Channel::TELEGRAM->value,       // 'telegram'
             recipientRef: $client->getExternalId(),  // chatId
             text: $text,
             meta: ['token' => $bot->getToken()]
