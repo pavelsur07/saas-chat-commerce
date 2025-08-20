@@ -7,7 +7,7 @@ namespace App\Service\Messaging;
 use App\Service\Messaging\Dto\OutboundMessage;
 use App\Service\Messaging\Port\ChannelAdapterInterface;
 
-final class MessageEgressService
+class MessageEgressService
 {
     /** @param iterable<ChannelAdapterInterface> $adapters */
     public function __construct(private iterable $adapters)
