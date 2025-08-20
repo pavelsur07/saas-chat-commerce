@@ -21,7 +21,11 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
 
     useEffect(() => {
         if (!clientId) return;
-        axios.get(`/api/messages/${clientId}`).then((res) => setMessages(res.data.messages));
+        axios.get(`/api/messages/${clientId}`).then((res) => {
+            setMessages(res.data.messages);
+            // После загрузки сообщений уведомляем родителя, чтобы прокрутить чат вниз
+            onNewMessage && onNewMessage();
+        });
     }, [clientId]);
 
     useSocket(clientId, (payload) => {
