@@ -69,6 +69,9 @@ class AiPromptLog
     #[ORM\Column(type: 'decimal', precision: 10, scale: 5, nullable: true)]
     private ?string $costUsd = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $metadata = null;
+
     public function __construct(
         string $id,
         Company $company,
