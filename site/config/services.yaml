@@ -38,20 +38,7 @@ services:
     # По умолчанию LlmClient — это OpenAiClient
     App\Service\AI\LlmClient: '@App\Service\AI\OpenAiClient'
 
-    # Декоратор: теперь любой LlmClient будет обёрнут логированием
-    # App\Service\AI\LlmClientWithLogging:
-    #    decorates: App\Service\AI\LlmClient
-    #    arguments:
-    #        - '@App\Service\AI\LlmClientWithLogging.inner'
-    #        - '@App\Service\AI\AiPromptLogService'
-    #        - '@security.token_storage'
-    #        - '@App\Service\Company\CompanyContextService'
-    #        - '%env(bool:AI_INJECT_COMPANY_SYSTEM)%'
-    #    autowire: true
-    #    autoconfigure: true
-
     # AI END Компоненты ------------------------------------------------------------------------------------------------
-    # Message START Компоненты -----------------------------------------------------------------------------------------
     App\Service\Messaging\TelegramService:
         arguments:
             $http: '@http_client'
@@ -68,9 +55,16 @@ services:
 
     # Suggestion
     App\AI\ConversationContextProvider: ~
+
     App\AI\SuggestionPromptBuilder:
         arguments:
             $maxSuggestions: 4
+
+    App\AI\SuggestionRateLimiter:
+        arguments:
+            $cache: '@cache.app'
+            $ttlSeconds: '%ai.suggestions.rate_limit_seconds%'
+
     App\AI\SuggestionService:
         arguments:
             $model: '%ai.suggestions.model%'

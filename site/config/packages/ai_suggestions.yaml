@@ -4,3 +4,4 @@ parameters:
     ai.suggestions.max_history: 12           # последние N сообщений
     ai.suggestions.max_chars: 4000           # safety-ограничение контекста
     ai.suggestions.timeout_seconds: 10
+    ai.suggestions.rate_limit_seconds: 3    # ← окно rate-limit на диалог

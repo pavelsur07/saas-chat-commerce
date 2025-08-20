@@ -36,7 +36,7 @@ final class SuggestionService
         $channel = $client?->getChannel() ?? 'system'; // Нужно разработать механизм точного определения канала
 
         try {
-            $result = $this->llm->chat([
+            /*$result = $this->llm->chat([
                 'company' => $company, // для логирования через декоратор
                 'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
                 'channel' => $channel,
@@ -47,6 +47,20 @@ final class SuggestionService
                 ],
                 'temperature' => $this->temperature,
                 'max_tokens' => 400,
+            ]);*/
+
+            $result = $this->llm->chat([
+                'company' => $company,
+                'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
+                'channel' => $channel->value,             // enum → строка
+                'model' => $this->model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Ты помощник оператора. Верни строго JSON вида {"suggestions":[...]}'],
+                    ['role' => 'user',   'content' => $prompt],
+                ],
+                'temperature' => $this->temperature,
+                'max_tokens' => 400,
+                'timeout' => $this->timeoutSeconds,           // ← таймаут в секундах
             ]);
 
             $content = (string) ($result['content'] ?? '');

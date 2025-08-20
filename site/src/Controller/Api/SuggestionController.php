@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api;
 
+use App\AI\SuggestionRateLimiter;
 use App\AI\SuggestionService;
 use App\Repository\Messaging\ClientRepository;
 use App\Service\Company\CompanyContextService;
@@ -18,6 +19,7 @@ final class SuggestionController extends AbstractController
         private readonly CompanyContextService $companyContext,
         private readonly ClientRepository $clients,
         private readonly SuggestionService $suggestions,
+        private readonly SuggestionRateLimiter $limiter,   // ← добавили
     ) {
     }
 
@@ -31,6 +33,12 @@ final class SuggestionController extends AbstractController
 
         if (!$this->clients->belongsToCompany($clientId, $company->getId())) {
             return $this->json(['error' => 'Forbidden'], 403);
+        }
+
+        // Rate-limit: не чаще 1 запроса / 3 сек на диалог
+        if (!$this->limiter->acquire($company, $clientId)) {
+            // "мягкая" отдача — пустой список, без 429
+            return $this->json(['suggestions' => []]);
         }
 
         return $this->json([

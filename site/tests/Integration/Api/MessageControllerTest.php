@@ -1,9 +1,16 @@
 <?php
 
 namespace Predis;
-class Client {
-    public function __construct(...$args) {}
-    public function publish($channel, $message): void {}
+
+class Client
+{
+    public function __construct(...$args)
+    {
+    }
+
+    public function publish($channel, $message): void
+    {
+    }
 }
 
 namespace App\Tests\Integration\Api;
@@ -144,8 +151,16 @@ final class MessageControllerTest extends WebTestCase
 
         $dummy = new class([]) extends MessageEgressService {
             public array $sent = [];
-            public function __construct() { parent::__construct([]); }
-            public function send(OutboundMessage $m): void { $this->sent[] = $m; }
+
+            public function __construct()
+            {
+                parent::__construct([]);
+            }
+
+            public function send(OutboundMessage $m): void
+            {
+                $this->sent[] = $m;
+            }
         };
         self::getContainer()->set(MessageEgressService::class, $dummy);
 
