@@ -93,7 +93,7 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        if (Client::TELEGRAM !== $client->getChannel()) {
+        if (Channel::TELEGRAM !== $client->getChannel()) {
             return new JsonResponse(['error' => 'Client is not from telegram'], Response::HTTP_BAD_REQUEST);
         }
 
