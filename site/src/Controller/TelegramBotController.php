@@ -100,6 +100,27 @@ class TelegramBotController extends AbstractController
         return $this->redirectToRoute('telegram_bot.index');
     }
 
+    #[Route('/{id}/delete-webhook', name: 'telegram_bot.delete_webhook', methods: ['GET'])]
+    public function deleteWebhook(TelegramBot $bot): Response
+    {
+        if ($bot->getCompany() !== $this->companyContext->getCompany()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $this->telegramService->deleteWebhook($bot->getToken());
+            $bot->setWebhookUrl(null);
+            $bot->setIsActive(false);
+            $this->em->flush();
+
+            $this->addFlash('success', 'Webhook успешно отключён');
+        } catch (\Throwable $e) {
+            $this->addFlash('danger', 'Ошибка при отключении webhook: '.$e->getMessage());
+        }
+
+        return $this->redirectToRoute('telegram_bot.index');
+    }
+
     #[Route('/{id}/fetch-messages', name: 'telegram_bot.fetch_messages', methods: ['GET'])]
     public function fetchMessages(TelegramBot $bot): Response
     {

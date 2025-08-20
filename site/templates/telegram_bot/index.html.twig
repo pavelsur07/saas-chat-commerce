@@ -25,6 +25,7 @@
                 <td class="px-4 py-2">{{ bot.isActive ? '🟢 Активен' : '🔴 Отключён' }}</td>
                 <td class="px-4 py-2">
                     <a href="{{ path('telegram_bot.set_webhook', { id: bot.id }) }}" class="text-blue-600 mr-2">Установить Webhook</a>
+                    <a href="{{ path('telegram_bot.delete_webhook', { id: bot.id }) }}" class="text-yellow-600 mr-2">Отключить Webhook</a>
                     <a href="{{ path('telegram_bot.fetch_messages', { id: bot.id }) }}" class="text-green-600 mr-2">Установить сообщения</a>
                     <form method="post" action="{{ path('telegram_bot.delete', { id: bot.id }) }}" class="inline">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete_bot_' ~ bot.id) }}">
