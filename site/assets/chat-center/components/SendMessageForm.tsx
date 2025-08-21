@@ -15,19 +15,23 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
 
     const onSubmit = async (data: { message: string }) => {
         try {
-            if (!data.message.trim()) return;
-            await axios.post(`/api/messages/${clientId}`, { message: data.message });
+            const msg = (data.message || '').trim();
+            if (!msg) return;
+
+            // 🔧 БЭК ожидает { text: string }
+            await axios.post(`/api/messages/${clientId}`, { text: msg });
+
             onMessageSent();
             reset();
         } catch (e: any) {
-            toast.error(e?.message || 'Не удалось отправить сообщение');
+            const serverMsg = e?.response?.data?.error || e?.message || 'Не удалось отправить сообщение';
+            toast.error(serverMsg);
         }
     };
 
-    // Загружаем подсказки по нашему контракту:
-    // GET /api/suggestions?clientId=... -> { suggestions: string[] }
+    // POST /api/suggestions/{clientId} -> { suggestions: string[] }
     const loadHints = async (): Promise<Suggestion[]> => {
-        const { data } = await axios.get('/api/suggestions', { params: { clientId } });
+        const { data } = await axios.post(`/api/suggestions/${encodeURIComponent(clientId)}`);
         const arr: string[] = Array.isArray(data?.suggestions) ? data.suggestions : [];
         return arr.slice(0, 4).map((text, idx) => ({ id: String(idx), text }));
     };
@@ -50,7 +54,7 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
                 <ChatHints
                     loadSuggestions={loadHints}
                     onInsert={(text) => {
-                        // Вставляем (НЕ отправляем). Учитываем длинные тексты.
+                        // Вставляем длинные тексты без отправки
                         setValue('message', text, { shouldDirty: true, shouldTouch: true });
                     }}
                 />

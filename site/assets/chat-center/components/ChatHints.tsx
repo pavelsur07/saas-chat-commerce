@@ -1,5 +1,5 @@
 // assets/chat-center/components/ChatHints.tsx
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 
 export type Suggestion = { id: string; text: string };
 
@@ -26,16 +26,6 @@ const ChatHints: React.FC<Props> = ({
     const [items, setItems] = useState<Suggestion[] | null>(null);
     const loadedOnce = useRef(false);
 
-    const fallback = useMemo<Suggestion[]>(
-        () => [
-            { id: "s1", text: "Есть ли размеры S–XL?" },
-            { id: "s2", text: "Сроки и стоимость доставки?" },
-            { id: "s3", text: "Можно фото/видео на модели?" },
-            { id: "s4", text: "Есть ли промокод для первой покупки?" },
-        ],
-        []
-    );
-
     const fetchData = async () => {
         try {
             setLoading(true);
@@ -44,7 +34,7 @@ const ChatHints: React.FC<Props> = ({
             setItems(Array.isArray(list) ? list : []);
         } catch (e: any) {
             setError(e?.message || "Не удалось загрузить подсказки");
-            setItems(fallback); // мягкий фолбэк
+            setItems([]); // без хардкода — просто пусто
         } finally {
             setLoading(false);
         }
