@@ -14,8 +14,8 @@ class TelegramWebhookNonTextTest extends WebTestCase
             'message' => [
                 'message_id' => 123,
                 'chat' => ['id' => 111, 'username' => 'u'],
-                'sticker' => ['file_unique_id' => 'abc'] // нет text
-            ]
+                'sticker' => ['file_unique_id' => 'abc'], // нет text
+            ],
         ];
 
         $client->request(
@@ -29,4 +29,3 @@ class TelegramWebhookNonTextTest extends WebTestCase
         // проверь через репозитории, что Message(in) создан, meta.ingest.type=sticker и т.п.
     }
 }
-

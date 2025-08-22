@@ -1,0 +1,12 @@
+{# templates/admin/ai/knowledge_form.html.twig #}
+{% extends 'base.html.twig' %}
+{% block title %}Знание{% endblock %}
+{% block body %}
+    <h1 class="text-xl font-semibold mb-4">Знание компании</h1>
+    {{ form_start(form, { attr: { class: 'space-y-4 max-w-2xl' } }) }}
+    {{ form_row(form.type) }}
+    {{ form_row(form.question) }}
+    {{ form_row(form.answer) }}
+    <button class="px-4 py-2 bg-blue-600 text-white rounded">Сохранить</button>
+    {{ form_end(form) }}
+{% endblock %}

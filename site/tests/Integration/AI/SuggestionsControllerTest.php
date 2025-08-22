@@ -10,9 +10,9 @@ class SuggestionsControllerTest extends WebTestCase
     {
         $client = static::createClient();
         // логинимся, активируем company в сессии
-        $client->request('POST', '/api/suggestions/{clientId}', server: ['CONTENT_TYPE'=>'application/json'], content: json_encode([
+        $client->request('POST', '/api/suggestions/{clientId}', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
             'lastMessage' => 'Подскажите про доставку',
-            'historyLimit' => 2
+            'historyLimit' => 2,
         ]));
 
         $this->assertResponseIsSuccessful();

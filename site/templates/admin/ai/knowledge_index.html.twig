@@ -1,0 +1,27 @@
+{# templates/admin/ai/knowledge_index.html.twig #}
+{% extends 'base.html.twig' %}
+{% block title %}Знания компании{% endblock %}
+{% block body %}
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-semibold">Знания компании</h1>
+        <a class="px-3 py-2 bg-blue-600 text-white rounded" href="{{ path('admin_ai_knowledge_create') }}">Добавить</a>
+    </div>
+    <div class="space-y-2">
+        {% for k in items %}
+            <div class="p-3 bg-white border rounded flex items-center justify-between">
+                <div>
+                    <div class="text-xs text-gray-500">{{ k.type|upper }} • {{ k.createdAt|date('Y-m-d H:i') }}</div>
+                    <div class="font-medium">{{ k.question }}</div>
+                </div>
+                <div class="space-x-2">
+                    <a class="text-blue-600" href="{{ path('admin_ai_knowledge_edit',{id:k.id}) }}">Редактировать</a>
+                    <form method="post" action="{{ path('admin_ai_knowledge_delete',{id:k.id}) }}" class="inline" onsubmit="return confirm('Удалить?')">
+                        <button class="text-red-600">Удалить</button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-sm text-gray-500">Пока нет записей.</div>
+        {% endfor %}
+    </div>
+{% endblock %}

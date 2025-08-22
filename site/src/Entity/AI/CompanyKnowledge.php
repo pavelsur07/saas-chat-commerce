@@ -47,12 +47,38 @@ class CompanyKnowledge
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): string { return $this->id; }
-    public function getCompany(): Company { return $this->company; }
-    public function getType(): KnowledgeType { return $this->type; }
-    public function getTitle(): string { return $this->title; }
-    public function getContent(): string { return $this->content; }
-    public function getTags(): ?string { return $this->tags; }
+    public function getId(): string
+    {
+        return $this->id;
+    }
 
-    public function setTags(?string $tags): void { $this->tags = $tags; }
+    public function getCompany(): Company
+    {
+        return $this->company;
+    }
+
+    public function getType(): KnowledgeType
+    {
+        return $this->type;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function getContent(): string
+    {
+        return $this->content;
+    }
+
+    public function getTags(): ?string
+    {
+        return $this->tags;
+    }
+
+    public function setTags(?string $tags): void
+    {
+        $this->tags = $tags;
+    }
 }

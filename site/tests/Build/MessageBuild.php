@@ -13,7 +13,7 @@ final class MessageBuild extends TestEntityBuilder
     private ?string $id = null;
     private ?Company $company = null;
     private ?Client $client = null;
-    private string $direction = 'in'; // 'in' | 'out'
+    private string $direction = Message::IN; // 'in'|'out'
     private ?string $text = 'hello';
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -71,28 +71,23 @@ final class MessageBuild extends TestEntityBuilder
         $client = $this->client ?? ClientBuild::make()->build();
         $company = $this->company ?? $client->getCompany();
 
-        $this->set($msg, 'id', $this->id ?? Uuid::uuid4()->toString());
-        $this->set($msg, 'company', $company);
-        $this->set($msg, 'client', $client);
+        // ID — можно через safe
+        $this->setSafe($msg, 'id', $this->id ?? Uuid::uuid4()->toString());
 
-        // канал должен совпадать с клиентским:
+        // КЛЮЧЕВОЕ: у Message приватный setCompany(), поэтому — ТОЛЬКО forcePriv
+        $this->setForcePriv($msg, 'company', $company);
+
+        // client тоже ставим напрямую, чтобы не задеть инварианты приватными сеттерами
+        $this->setForcePriv($msg, 'client', $client);
+
+        // Канал сообщения = канал клиента (enum)
         $channel = method_exists($client, 'getChannel') ? $client->getChannel() : Channel::SYSTEM;
-        $this->set($msg, 'channel', $channel);
+        $this->setForcePriv($msg, 'channel', $channel);
 
-        // direction, text, createdAt
-        if (method_exists($msg, 'setDirection')) {
-            $msg->setDirection($this->direction);
-        } else {
-            $this->set($msg, 'direction', $this->direction);
-        }
-
-        if (method_exists($msg, 'setText')) {
-            $msg->setText($this->text);
-        } else {
-            $this->set($msg, 'text', $this->text);
-        }
-
-        $this->set($msg, 'createdAt', $this->createdAt ?? new \DateTimeImmutable('now'));
+        // Остальные поля можно через safe (если есть public-сеттеры, они вызовутся)
+        $this->setSafe($msg, 'direction', $this->direction);
+        $this->setSafe($msg, 'text', $this->text);
+        $this->setSafe($msg, 'createdAt', $this->createdAt ?? new \DateTimeImmutable('now'));
 
         return $msg;
     }

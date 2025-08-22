@@ -3,10 +3,8 @@
 namespace App\Tests\Unit\AI;
 
 use App\Entity\AI\CompanyKnowledge;
-use App\Entity\AI\Enum\KnowledgeType;
 use App\Entity\Company\Company;
 use Doctrine\ORM\EntityManagerInterface;
-use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class CompanyKnowledgeRepositoryTest extends KernelTestCase

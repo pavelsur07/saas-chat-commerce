@@ -9,6 +9,7 @@ use App\Entity\Company\User;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
+use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -98,6 +99,9 @@ final class TelegramWebhookControllerTest extends WebTestCase
         self::assertSame($msg->getCompany()->getId(), $client->getCompany()->getId());
     }
 
+    /**
+     * @throws Exception
+     */
     public function testWebhookWithNoFromIdDoesNothingButOk(): void
     {
         $payload = [
@@ -127,6 +131,9 @@ final class TelegramWebhookControllerTest extends WebTestCase
         self::assertSame($before, $after);
     }
 
+    /**
+     * @throws Exception
+     */
     private function truncateTables(array $tables): void
     {
         // Для PostgreSQL: отключаем FK проверки в транзакции

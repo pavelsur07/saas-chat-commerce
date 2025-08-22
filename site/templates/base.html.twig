@@ -74,11 +74,21 @@
                 </div>
 
                 {#  {% if is_granted('ROLE_ADMIN') %}#}
+                <div>
                     <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Администрирование</h3>
                     <a href="{{ path('admin.ai_logs') }}"
-                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'admin.ai_logs' ? 'bg-gray-800' : '' }}">
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_switch' ? 'bg-gray-800' : '' }}">
                         🧪 AI Logs
                     </a>
+                    <a href="{{ path('admin_ai_profile') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
+                        🧠 AI‑профиль
+                    </a>
+                    <a href="{{ path('admin_ai_knowledge_index') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
+                        📚 Знания
+                    </a>
+                </div>
                 {#  {% endif %}#}
 
                 <!-- Профиль -->

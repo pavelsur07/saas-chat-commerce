@@ -57,11 +57,11 @@ final class CompanyBuild extends TestEntityBuilder
     public function build(): Company
     {
         $c = $this->newEntity(Company::class);
-        $this->set($c, 'id', $this->id ?? Uuid::uuid4()->toString());
-        $this->set($c, 'name', $this->name ?? 'Test Co');
-        $this->set($c, 'slug', $this->slug ?? 'test-co');
-        $this->set($c, 'owner', $this->owner ?? CompanyUserBuild::make()->build());
-        $this->set($c, 'createdAt', $this->createdAt ?? new \DateTimeImmutable('now'));
+        $this->setSafe($c, 'id', $this->id ?? Uuid::uuid4()->toString());
+        $this->setSafe($c, 'name', $this->name ?? 'Test Co');
+        $this->setSafe($c, 'slug', $this->slug ?? 'test-co');
+        $this->setSafe($c, 'owner', $this->owner ?? CompanyUserBuild::make()->build());
+        $this->setSafe($c, 'createdAt', $this->createdAt ?? new \DateTimeImmutable('now'));
 
         return $c;
     }

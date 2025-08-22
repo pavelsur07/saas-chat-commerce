@@ -12,7 +12,7 @@ final class ClientBuild extends TestEntityBuilder
     private ?string $id = null;
     private ?Company $company = null;
     private Channel $channel = Channel::TELEGRAM;
-    private ?string $externalId = null; // если у вас есть такое поле
+    private ?string $externalId = '10001'; // безопасное значение по умолчанию
 
     public static function make(): self
     {
@@ -50,16 +50,11 @@ final class ClientBuild extends TestEntityBuilder
     public function build(): Client
     {
         $cl = $this->newEntity(Client::class);
-        $this->set($cl, 'id', $this->id ?? Uuid::uuid4()->toString());
-        $this->set($cl, 'company', $this->company ?? CompanyBuild::make()->build());
-        // использовать сеттер, если он есть, иначе приватное поле:
-        if (method_exists($cl, 'setChannel')) {
-            $cl->setChannel($this->channel);
-        } else {
-            $this->set($cl, 'channel', $this->channel);
-        }
+        $this->setSafe($cl, 'id', $this->id ?? Uuid::uuid4()->toString());
+        $this->setSafe($cl, 'company', $this->company ?? CompanyBuild::make()->build());
+        $this->setSafe($cl, 'channel', $this->channel);
         if (null !== $this->externalId) {
-            $this->set($cl, 'externalId', $this->externalId);
+            $this->setSafe($cl, 'externalId', $this->externalId);
         }
 
         return $cl;

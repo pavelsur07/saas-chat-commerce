@@ -14,13 +14,13 @@ class SuggestionPromptBuilderTest extends TestCase
             suggestionsCount: 4
         );
 
-        $tone = "Дружелюбный, краткий, без воды";
-        $brand = "Мы продаём детские игрушки, доставка по РФ";
+        $tone = 'Дружелюбный, краткий, без воды';
+        $brand = 'Мы продаём детские игрушки, доставка по РФ';
         $knowledgeItems = [
-            ['type'=>'faq', 'title'=>'Оплата', 'content'=>'Оплата картой или СБП'],
-            ['type'=>'delivery', 'title'=>'Сроки доставки', 'content'=>'2-5 дней по РФ'],
+            ['type' => 'faq', 'title' => 'Оплата', 'content' => 'Оплата картой или СБП'],
+            ['type' => 'delivery', 'title' => 'Сроки доставки', 'content' => '2-5 дней по РФ'],
         ];
-        $userText = "Сколько идёт доставка и как оплатить?";
+        $userText = 'Сколько идёт доставка и как оплатить?';
 
         $prompt = $builder->build($tone, $brand, $knowledgeItems, $userText, []);
         $this->assertStringContainsString('Дружелюбный', $prompt['system']);

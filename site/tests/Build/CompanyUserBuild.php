@@ -7,8 +7,11 @@ use Ramsey\Uuid\Uuid;
 
 final class CompanyUserBuild extends TestEntityBuilder
 {
+    public const USER_EMAIL = 'email@email.io';
+    public const USER_PASSWORD = 'password';
     private ?string $id = null;
     private ?string $email = null;
+    private ?string $password = null;
 
     public static function make(): self
     {
@@ -32,10 +35,10 @@ final class CompanyUserBuild extends TestEntityBuilder
     public function build(): CompanyUser
     {
         $u = $this->newEntity(CompanyUser::class);
-        $this->set($u, 'id', $this->id ?? Uuid::uuid4()->toString());
-        if ($this->email) {
-            $this->set($u, 'email', $this->email);
-        }
+        $this->setSafe($u, 'id', $this->id ?? Uuid::uuid4()->toString());
+
+        $this->setSafe($u, 'email', $this->email ?? self::USER_EMAIL);
+        $this->setSafe($u, 'password', $this->password ?? self::USER_PASSWORD);
 
         // Добавьте здесь иные обязательные поля, если есть (пароль/роли и т.п.)
         return $u;

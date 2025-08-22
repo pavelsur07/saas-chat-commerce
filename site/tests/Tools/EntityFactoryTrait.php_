@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Tests\Tools;
+
+use ReflectionClass;
+use ReflectionMethod;
+use ReflectionProperty;
+
+abstract class TestEntityBuilder
+{
+    /** @template T @param class-string<T> $class @return T */
+    protected function newEntity(string $class)
+    {
+        $ref = new ReflectionClass($class);
+        /** @var T $obj */
+        $obj = $ref->newInstanceWithoutConstructor();
+        return $obj;
+    }
+
+    /**
+     * Ставит значение поля:
+     * 1) если есть ПУБЛИЧНЫЙ сеттер — вызывает его;
+     * 2) иначе — проставляет приватно через ReflectionProperty (если поле существует).
+     * Никаких вызовов private/protected сеттеров: доменные инварианты не ломаем.
+     */
+    protected function set(object $entity, string $prop, mixed $value): void
+    {
+        $setter = 'set' . ucfirst($prop);
+
+        if (method_exists($entity, $setter)) {
+            $rm = new ReflectionMethod($entity, $setter);
+            if ($rm->isPublic()) {
+                $rm->invoke($entity, $value);
+                return;
+            }
+            // если сеттер не публичный — НЕ вызываем, идём в прямую установку поля
+        }
+
+        $ref = new ReflectionClass($entity);
+        while ($ref && !$ref->hasProperty($prop)) {
+            $ref = $ref->getParentClass();
+        }
+        if (!$ref) {
+            // поля нет — ничего не делаем (умышленно «мягко»)
+            return;
+        }
+        $rp = new ReflectionProperty($ref->getName(), $prop);
+        $rp->setAccessible(true);
+        $rp->setValue($entity, $value);
+    }
+}

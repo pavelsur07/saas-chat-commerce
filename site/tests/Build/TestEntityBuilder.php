@@ -2,6 +2,8 @@
 
 namespace App\Tests\Build;
 
+use ReflectionProperty;
+
 abstract class TestEntityBuilder
 {
     /** @template T @param class-string<T> $class @return T */
@@ -14,22 +16,41 @@ abstract class TestEntityBuilder
         return $obj;
     }
 
-    /** Сеттер: если есть публичный сеттер — используем его, иначе проставляем приватно (если свойство существует). */
-    protected function set(object $entity, string $prop, mixed $value): void
+    /**
+     * СТАВИТ ЗНАЧЕНИЕ «БЕЗОПАСНО»:
+     * 1) Если есть ПУБЛИЧНЫЙ сеттер — вызовем его.
+     * 2) Иначе — проставим поле напрямую через ReflectionProperty.
+     * НИКОГДА не вызываем private/protected методы.
+     */
+    protected function setSafe(object $entity, string $prop, mixed $value): void
     {
         $setter = 'set'.ucfirst($prop);
-        if (method_exists($entity, $setter)) {
-            $entity->{$setter}($value);
 
-            return;
+        if (method_exists($entity, $setter)) {
+            $rm = new \ReflectionMethod($entity, $setter);
+            if ($rm->isPublic()) {
+                $rm->invoke($entity, $value);
+
+                return;
+            }
+            // если сеттер есть, но не public — не трогаем его
         }
 
+        $this->setForcePriv($entity, $prop, $value);
+    }
+
+    /**
+     * СТАВИТ ЗНАЧЕНИЕ «ЖЁСТКО» напрямую в приватное/защищённое поле,
+     * если оно существует в иерархии класса.
+     */
+    protected function setForcePriv(object $entity, string $prop, mixed $value): void
+    {
         $ref = new \ReflectionClass($entity);
         while ($ref && !$ref->hasProperty($prop)) {
             $ref = $ref->getParentClass();
         }
         if (!$ref) {
-            return; // защищаемся от отсутствующих полей
+            return; // свойства нет — мягко выходим
         }
         $rp = new \ReflectionProperty($ref->getName(), $prop);
         $rp->setAccessible(true);

@@ -1,0 +1,198 @@
+<?php
+
+namespace App\Tests\Integration\Api;
+
+use App\Entity\Company\Company;
+use App\Entity\Messaging\Client;
+use App\Entity\Messaging\Message;
+use App\Service\Company\CompanyContextService;
+use App\Service\Messaging\MessageEgressService;
+use App\Tests\Doubles\MessageEgressServiceSpy;
+use App\Tests\Integration\Fixtures\MessageControllerFixtures;
+use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
+use Doctrine\Common\DataFixtures\Loader;
+use Doctrine\Common\DataFixtures\Purger\ORMPurger;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
+
+final class MessageControllerTest extends WebTestCase
+{
+    private EntityManagerInterface $em;
+
+
+    private function truncateTables(array $tables): void
+    {
+        // Для PostgreSQL: отключаем FK проверки в транзакции
+        $conn = $this->em->getConnection();
+        $conn->executeStatement('BEGIN');
+        $conn->executeStatement('SET CONSTRAINTS ALL DEFERRED');
+        foreach ($tables as $t) {
+            $conn->executeStatement('TRUNCATE TABLE "'.$t.'" RESTART IDENTITY CASCADE');
+        }
+        $conn->executeStatement('COMMIT');
+    }
+
+    /** @return array{Company,Client} */
+    private function loadFxAndPickA1(): array
+    {
+        $c  = static::getContainer();
+        $em = $c->get('doctrine')->getManager();
+
+        $loader  = new Loader();
+        $fixture = new MessageControllerFixtures();
+        $loader->addFixture($fixture);
+
+        $executor = new ORMExecutor($em, new ORMPurger($em));
+        $executor->purge();
+        $executor->execute($loader->getFixtures());
+
+        $refs = $executor->getReferenceRepository();
+        /** @var Company $companyA */
+        $companyA = $refs->getReference(MessageControllerFixtures::REF_COMPANY_A);
+        /** @var Client $clientA1 */
+        $clientA1 = $refs->getReference(MessageControllerFixtures::REF_CLIENT_A1);
+
+        return [$companyA, $clientA1];
+    }
+
+    private function setActiveCompany(Company $company): void
+    {
+        /** @var CompanyContextService $ctx */
+        $ctx = static::getContainer()->get(CompanyContextService::class);
+        $ctx->setCompany($company);
+    }
+
+    public function testGetHistoryReturnsClientAndMessagesInAscOrder(): void
+    {
+        $http = static::createClient();
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $this->truncateTables([
+            'messages',
+            'clients',
+            'telegram_bots',
+            'companies',
+            'user',            // <-- добавь
+            'user_companies',     // <-- если есть
+        ]);
+
+
+        [$companyA, $clientA1] = $this->loadFxAndPickA1();
+        $this->setActiveCompany($companyA);
+
+        // Подстрой под ваш реальный роут/метод контроллера истории
+        $http->request('GET', '/api/messages/'.$clientA1->getId());
+
+        self::assertResponseIsSuccessful();
+        $payload = \json_decode($http->getResponse()->getContent(), true);
+
+        // client block
+        self::assertSame($clientA1->getId(), $payload['client']['id'] ?? null);
+        // channel сериализуется как строка
+        self::assertSame('telegram', $payload['client']['channel'] ?? null);
+
+        // messages block — ASC by timestamp
+        self::assertArrayHasKey('messages', $payload);
+        $ts = array_map(static fn(array $m) => $m['timestamp'], $payload['messages']);
+        $sorted = $ts; sort($sorted);
+        self::assertSame($sorted, $ts);
+
+        // базовые поля
+        $first = $payload['messages'][0];
+        self::assertArrayHasKey('id', $first);
+        self::assertArrayHasKey('text', $first);
+        self::assertArrayHasKey('direction', $first);
+        self::assertArrayHasKey('timestamp', $first);
+    }
+
+    public function testGetHistoryForbiddenForForeignCompany(): void
+    {
+        $http = static::createClient();
+        $c    = static::getContainer();
+
+        [$companyA, $clientA1] = $this->loadFxAndPickA1();
+
+        // Берём Company B из референсов
+        $executor = new ORMExecutor($c->get('doctrine')->getManager(), new ORMPurger());
+        $refsRepo = $executor->getReferenceRepository();
+        /** @var Company $companyB */
+        $companyB = $refsRepo->getReference(MessageControllerFixtures::REF_COMPANY_B);
+
+        $this->setActiveCompany($companyB);
+
+        $http->request('GET', '/api/messages/'.$clientA1->getId());
+        self::assertSame(Response::HTTP_FORBIDDEN, $http->getResponse()->getStatusCode());
+    }
+
+    public function testSendMessageCreatesOutMessageAndCallsEgress(): void
+    {
+        $http = static::createClient();
+        $c    = static::getContainer();
+
+        // spy на egress
+        $spy = new MessageEgressServiceSpy();
+        $c->set(MessageEgressService::class, $spy);
+
+        [$companyA, $clientA1] = $this->loadFxAndPickA1();
+        $this->setActiveCompany($companyA);
+
+        $http->request(
+            'POST',
+            '/api/messages/'.$clientA1->getId().'/send',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['text' => 'Отправляем из контроллера'])
+        );
+
+        self::assertResponseIsSuccessful();
+        $resp = \json_decode($http->getResponse()->getContent(), true);
+        self::assertSame('success', $resp['status'] ?? null);
+        self::assertNotEmpty($resp['message_id'] ?? null);
+
+        // egress вызван
+        self::assertCount(1, $spy->sent);
+        $om = $spy->sent[0];
+        self::assertSame('telegram', $om->channel);
+        self::assertSame('Отправляем из контроллера', $om->text);
+
+        // сообщение создано в БД как исходящее
+        $em   = $c->get('doctrine')->getManager();
+        $repo = $em->getRepository(Message::class);
+        $m    = $repo->find($resp['message_id']);
+        self::assertInstanceOf(Message::class, $m);
+        self::assertSame(Message::OUT, $m->getDirection());
+    }
+
+    public function testSendMessageForbiddenForForeignCompany(): void
+    {
+        $http = static::createClient();
+        $c    = static::getContainer();
+
+        $spy = new MessageEgressServiceSpy();
+        $c->set(MessageEgressService::class, $spy);
+
+        [$companyA, $clientA1] = $this->loadFxAndPickA1();
+
+        // Company B активна → 403
+        $executor = new ORMExecutor($c->get('doctrine')->getManager(), new ORMPurger());
+        $refsRepo = $executor->getReferenceRepository();
+        /** @var Company $companyB */
+        $companyB = $refsRepo->getReference(MessageControllerFixtures::REF_COMPANY_B);
+
+        $this->setActiveCompany($companyB);
+
+        $http->request(
+            'POST',
+            '/api/messages/'.$clientA1->getId().'/send',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['text' => 'x'])
+        );
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $http->getResponse()->getStatusCode());
+        self::assertCount(0, $spy->sent);
+    }
+}

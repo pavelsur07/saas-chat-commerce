@@ -23,17 +23,43 @@ class AiCompanyProfile
     #[ORM\Column(type: 'string', length: 16, options: ['default' => 'ru-RU'])]
     private string $language = 'ru-RU';
 
-    public function __construct(Company $company) { $this->company = $company; }
+    public function __construct(Company $company)
+    {
+        $this->company = $company;
+    }
 
-    public function getCompany(): Company { return $this->company; }
+    public function getCompany(): Company
+    {
+        return $this->company;
+    }
 
-    public function getToneOfVoice(): ?string { return $this->toneOfVoice; }
-    public function setToneOfVoice(?string $v): void { $this->toneOfVoice = $v; }
+    public function getToneOfVoice(): ?string
+    {
+        return $this->toneOfVoice;
+    }
 
-    public function getBrandNotes(): ?string { return $this->brandNotes; }
-    public function setBrandNotes(?string $v): void { $this->brandNotes = $v; }
+    public function setToneOfVoice(?string $v): void
+    {
+        $this->toneOfVoice = $v;
+    }
 
-    public function getLanguage(): string { return $this->language; }
-    public function setLanguage(string $v): void { $this->language = $v; }
+    public function getBrandNotes(): ?string
+    {
+        return $this->brandNotes;
+    }
 
+    public function setBrandNotes(?string $v): void
+    {
+        $this->brandNotes = $v;
+    }
+
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $v): void
+    {
+        $this->language = $v;
+    }
 }
