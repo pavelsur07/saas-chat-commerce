@@ -202,18 +202,6 @@ final class RepositoriesTest extends WebTestCase
 
         self::assertGreaterThanOrEqual(3, count($history), 'Должно быть как минимум 3 сообщения клиента #1');
 
-        // Проверим монотонный рост createdAt и отсутствие чужих сообщений
-        /*$prev = null;
-        foreach ($history as $m) {
-            $cur = $m->getCreatedAt();
-            if ($prev !== null) {
-                self::assertGreaterThanOrEqual($prev, $cur, 'createdAt должен быть по возрастанию');
-            }
-            $prev = $cur;
-
-            self::assertSame($clientOne->getId(), $m->getClient()->getId(), 'В выборке должны быть только сообщения клиента #1');
-        }*/
-
         $prev = null;
         foreach ($history as $m) {
             $cur = $m->getCreatedAt();
