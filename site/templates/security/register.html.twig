@@ -6,23 +6,21 @@
 
     {{ form_errors(registrationForm) }}
 
-    {{ form_start(registrationForm, { attr: { class: 'card card-md' } }) }}
+    {{ form_start(registrationForm, { attr: { class: 'w-full max-w-md p-6 bg-white rounded shadow' } }) }}
     {% for flash_error in app.flashes('verify_email_error') %}
-        <div class="alert alert-danger" role="alert">{{ flash_error }}</div>
+        <div class="mb-4 border border-red-400 bg-red-100 text-red-700 p-2 rounded" role="alert">{{ flash_error }}</div>
     {% endfor %}
 
-        <div class="card-body">
-            <h2 class="card-title text-center mb-4">Создайте новую учетную запись</h2>
-                {{ form_row(registrationForm.email) }}
-                {{ form_row(registrationForm.plainPassword, {
-                    label: 'Password'
-                }) }}
-                {{ form_row(registrationForm.agreeTerms) }}
+    <h2 class="text-center text-xl font-semibold mb-4">Создайте новую учетную запись</h2>
+        {{ form_row(registrationForm.email) }}
+        {{ form_row(registrationForm.plainPassword, {
+            label: 'Password'
+        }) }}
+        {{ form_row(registrationForm.agreeTerms) }}
 
-            <div class="form-footer mt-3">
-                <button type="submit" class="btn btn-primary w-100">Вход</button>
-            </div>
-        </div>
+    <div class="mt-4">
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Вход</button>
+    </div>
 
     {{ form_end(registrationForm) }}
 
