@@ -3,47 +3,42 @@
 {% block title %}Log in!{% endblock %}
 
 {% block body %}
-    <form action="{{ path('app_login') }}" method="post" class="card card-md">
-        <div class="card-body">
-
-
-
+    <form action="{{ path('app_login') }}" method="post" class="w-full max-w-md p-6 bg-white rounded shadow">
         {% if error %}
-            <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            <div class="mb-4 border border-red-400 bg-red-100 text-red-700 p-2 rounded">
+                {{ error.messageKey|trans(error.messageData, 'security') }}
+            </div>
         {% endif %}
 
         {% if app.user %}
             <div class="mb-3">
-                You are logged in as {{ app.user.userIdentifier }}, <a href="{{ path('app_logout') }}">Logout</a>
+                You are logged in as {{ app.user.userIdentifier }}, <a href="{{ path('app_logout') }}" class="text-blue-600 hover:underline">Logout</a>
             </div>
         {% endif %}
 
+        <h2 class="text-center text-xl font-semibold mb-4">Please sign in</h2>
+        <label for="username" class="block">Email</label>
+        <input type="email" value="{{ last_username }}" name="_username" id="username" class="mt-1 block w-full" autocomplete="email" required autofocus>
+        <label for="password" class="block mt-4">Password</label>
+        <input type="password" name="_password" id="password" class="mt-1 block w-full" autocomplete="current-password" required>
+        <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
 
-            <h2 class="card-title text-center mb-4">Please sign in</h2>
-            <label for="username">Email</label>
-            <input type="email" value="{{ last_username }}" name="_username" id="username" class="form-control" autocomplete="email" required autofocus>
-            <label for="password" class="mt-3">Password</label>
-            <input type="password" name="_password" id="password" class="form-control" autocomplete="current-password" required>
-            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+        {#
+            Uncomment this section and add a remember_me option below your firewall to activate remember me functionality.
+            See https://symfony.com/doc/current/security/remember_me.html
 
-            {#
-                Uncomment this section and add a remember_me option below your firewall to activate remember me functionality.
-                See https://symfony.com/doc/current/security/remember_me.html
+            <div class="checkbox mb-3">
+                <input type="checkbox" name="_remember_me" id="_remember_me">
+                <label for="_remember_me">Remember me</label>
+            </div>
+        #}
 
-                <div class="checkbox mb-3">
-                    <input type="checkbox" name="_remember_me" id="_remember_me">
-                    <label for="_remember_me">Remember me</label>
-                </div>
-            #}
+        <button class="w-full bg-blue-600 text-white py-2 rounded mt-4" type="submit">
+            Sign in
+        </button>
 
-            <button class="btn  btn-primary mt-3" type="submit">
-                Sign in
-            </button>
-
-            <h2 class="card-title text-center mb-4">
-                <a href="{{ path('app_register') }}">Регистрация</a>
-            </h2>
-
-        </div>
+        <h2 class="text-center text-xl mt-4">
+            <a href="{{ path('app_register') }}" class="text-blue-600 hover:underline">Регистрация</a>
+        </h2>
     </form>
 {% endblock %}
