@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\AI;
 
-use App\Service\Company\CompanyContextService;
 use App\Tests\Build\ClientBuild;
 use App\Tests\Build\CompanyBuild;
 use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Traits\CompanySessionHelperTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\BrowserKit\Cookie;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class SuggestionsControllerTest extends WebTestCase
 {
+    use CompanySessionHelperTrait;
+
     public function testHappyPath(): void
     {
         $browser = static::createClient();
@@ -23,7 +22,7 @@ final class SuggestionsControllerTest extends WebTestCase
         /** @var EntityManagerInterface $em */
         $em = $container->get(EntityManagerInterface::class);
 
-        // 1) владелец + компания
+        // Владелец + Компания
         $owner = CompanyUserBuild::make()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
@@ -37,28 +36,10 @@ final class SuggestionsControllerTest extends WebTestCase
         $em->persist($company);
         $em->flush();
 
-        // 2) создаём ОДНУ сессию и подключаем её к клиенту и RequestStack ДО логина
-        /** @var SessionFactoryInterface $sessionFactory */
-        $sessionFactory = $container->get('session.factory');
-        $session = $sessionFactory->createSession();
-        $session->start();
+        // Единая сессия + логин + активируем компанию
+        $this->loginAndActivateCompany($browser, $owner, $company, $em);
 
-        $browser->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
-
-        $request = new Request();
-        $request->setSession($session);
-        $container->get('request_stack')->push($request);
-
-        // 3) логиним пользователя под firewall "main"
-        $browser->loginUser($owner, 'main');
-
-        // 4) сейчас в стеке ЕСТЬ активный Request с той же сессией — безопасно выставляем компанию
-        /** @var CompanyContextService $ctx */
-        $ctx = $container->get(CompanyContextService::class);
-        $ctx->setCompany($company);
-        $session->save(); // фиксируем изменения в сессии
-
-        // 5) клиент этой же компании
+        // Клиент этой же компании
         $client = ClientBuild::make()
             ->withCompany($company)
             ->withExternalId('ext_'.random_int(10000, 99999))
@@ -66,7 +47,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em->persist($client);
         $em->flush();
 
-        // 6) запрос к API
+        // Запрос к API
         $payload = ['lastMessage' => 'Здравствуйте', 'historyLimit' => 2];
         $browser->request(
             'POST',
@@ -89,7 +70,7 @@ final class SuggestionsControllerTest extends WebTestCase
         /** @var EntityManagerInterface $em */
         $em = $container->get(EntityManagerInterface::class);
 
-        // 1) владелец A + компания A
+        // Компания A + владелец A
         $ownerA = CompanyUserBuild::make()
             ->withEmail('ua_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
@@ -102,7 +83,7 @@ final class SuggestionsControllerTest extends WebTestCase
             ->build();
         $em->persist($companyA);
 
-        // 2) владелец B + компания B
+        // Компания B + владелец B
         $ownerB = CompanyUserBuild::make()
             ->withEmail('ub_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
@@ -116,27 +97,10 @@ final class SuggestionsControllerTest extends WebTestCase
         $em->persist($companyB);
         $em->flush();
 
-        // 3) одна сессия: подключаем её к клиенту и стеку ДО логина
-        /** @var SessionFactoryInterface $sessionFactory */
-        $sessionFactory = $container->get('session.factory');
-        $session = $sessionFactory->createSession();
-        $session->start();
+        // Логинимся владельцем A и активируем компанию A
+        $this->loginAndActivateCompany($browser, $ownerA, $companyA, $em);
 
-        $browser->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
-
-        $request = new Request();
-        $request->setSession($session);
-        $container->get('request_stack')->push($request);
-
-        // 4) логинимся как ownerA и выставляем активную компанию A через сервис
-        $browser->loginUser($ownerA, 'main');
-
-        /** @var CompanyContextService $ctx */
-        $ctx = $container->get(CompanyContextService::class);
-        $ctx->setCompany($companyA);
-        $session->save();
-
-        // 5) создаём клиента в ЧУЖОЙ компании (B)
+        // Клиент из чужой компании B
         $foreignClient = ClientBuild::make()
             ->withCompany($companyB)
             ->withExternalId('ext_'.random_int(10000, 99999))
@@ -144,7 +108,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em->persist($foreignClient);
         $em->flush();
 
-        // 6) запрос к API — ожидаем 403
+        // Запрос к API → ожидаем 403
         $browser->request(
             'POST',
             '/api/suggestions/'.$foreignClient->getId(),
