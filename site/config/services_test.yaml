@@ -1,0 +1,20 @@
+# config/services_test.yaml
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # === Стаб LLM для всех тестов ===
+    # Подменяем сервис по ID класса на наш стаб (без наследования).
+    App\Service\AI\LlmClient:
+        class: App\Tests\Doubles\LlmClientStub
+        public: true
+
+    # Опционально — шпион, если нужно проверять, что LLM НЕ вызывался (подменяй локально в конкретных тестах через контейнер).
+    App\Tests\Doubles\LlmClientSpy:
+        public: true
+
+    # Тестовый билдер сущностей (если есть), делаем публичным
+    App\Tests\Build\TestEntityBuilder:
+        public: true

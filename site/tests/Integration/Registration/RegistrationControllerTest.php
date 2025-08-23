@@ -44,6 +44,7 @@ final class RegistrationControllerTest extends WebTestCase
 
     /**
      * @param list<string> $tables
+     *
      * @throws Exception
      */
     private function truncateTables(array $tables): void

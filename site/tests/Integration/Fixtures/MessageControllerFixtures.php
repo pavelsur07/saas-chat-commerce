@@ -21,6 +21,7 @@ final class MessageControllerFixtures extends Fixture
     {
         // Company A (+ owner)
         $ownerA = CompanyUserBuild::make()->build();
+        $ownerA->setEmail('oneo@emqil.com');
         $companyA = CompanyBuild::make()
             ->withName('Company A')
             ->withSlug('company-a')
@@ -29,6 +30,7 @@ final class MessageControllerFixtures extends Fixture
 
         // Company B (+ owner)
         $ownerB = CompanyUserBuild::make()->build();
+        $ownerB->setEmail('two@emqil.com');
         $companyB = CompanyBuild::make()
             ->withName('Company B')
             ->withSlug('company-b')

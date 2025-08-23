@@ -2,8 +2,8 @@
 
 namespace App\Tests\Unit\AI;
 
+use App\AI\SuggestionService;
 use App\Service\AI\LlmClient;
-use App\Service\AI\Suggestions\SuggestionService;
 use PHPUnit\Framework\TestCase;
 
 class SuggestionServiceParseTest extends TestCase
