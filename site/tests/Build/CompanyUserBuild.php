@@ -65,6 +65,7 @@ final class CompanyUserBuild extends TestEntityBuilder
 
         $this->setSafe($u, 'id', $this->id ?? Uuid::uuid4()->toString());
         $this->setSafe($u, 'email', $this->email ?? self::uniqueEmail());
+
         // следующие поля выставляем, только если такие свойства/сеттеры реально есть
         if (null !== $this->password) {
             $this->setSafe($u, 'password', $this->password);
