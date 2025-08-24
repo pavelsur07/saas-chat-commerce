@@ -79,7 +79,20 @@ class TelegramWebhookController extends AbstractController
             $em->persist($client);
         }
 
-        $text = $msg['text'] ?? null;
+        // [NEW] Определяем тип входящего апдейта и (возможный) текст
+        $ingestType = 'unknown';
+        $text = null;
+
+        if (array_key_exists('text', $msg)) {
+            $ingestType = 'text';
+            $text = (string) $msg['text'];
+        } elseif (array_key_exists('sticker', $msg)) {
+            $ingestType = 'sticker';
+        } elseif (array_key_exists('photo', $msg)) {
+            $ingestType = 'photo';
+        } elseif (array_key_exists('video', $msg)) {
+            $ingestType = 'video';
+        }
 
         // Сохраняем сообщение (даже если text пуст — payload пригодится)
         $message = Message::messageIn(
@@ -89,6 +102,19 @@ class TelegramWebhookController extends AbstractController
             $text,
             $msg // сырой payload
         );
+
+        // [NEW] Записываем meta.ingest.type (+ полезные поля из апдейта)
+        $meta = $message->getMeta() ?? [];
+        $meta['ingest'] = array_merge($meta['ingest'] ?? [], [
+            'type' => $ingestType,
+            'message_id' => $msg['message_id'] ?? null,
+            'date' => $msg['date'] ?? null,
+        ]);
+        if (isset($from['username'])) {
+            $meta['username'] = (string) $from['username'];
+        }
+        $message->setMeta($meta);
+
         $em->persist($message);
         $em->flush();
 
@@ -110,9 +136,10 @@ class TelegramWebhookController extends AbstractController
             // не роняем webhook
         }
 
-        // AI: можно вызывать только если есть текст
+        // [CHANGED] AI: вызывать только для текстового апдейта с непустым текстом
         try {
-            if (is_string($text) && '' !== $text) {
+            $isText = ('text' === $ingestType) && is_string($text) && '' !== trim($text);
+            if ($isText) {
                 $res = $llm->chat([
                     'model' => 'gpt-4o-mini',
                     'messages' => [['role' => 'user', 'content' => $text]],
@@ -121,13 +148,6 @@ class TelegramWebhookController extends AbstractController
                     'channel' => Channel::TELEGRAM->value,
                     'company' => $bot->getCompany(),
                 ]);
-
-                /*$res = $llm->chat([
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [['role' => 'user', 'content' => $text]],
-                    'feature' => AiFeature::INTENT_CLASSIFY->value ?? 'intent_classify',
-                    'channel' => 'telegram',
-                ]);*/
 
                 $intent = trim((string) ($res['content'] ?? ''));
                 $meta = $message->getMeta() ?? [];

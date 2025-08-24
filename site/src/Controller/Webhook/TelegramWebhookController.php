@@ -83,15 +83,29 @@ class TelegramWebhookController extends AbstractController
         $ingestType = 'unknown';
         $text = null;
 
-        if (array_key_exists('text', $msg)) {
+        // [NEW] учитываем caption у фото/видео, а также возможный text
+        $hasText = array_key_exists('text', $msg);
+        $hasPhoto = array_key_exists('photo', $msg);
+        $hasVideo = array_key_exists('video', $msg);
+        $caption = $msg['caption'] ?? null;
+
+        if (array_key_exists('sticker', $msg)) {
+            $ingestType = 'sticker';
+            $text = null; // у стикера текста нет
+        } elseif ($hasPhoto) {
+            $ingestType = 'photo';
+            // если есть text — берём его; иначе берём caption
+            $text = $hasText ? (string) $msg['text'] : (is_string($caption) ? $caption : null);
+        } elseif ($hasVideo) {
+            $ingestType = 'video';
+            // если есть text — берём его; иначе берём caption
+            $text = $hasText ? (string) $msg['text'] : (is_string($caption) ? $caption : null);
+        } elseif ($hasText) {
             $ingestType = 'text';
             $text = (string) $msg['text'];
-        } elseif (array_key_exists('sticker', $msg)) {
-            $ingestType = 'sticker';
-        } elseif (array_key_exists('photo', $msg)) {
-            $ingestType = 'photo';
-        } elseif (array_key_exists('video', $msg)) {
-            $ingestType = 'video';
+        } else {
+            $ingestType = 'unknown';
+            $text = null;
         }
 
         // Сохраняем сообщение (даже если text пуст — payload пригодится)
@@ -136,14 +150,13 @@ class TelegramWebhookController extends AbstractController
             // не роняем webhook
         }
 
-        // [CHANGED] AI: вызывать только для текстового апдейта с непустым текстом
+        // [CHANGED] AI: вызывать LLM только при наличии непустого текста (включая caption у фото/видео).
         try {
-            $isText = ('text' === $ingestType) && is_string($text) && '' !== trim($text);
-            if ($isText) {
+            $hasNonEmptyText = is_string($text) && '' !== trim($text);
+            if ($hasNonEmptyText) {
                 $res = $llm->chat([
                     'model' => 'gpt-4o-mini',
-                    'messages' => [['role' => 'user', 'content' => $text]],
-                    // LlmClientWithLogging expects feature as string
+                    'messages' => [['role' => 'user', 'content' => $text]], // ← в LLM уходит только текст/caption
                     'feature' => AiFeature::INTENT_CLASSIFY->value,
                     'channel' => Channel::TELEGRAM->value,
                     'company' => $bot->getCompany(),
