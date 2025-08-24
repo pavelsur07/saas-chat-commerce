@@ -42,7 +42,7 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
                 <input
                     {...register('message', { required: true })}
                     placeholder="Введите сообщение..."
-                    className="flex-1 px-4 py-2 border rounded"
+                    className="flex-1"
                 />
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
                     ➤
