@@ -15,12 +15,11 @@ final class SuggestionService
         private readonly ConversationContextProvider $contextProvider,
         private readonly SuggestionPromptBuilder $promptBuilder,
         private readonly ClientRepository $clients,
-        #[Autowire('%ai.suggestions.model%')] private readonly string $model = 'gpt-4o-mini',
-        #[Autowire('%ai.suggestions.temperature%')] private readonly float $temperature = 0.7,
-        #[Autowire('%ai.suggestions.max_history%')] private readonly int $maxHistory = 12,
-        #[Autowire('%ai.suggestions.max_chars%')] private readonly int $maxChars = 4000,
-        #[Autowire('%ai.suggestions.timeout_seconds%')] private readonly int $timeoutSeconds = 10,
-        private readonly ?AiSuggestionContextService $contextService = null, // ← опционально
+        #[Autowire('%ai.suggestions.model%')] private readonly string $model,
+        #[Autowire('%ai.suggestions.temperature%')] private readonly float $temperature,
+        #[Autowire('%ai.suggestions.max_history%')] private readonly int $maxHistory,
+        #[Autowire('%ai.suggestions.max_chars%')] private readonly int $maxChars,
+        #[Autowire('%ai.suggestions.timeout_seconds%')] private readonly int $timeoutSeconds,
     ) {
     }
 
@@ -30,29 +29,7 @@ final class SuggestionService
     public function suggest(Company $company, string $clientId): array
     {
         $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
-
-        // Извлекаем последнюю реплику пользователя для поиска знаний
-        $lastUserText = '';
-        for ($i = count($context) - 1; $i >= 0; --$i) {
-            $r = $context[$i]['role'] ?? '';
-            if ('user' === $r) {
-                $lastUserText = (string) ($context[$i]['text'] ?? '');
-                break;
-            }
-        }
-        if ('' === $lastUserText && !empty($context)) {
-            $last = $context[count($context) - 1];
-            $lastUserText = (string) ($last['text'] ?? '');
-        }
-
-        $companyBlock = '';
-        if ($this->contextService && '' !== $lastUserText) {
-            $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
-        }
-
-        $prompt = $this->promptBuilder->build($context, $companyBlock);
-
-        // ... остальное без изменений (вызов LLM и парсинг JSON)
+        $prompt = $this->promptBuilder->build($context);
 
         // Определяем канал клиента (telegram/whatsapp/instagram/...)
         $client = $this->clients->find($clientId);

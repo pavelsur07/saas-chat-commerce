@@ -11,31 +11,21 @@ final class SuggestionPromptBuilder
 
     /**
      * @param array<int,array{role:string,text:string}> $context
-     * @param string                                    $companyContext Предварительно собранный блок профиля/знаний (может быть пустым)
      */
-    public function build(array $context, string $companyContext = ''): string
+    public function build(array $context): string
     {
-        $count = $this->maxSuggestions;
+        $history = array_map(
+            fn (array $m) => ('user' === $m['role'] ? 'Клиент: ' : 'Оператор: ').$m['text'],
+            $context
+        );
+        $historyTxt = implode("\n", $history);
 
-        $historyTxt = '';
-        foreach ($context as $row) {
-            $role = $row['role'] ?? 'user';
-            $text = $row['text'] ?? '';
-            $historyTxt .= sprintf("[%s] %s\n", $role, $text);
-        }
-        $historyTxt = trim($historyTxt);
-
-        $brandBlock = '';
-        if ('' !== trim($companyContext)) {
-            $brandBlock = <<<CTX
-Контекст бренда и знания (используй как основу ответа):
-{$companyContext}
-
----
-CTX;
-        }
+        $count = max(3, min($this->maxSuggestions, 4)); // 3–4
 
         return <<<PROMPT
+Ты — помощник оператора интернет-магазина женской спортивной одежды.
+Тон: «подружка делится» — дружелюбно, по делу, без канцелярита.
+
 Задача: предложи {$count} варианта коротких ответов оператору на ПОСЛЕДНЮЮ реплику клиента из истории.
 Правила:
 - На русском языке.
@@ -46,7 +36,6 @@ CTX;
 - Выведи СТРОГО валидный JSON без комментариев, префиксов и постфиксов:
 {"suggestions":["...","...","..."]}
 
-{$brandBlock}
 История диалога (сверху старые, снизу новые):
 {$historyTxt}
 

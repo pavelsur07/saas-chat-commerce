@@ -73,6 +73,10 @@ services:
             $maxChars: '%ai.suggestions.max_chars%'
             $timeoutSeconds: '%ai.suggestions.timeout_seconds%'
 
+    App\AI\AiSuggestionContextService:
+        arguments:
+            $maxContextChars: '%ai.suggestions.max_company_context_chars%'
+
 
     # PIPELINE
     #App\Service\Messaging\MessagePipeline:
