@@ -86,7 +86,7 @@ final class TelegramWebhookNonTextTest extends WebTestCase
         self::assertSame('text', $meta['ingest']['type'] ?? null);
 
         // Spy должен быть вызван
-        self::assertGreaterThanOrEqual(1, $spy->callCount());
+        self::assertGreaterThanOrEqual(1, $spy->calls);
     }
 
     public function testStickerMessageDoesNotTriggerLlm(): void
@@ -128,7 +128,7 @@ final class TelegramWebhookNonTextTest extends WebTestCase
         self::assertSame('sticker', $meta['ingest']['type'] ?? null);
 
         // Spy НЕ должен быть вызван
-        self::assertSame(0, $spy->callCount());
+        self::assertSame(0, $spy->calls);
     }
 
     public function testPhotoMessageDoesNotTriggerLlm(): void
@@ -168,6 +168,6 @@ final class TelegramWebhookNonTextTest extends WebTestCase
         self::assertSame('photo', $meta['ingest']['type'] ?? null);
 
         // Spy НЕ должен быть вызван
-        self::assertSame(0, $spy->callCount());
+        self::assertSame(0, $spy->calls);
     }
 }
