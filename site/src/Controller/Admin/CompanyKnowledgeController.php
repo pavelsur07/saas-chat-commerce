@@ -5,6 +5,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\AI\CompanyKnowledge;
+use App\Entity\AI\Enum\KnowledgeType;
 use App\Entity\Company\Company;
 use App\Form\AI\CompanyKnowledgeType;
 use App\Security\CompanyAccess;
@@ -47,7 +48,7 @@ class CompanyKnowledgeController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $item = new CompanyKnowledge(Uuid::uuid4()->toString(), $company, 'faq', '', '');
+        $item = new CompanyKnowledge(Uuid::uuid4()->toString(), $company, KnowledgeType::FAQ, '', '');
         $form = $this->createForm(CompanyKnowledgeType::class, $item);
         $form->handleRequest($req);
         if ($form->isSubmitted() && $form->isValid()) {
