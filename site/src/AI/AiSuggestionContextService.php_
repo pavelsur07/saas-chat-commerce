@@ -7,40 +7,55 @@ namespace App\AI;
 use App\Entity\AI\AiCompanyProfile;
 use App\Entity\AI\CompanyKnowledge;
 use App\Entity\Company\Company;
-use App\Repository\AI\AiCompanyProfileRepository;
 use App\Repository\AI\CompanyKnowledgeRepository;
+use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * Собирает блок контекста по КОНКРЕТНОЙ компании:
+ *  - Tone of Voice
+ *  - Brand Notes
+ *  - Топ-N сниппетов знаний по запросу пользователя
+ *
+ * Ограничивает общий размер блока по символам (ENV AI_MAX_CONTEXT_CHARS),
+ * приоритизируя сохранение профиля и мягко обрезая знания.
+ */
 final class AiSuggestionContextService
 {
     public function __construct(
-        private readonly AiCompanyProfileRepository $profileRepo,
+        private readonly EntityManagerInterface $em,
         private readonly CompanyKnowledgeRepository $knowledgeRepo,
         private readonly int $maxContextChars = 2000,
     ) {
     }
 
+    /**
+     * @return string Готовый многострочный блок контекста (можно прямо вставлять в system prompt)
+     */
     public function buildBlock(Company $company, string $incomingText, int $limit = 5): string
     {
         $remain = max(0, $this->maxContextChars);
         $parts = [];
 
-        // 1) Профиль компании
+        // 1) Профиль
+        $profileRepo = $this->em->getRepository(AiCompanyProfile::class);
         /** @var AiCompanyProfile|null $profile */
-        $profile = $this->profileRepo->findOneBy(['company' => $company]);
+        $profile = $profileRepo->findOneBy(['company' => $company]);
 
         if ($profile) {
             $tone = trim((string) $profile->getToneOfVoice());
             $notes = trim((string) $profile->getBrandNotes());
 
             if ('' !== $tone) {
-                $this->pushBlock($parts, "Tone of Voice:\n{$tone}", $remain);
+                $block = "Tone of Voice:\n{$tone}";
+                $this->pushBlock($parts, $block, $remain);
             }
             if ('' !== $notes) {
-                $this->pushBlock($parts, "Brand Notes (УТП):\n{$notes}", $remain);
+                $block = "Brand Notes:\n{$notes}";
+                $this->pushBlock($parts, $block, $remain);
             }
         }
 
-        // 2) Знания
+        // 2) Знания (мягкая обрезка в пределах остатка)
         $items = $this->knowledgeRepo->findTopByQuery($company, $incomingText, $limit);
         if ($items) {
             $lines = [];
@@ -58,6 +73,10 @@ final class AiSuggestionContextService
         return implode("\n\n---\n\n", $parts);
     }
 
+    /**
+     * Добавляет блок к $parts, соблюдая лимит по символам.
+     * При allowPartial=true — разрешает частично добавить блок с троеточием.
+     */
     private function pushBlock(array &$parts, string $block, int &$remain, bool $allowPartial = false): void
     {
         if ($remain <= 0 || '' === $block) {
