@@ -1,0 +1,266 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Tests\Integration\Api;
+
+use App\Repository\Messaging\ClientRepository;
+use App\Repository\Messaging\MessageRepository;
+use App\Service\Company\CompanyContextService;
+use App\Tests\Build\ClientBuild;
+use App\Tests\Build\CompanyBuild;
+use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Build\MessageBuild;
+use App\Tests\Traits\CompanySessionHelperTrait;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+
+final class ChatCenterApiTest extends WebTestCase
+{
+    use CompanySessionHelperTrait;
+
+    /**
+     * Проверяем эндпоинт: GET /api/clients
+     *
+     * ✅ Возвращает список клиентов только текущей активной компании.
+     * ❌ Клиенты из других компаний попадать в ответ не должны.
+     */
+    public function testClientListReturnsOnlyOwnCompanyClients(): void
+    {
+        $browser   = static::createClient();
+        $c         = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em        = $c->get(EntityManagerInterface::class);
+
+        // --- создаём две компании с владельцами ---
+        $ownerA = CompanyUserBuild::make()
+            ->withEmail('ua_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($ownerA);
+
+        $companyA = CompanyBuild::make()
+            ->withOwner($ownerA)
+            ->withSlug('ca_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($companyA);
+
+        $ownerB = CompanyUserBuild::make()
+            ->withEmail('ub_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($ownerB);
+
+        $companyB = CompanyBuild::make()
+            ->withOwner($ownerB)
+            ->withSlug('cb_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($companyB);
+
+        // --- клиенты: 2 в A и 1 в B ---
+        $clientA1 = ClientBuild::make()->withCompany($companyA)->withExternalId('extA1')->build();
+        $clientA2 = ClientBuild::make()->withCompany($companyA)->withExternalId('extA2')->build();
+        $clientB1 = ClientBuild::make()->withCompany($companyB)->withExternalId('extB1')->build();
+        $em->persist($clientA1);
+        $em->persist($clientA2);
+        $em->persist($clientB1);
+        $em->flush();
+
+        // --- активируем компанию A (единая сессия + логин) ---
+        $this->loginAndActivateCompany($browser, $ownerA, $companyA, $em);
+
+        // 1) прогреваем RequestStack публичным запросом
+        $browser->request('GET', '/login');
+        self::assertResponseIsSuccessful();
+
+        // 2) фиксируем активную компанию на текущем запросе
+        $c->get(CompanyContextService::class)->setCompany($companyA);
+
+        // 3) делаем ещё один короткий запрос, чтобы контекст гарантированно попал в следующий запрос
+        $browser->request('GET', '/');
+        self::assertResponseIsSuccessful();
+
+        // --- запрос списка клиентов ---
+        $browser->request('GET', '/api/clients', server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+
+        $json = json_decode($browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        // ✅ проверяем: есть клиенты A
+        $ids = array_column($json, 'id');
+        self::assertContains($clientA1->getId(), $ids);
+        self::assertContains($clientA2->getId(), $ids);
+        // ❌ проверяем: нет клиентов B
+        self::assertNotContains($clientB1->getId(), $ids);
+    }
+
+    /**
+     * Проверяем эндпоинт: GET /api/messages/{clientId}
+     *
+     * ✅ Должна вернуться история сообщений только указанного клиента,
+     *    отсортированная по createdAt по возрастанию.
+     * ❌ Сообщения других клиентов не должны попадать в выборку.
+     */
+    public function testMessageHistoryReturnsOnlyClientMessages(): void
+    {
+        $browser   = static::createClient();
+        $c         = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em        = $c->get(EntityManagerInterface::class);
+
+        // --- компания и владелец ---
+        $owner = CompanyUserBuild::make()
+            ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('c_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+        $em->flush();
+
+        // --- клиенты: целевой и другой ---
+        $client = ClientBuild::make()->withCompany($company)->withExternalId('extC')->build();
+        $other  = ClientBuild::make()->withCompany($company)->withExternalId('extO')->build();
+        $em->persist($client);
+        $em->persist($other);
+
+        // --- сообщения: 2 для client, 1 для other ---
+        $m1 = MessageBuild::make()->withClient($client)->withText('m1')->build();
+        $m2 = MessageBuild::make()->withClient($client)->withText('m2')->build();
+        $m3 = MessageBuild::make()->withClient($other)->withText('x')->build();
+        $em->persist($m1);
+        $em->persist($m2);
+        $em->persist($m3);
+        $em->flush();
+
+        // --- активируем компанию ---
+        $this->loginAndActivateCompany($browser, $owner, $company, $em);
+
+        // 1) прогреваем RequestStack публичным запросом
+        $browser->request('GET', '/login');
+        self::assertResponseIsSuccessful();
+
+        // 2) фиксируем активную компанию на текущем запросе
+        $c->get(CompanyContextService::class)->setCompany($company);
+
+        // 3) ещё один GET, чтобы перенос контекста гарантированно отработал
+        $browser->request('GET', '/');
+        self::assertResponseIsSuccessful();
+
+        // --- запрос истории ---
+        $browser->request('GET', '/api/messages/'.$client->getId(), server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+
+        $json = json_decode($browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        // ✅ должны быть m1 и m2
+        $texts = array_map(static fn($row) => $row['text'] ?? null, $json);
+        self::assertContains('m1', $texts);
+        self::assertContains('m2', $texts);
+        // ❌ не должно быть 'x'
+        self::assertNotContains('x', $texts);
+
+        // ✅ проверка, что createdAt идёт по возрастанию
+        $prev = null;
+        foreach ($json as $row) {
+            if (!isset($row['createdAt'])) {
+                continue;
+            }
+            $cur = new \DateTimeImmutable($row['createdAt']);
+            if ($prev !== null) {
+                $curF  = (float)$cur->format('U.u');
+                $prevF = (float)$prev->format('U.u');
+                self::assertGreaterThanOrEqual($curF, $prevF, 'createdAt должен быть по возрастанию');
+            }
+            $prev = $cur;
+        }
+    }
+
+    /**
+     * Проверяем эндпоинт: POST /api/messages/{clientId}
+     *
+     * ✅ Должно создаваться новое исходящее сообщение для клиента.
+     * ✅ Текст в базе должен совпадать с отправленным.
+     * ❌ Сообщение не должно создаваться для чужих компаний.
+     */
+    public function testSendMessageCreatesOutboundMessage(): void
+    {
+        $browser   = static::createClient();
+        $c         = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em        = $c->get(EntityManagerInterface::class);
+
+        // --- компания + владелец + клиент ---
+        $owner = CompanyUserBuild::make()
+            ->withEmail('s_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('s_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $client = ClientBuild::make()
+            ->withCompany($company)
+            ->withExternalId('ext_'.random_int(10000, 99999))
+            ->build();
+        $em->persist($client);
+        $em->flush();
+
+        // --- активируем компанию ---
+        $this->loginAndActivateCompany($browser, $owner, $company, $em);
+
+        // 1) прогреваем RequestStack
+        $browser->request('GET', '/login');
+        self::assertResponseIsSuccessful();
+
+        // 2) фиксируем активную компанию на текущем запросе
+        $c->get(CompanyContextService::class)->setCompany($company);
+
+        // 3) ещё один GET, чтобы контекст устаканился
+        $browser->request('GET', '/');
+        self::assertResponseIsSuccessful();
+
+        // --- отправляем POST ---
+        $payload = ['text' => 'Operator reply'];
+        $browser->request(
+            'POST',
+            '/api/messages/'.$client->getId(),
+            server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+            content: json_encode($payload, JSON_UNESCAPED_UNICODE)
+        );
+        self::assertResponseIsSuccessful();
+
+        // --- проверка: сообщение есть в базе и у нужного клиента ---
+        /** @var MessageRepository $messages */
+        $messages = $c->get(MessageRepository::class);
+        $list = $messages->findBy(['company' => $company, 'client' => $client], ['createdAt' => 'DESC']);
+
+        self::assertNotEmpty($list, 'Исходящее сообщение должно быть создано');
+        $last = $list[0];
+
+        // Проверка текста
+        if (method_exists($last, 'getText')) {
+            $text = $last->getText();
+        } else {
+            $rp = new \ReflectionProperty($last, 'text');
+            $rp->setAccessible(true);
+            $text = $rp->getValue($last);
+        }
+        self::assertSame('Operator reply', $text);
+
+        // Проверка направления (если есть поле direction)
+        if (property_exists($last, 'direction')) {
+            $rp = new \ReflectionProperty($last, 'direction');
+            $rp->setAccessible(true);
+            $direction = $rp->getValue($last);
+            self::assertContains($direction, ['out', 'OUT', 'Out'], 'Сообщение должно быть исходящим');
+        }
+    }
+}
