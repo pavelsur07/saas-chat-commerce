@@ -10,9 +10,6 @@ use Doctrine\ORM\Mapping as ORM;
 class AiCompanyProfile
 {
     #[ORM\Id]
-    /*#[ORM\OneToOne(inversedBy: 'aiProfile')]
-    #[ORM\JoinColumn(name: 'company_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    */
     #[ORM\OneToOne(targetEntity: Company::class, inversedBy: 'aiProfile')]
     #[ORM\JoinColumn(name: 'company_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private Company $company;
