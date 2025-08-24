@@ -18,7 +18,7 @@ class CompanyKnowledgeType extends AbstractType
         $b->add('type', ChoiceType::class, [
             'label' => 'Тип',
             'choices' => KnowledgeType::cases(),
-            'choice_label' => fn(KnowledgeType $t) => match ($t) {
+            'choice_label' => fn (KnowledgeType $t) => match ($t) {
                 KnowledgeType::FAQ => 'FAQ',
                 KnowledgeType::DELIVERY => 'Доставка',
                 KnowledgeType::PRODUCT => 'Продукты',

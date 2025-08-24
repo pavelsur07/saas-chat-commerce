@@ -10,8 +10,8 @@
         {% for k in items %}
             <div class="p-3 bg-white border rounded flex items-center justify-between">
                 <div>
-                    <div class="text-xs text-gray-500">{{ k.type|upper }} • {{ k.createdAt|date('Y-m-d H:i') }}</div>
-                    <div class="font-medium">{{ k.question }}</div>
+                    <div class="text-xs text-gray-500">{{ k.type.value|upper }} • {{ k.createdAt|date('Y-m-d H:i') }}</div>
+                    <div class="font-medium">{{ k.content }}</div>
                 </div>
                 <div class="space-x-2">
                     <a class="text-blue-600" href="{{ path('admin_ai_knowledge_edit',{id:k.id}) }}">Редактировать</a>

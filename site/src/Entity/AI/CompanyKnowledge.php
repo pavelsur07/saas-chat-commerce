@@ -57,9 +57,19 @@ class CompanyKnowledge
         return $this->company;
     }
 
+    public function setCompany(Company $company): void
+    {
+        $this->company = $company;
+    }
+
     public function getType(): KnowledgeType
     {
         return $this->type;
+    }
+
+    public function setType(KnowledgeType $type): void
+    {
+        $this->type = $type;
     }
 
     public function getTitle(): string
@@ -67,9 +77,19 @@ class CompanyKnowledge
         return $this->title;
     }
 
+    public function setTitle(string $title): void
+    {
+        $this->title = $title;
+    }
+
     public function getContent(): string
     {
         return $this->content;
+    }
+
+    public function setContent(string $content): void
+    {
+        $this->content = $content;
     }
 
     public function getTags(): ?string
@@ -80,5 +100,15 @@ class CompanyKnowledge
     public function setTags(?string $tags): void
     {
         $this->tags = $tags;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): void
+    {
+        $this->createdAt = $createdAt;
     }
 }
