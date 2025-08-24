@@ -2,6 +2,7 @@
 
 namespace App\Entity\Company;
 
+use App\Entity\AI\AiCompanyProfile;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 
@@ -25,6 +26,9 @@ class Company
     #[ORM\ManyToOne(inversedBy: 'ownedCompanies')]
     #[ORM\JoinColumn(nullable: false)]
     private User $owner;
+
+    #[ORM\OneToOne(targetEntity: AiCompanyProfile::class, mappedBy: 'company', cascade: ['persist', 'remove'])]
+    private ?AiCompanyProfile $aiProfile = null;
 
     public function __construct(string $id, User $owner)
     {
