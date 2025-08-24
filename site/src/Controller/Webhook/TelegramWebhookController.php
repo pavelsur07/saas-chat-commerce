@@ -79,11 +79,10 @@ class TelegramWebhookController extends AbstractController
             $em->persist($client);
         }
 
-        // [NEW] Определяем тип входящего апдейта и (возможный) текст
+        // [NEW] Определяем тип входящего апдейта и (возможный) текст с учётом caption у фото/видео
         $ingestType = 'unknown';
         $text = null;
 
-        // [NEW] учитываем caption у фото/видео, а также возможный text
         $hasText = array_key_exists('text', $msg);
         $hasPhoto = array_key_exists('photo', $msg);
         $hasVideo = array_key_exists('video', $msg);
@@ -91,7 +90,7 @@ class TelegramWebhookController extends AbstractController
 
         if (array_key_exists('sticker', $msg)) {
             $ingestType = 'sticker';
-            $text = null; // у стикера текста нет
+            $text = null; // у стикера текста/caption нет
         } elseif ($hasPhoto) {
             $ingestType = 'photo';
             // если есть text — берём его; иначе берём caption
