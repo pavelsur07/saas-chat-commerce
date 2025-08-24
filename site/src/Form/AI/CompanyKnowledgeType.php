@@ -4,6 +4,7 @@
 
 namespace App\Form\AI;
 
+use App\Entity\AI\Enum\KnowledgeType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -16,17 +17,19 @@ class CompanyKnowledgeType extends AbstractType
     {
         $b->add('type', ChoiceType::class, [
             'label' => 'Тип',
-            'choices' => [
-                'FAQ' => 'faq',
-                'Доставка' => 'delivery',
-                'Продукты' => 'product',
-                'Политики' => 'policy',
-            ],
+            'choices' => KnowledgeType::cases(),
+            'choice_label' => fn(KnowledgeType $t) => match ($t) {
+                KnowledgeType::FAQ => 'FAQ',
+                KnowledgeType::DELIVERY => 'Доставка',
+                KnowledgeType::PRODUCT => 'Продукты',
+                KnowledgeType::POLICY => 'Политики',
+            },
+            'choice_value' => fn (?KnowledgeType $t) => $t?->value,
         ])
-            ->add('question', TextType::class, [
+            ->add('title', TextType::class, [
                 'label' => 'Заголовок/Вопрос',
             ])
-            ->add('answer', TextareaType::class, [
+            ->add('content', TextareaType::class, [
                 'label' => 'Ответ/Содержание',
                 'required' => false,
                 'attr' => ['rows' => 8],

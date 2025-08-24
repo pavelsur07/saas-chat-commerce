@@ -5,8 +5,8 @@
     <h1 class="text-xl font-semibold mb-4">Знание компании</h1>
     {{ form_start(form, { attr: { class: 'space-y-4 max-w-2xl' } }) }}
     {{ form_row(form.type) }}
-    {{ form_row(form.question) }}
-    {{ form_row(form.answer) }}
+    {{ form_row(form.title) }}
+    {{ form_row(form.content) }}
     <button class="px-4 py-2 bg-blue-600 text-white rounded">Сохранить</button>
     {{ form_end(form) }}
 {% endblock %}
