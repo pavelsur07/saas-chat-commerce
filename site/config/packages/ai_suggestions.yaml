@@ -6,3 +6,18 @@ parameters:
     ai.suggestions.timeout_seconds: 10
     ai.suggestions.rate_limit_seconds: 3    # ← окно rate-limit на диалог
     ai.suggestions.max_company_context_chars: '%env(int:AI_MAX_CONTEXT_CHARS)%'
+    ai.provider: '%env(string:AI_PROVIDER)%'
+
+services:
+    App\Service\AI\Provider\MockLlmClient: ~
+
+    App\Service\AI\LlmClientSelector:
+        arguments:
+            $provider: '%ai.provider%'
+
+    App\Service\AI\LlmClientWithLogging:
+         arguments:
+            $inner: '@App\Service\AI\LlmClientSelector'
+            alias: App\Service\AI\LlmClient
+
+    App\Service\AI\LlmClient: '@App\Service\AI\LlmClientSelector'

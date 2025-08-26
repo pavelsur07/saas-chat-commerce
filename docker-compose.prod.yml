@@ -82,6 +82,7 @@ services:
             REDIS_REALTIME_HOST: redis-realtime
             REDIS_REALTIME_PORT: 6379
             AI_MAX_CONTEXT_CHARS: 2000
+            AI_PROVIDER: mock
         networks:
             - default
         depends_on:
@@ -99,6 +100,8 @@ services:
             REDIS_REALTIME_HOST: redis-realtime
             REDIS_REALTIME_PORT: 6379
             AI_MAX_CONTEXT_CHARS: 2000
+            AI_PROVIDER: mock
+        
         networks:
             - default
         depends_on:
