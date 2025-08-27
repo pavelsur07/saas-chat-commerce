@@ -1,7 +1,5 @@
 <?php
 
-// src/Repository/AI/CompanyKnowledgeRepository.php
-
 namespace App\Repository\AI;
 
 use App\Entity\AI\CompanyKnowledge;
@@ -17,28 +15,7 @@ class CompanyKnowledgeRepository extends ServiceEntityRepository
     }
 
     /**
-     * Простой поиск по заголовку/ответу; limit = 5.
-     */
-
-    /*
-    public function findTopByQuery(Company $company, string $query, int $limit = 5): array
-    {
-        $qb = $this->createQueryBuilder('k')
-            ->andWhere('k.company = :c')->setParameter('c', $company);
-
-        if ('' !== trim($query)) {
-            $qb->andWhere('(LOWER(k.question) LIKE :q OR LOWER(k.answer) LIKE :q)')
-                ->setParameter('q', '%'.mb_strtolower($query).'%');
-        }
-
-        return $qb->orderBy('k.createdAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()->getResult();
-    }
-    */
-
-    /**
-     * Топ-N знаний по компании с простым поиском по ILIKE в title/content.
+     * Топ-N знаний по компании: простая токенизация входной фразы и ILIKE по 1–3 «осмысленным» словам.
      */
     public function findTopByQuery(Company $company, string $query, int $limit = 5): array
     {
@@ -47,8 +24,21 @@ class CompanyKnowledgeRepository extends ServiceEntityRepository
 
         $q = trim(mb_strtolower($query));
         if ('' !== $q) {
-            $qb->andWhere('(LOWER(k.title) LIKE :q OR LOWER(k.content) LIKE :q)')
-                ->setParameter('q', '%'.$q.'%');
+            // выдернем до трёх ключевых слов длиной >= 4
+            $raw = preg_split('/[^\p{L}\p{N}]+/u', $q, -1, PREG_SPLIT_NO_EMPTY);
+            $words = array_values(array_filter($raw, fn (string $w) => mb_strlen($w) >= 4));
+            $words = array_slice($words, 0, 3);
+
+            if (!empty($words)) {
+                $or = $qb->expr()->orX();
+                foreach ($words as $i => $w) {
+                    $param = 'q'.$i;
+                    $or->add($qb->expr()->like('LOWER(k.title)', ':'.$param));
+                    $or->add($qb->expr()->like('LOWER(k.content)', ':'.$param));
+                    $qb->setParameter($param, '%'.$w.'%');
+                }
+                $qb->andWhere($or);
+            }
         }
 
         return $qb->orderBy('k.createdAt', 'DESC')
