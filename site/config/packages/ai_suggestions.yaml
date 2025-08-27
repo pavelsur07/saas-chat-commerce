@@ -9,27 +9,21 @@ parameters:
     ai.provider: '%env(string:AI_PROVIDER)%'
 
 services:
+    # провайдер мок
     App\Service\AI\Provider\MockLlmClient: ~
 
+    # селектор провайдера (mock/openai)
     App\Service\AI\LlmClientSelector:
         arguments:
             $provider: '%ai.provider%'
-            $mock: '@App\Service\AI\Provider\MockLlmClient'
+            # $mock подставится автоворингом по типу, но можно явно:
+            # $mock: '@App\Service\AI\Provider\MockLlmClient'
 
+    # логирующий враппер ДОЛЖЕН получать селектор как inner
     App\Service\AI\LlmClientWithLogging:
         arguments:
             $inner: '@App\Service\AI\LlmClientSelector'
 
-    #App\Service\AI\LlmClientSelector:
-    #    arguments:
-    #        $provider: '%ai.provider%'
-    #        $mock: '@App\Service\AI\Provider\MockLlmClient'
-
-    #App\Service\AI\LlmClientWithLogging:
-    #     arguments:
-    #        $inner: '@App\Service\AI\LlmClientSelector'
-    #        alias: App\Service\AI\LlmClient
-
-    #App\Service\AI\LlmClient: '@App\Service\AI\LlmClientSelector'
-    # ВАЖНО: наружу отдаём логгера
+    # ИМЕННО так: наружу даём интерфейс -> логгер
     App\Service\AI\LlmClient: '@App\Service\AI\LlmClientWithLogging'
+
