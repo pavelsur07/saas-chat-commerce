@@ -30,10 +30,10 @@ final class SuggestionService
     public function suggest(Company $company, string $clientId): array
     {
         try {
-            // 1) История диалога как массив реплик
+            // 1) История диалога (массивами), уже ограниченная maxHistory/maxChars
             $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
 
-            // 2) Последняя user-реплика для поиска знаний
+            // 2) Последняя пользовательская реплика — нужна для поиска знаний
             $lastUserText = '';
             for ($i = count($context) - 1; $i >= 0; --$i) {
                 if (($context[$i]['role'] ?? '') === 'user') {
@@ -46,35 +46,39 @@ final class SuggestionService
                 $lastUserText = (string) ($last['text'] ?? '');
             }
 
-            // 3) Контекст компании (ToV/УТП/Knowledge <= 5)
+            // 3) Контекст компании: ToV/УТП + релевантные знания (<=5), с обрезкой по AI_MAX_CONTEXT_CHARS
             $companyBlock = '';
             if ($this->contextService && '' !== $lastUserText) {
                 $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
             }
 
-            // 4) SYSTEM: правила + контекст бренда/знаний
+            // 4) SYSTEM: строгие правила + контекст бренда/знаний (без истории!)
             $system = "Ты помощник оператора. Верни строго валидный JSON {\"suggestions\":[...]}.\n\n"
                 .$this->promptBuilder->buildSystemBlock(4, $companyBlock);
 
-            // 5) История — отдельными сообщениями (user/assistant)
+            // 5) Историю отдаём отдельными ChatML-сообщениями (user/assistant), без «Верни JSON» в конце
             $messages = [
                 ['role' => 'system', 'content' => $system],
             ];
+
+            // Уберём подряд идущие дубли строк (иногда клиент шлёт один и тот же текст)
+            $prevRole = null;
+            $prevText = null;
             foreach ($context as $row) {
                 $role = ($row['role'] ?? 'user') === 'agent' ? 'assistant' : 'user';
-                $text = (string) ($row['text'] ?? '');
-                if ('' !== $text) {
-                    $messages[] = ['role' => $role, 'content' => $text];
+                $text = trim((string) ($row['text'] ?? ''));
+                if ('' === $text) {
+                    continue;
                 }
+                if ($role === $prevRole && $text === $prevText) {
+                    continue; // пропустим точный дубль подряд
+                }
+                $messages[] = ['role' => $role, 'content' => $text];
+                $prevRole = $role;
+                $prevText = $text;
             }
 
-            // 6) Финальная инструкция (подсказка формата)
-            $messages[] = [
-                'role' => 'user',
-                'content' => 'Верни СТРОГО валидный JSON: {"suggestions":["...","...","...","..."]}',
-            ];
-
-            // 7) Вызов LLM (как у вас было — без новых полей)
+            // 6) Вызов LLM (как у вас принято: ожидаем JSON в контенте ответа)
             $result = $this->llm->chat([
                 'company' => $company,
                 'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
@@ -85,12 +89,11 @@ final class SuggestionService
                 'timeout' => $this->timeoutSeconds,
             ]);
 
-            // 8) Парсинг ответа — как и раньше
+            // 7) Парсинг ответа — без изменений по вашему проекту
             $content = (string) ($result['content'] ?? '');
             $decoded = json_decode($content, true);
             $list = is_array($decoded['suggestions'] ?? null) ? $decoded['suggestions'] : [];
 
-            // Нормализация и ограничение 3–4 вариантов
             $list = array_values(
                 array_filter(
                     array_map(static fn ($s) => trim((string) $s), $list),
@@ -100,7 +103,7 @@ final class SuggestionService
 
             return array_slice($list, 0, 4);
         } catch (\Throwable $e) {
-            // В MVP — тихий фоллбек
+            // В MVP оставим мягкий фоллбек
             return [];
         }
     }
