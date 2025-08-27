@@ -17,8 +17,19 @@ services:
             $mock: '@App\Service\AI\Provider\MockLlmClient'
 
     App\Service\AI\LlmClientWithLogging:
-         arguments:
+        arguments:
             $inner: '@App\Service\AI\LlmClientSelector'
-            alias: App\Service\AI\LlmClient
 
-    App\Service\AI\LlmClient: '@App\Service\AI\LlmClientSelector'
+    #App\Service\AI\LlmClientSelector:
+    #    arguments:
+    #        $provider: '%ai.provider%'
+    #        $mock: '@App\Service\AI\Provider\MockLlmClient'
+
+    #App\Service\AI\LlmClientWithLogging:
+    #     arguments:
+    #        $inner: '@App\Service\AI\LlmClientSelector'
+    #        alias: App\Service\AI\LlmClient
+
+    #App\Service\AI\LlmClient: '@App\Service\AI\LlmClientSelector'
+    # ВАЖНО: наружу отдаём логгера
+    App\Service\AI\LlmClient: '@App\Service\AI\LlmClientWithLogging'
