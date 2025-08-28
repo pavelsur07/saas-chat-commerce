@@ -5,6 +5,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
 
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -21,22 +22,34 @@ services:
         # Базовый клиент к провайдеру
 
     # AI START Компоненты ----------------------------------------------------------------------------------------------------
+    # Логгер для промптов (как у вас)
     App\Service\AI\AiPromptLogService: ~
 
-    App\Service\AI\LlmClientWithLogging:
-        decorates: App\Service\AI\OpenAiClient
-        arguments:
-            - '@App\Service\AI\LlmClientWithLogging.inner'
-            - '@App\Service\AI\AiPromptLogService'
+    #Мок-провайдер (конкретный клиент)
+    App\Service\AI\Provider\MockLlmClient: ~
 
+    # Селектор провайдеров (всегда вернёт мок при AI_PROVIDER=mock)
+    App\Service\AI\LlmClientSelector:
+        arguments:
+            $provider: '%ai.provider%'
+            $mock: '@App\Service\AI\Provider\MockLlmClient'
+
+    # Логирующий враппер — ВАЖНО: отключаем автоваер и явно подставляем $inner
+    App\Service\AI\LlmClientWithLogging:
+        autowire: false
+        arguments:
+            $inner: '@App\Service\AI\LlmClientSelector'        # <-- ключевая строка, разрывает цикл
+            $logger: '@App\Service\AI\AiPromptLogService'
+
+    # Главный alias интерфейса — на логгера (который зовёт селектор -> мок)
+    App\Service\AI\LlmClient: '@App\Service\AI\LlmClientWithLogging'
+
+    # (Не обязательно) OpenAI клиент можно оставить, но без алиасов/декораторов
     App\Service\AI\OpenAiClient:
         arguments:
             $http: '@http_client'
             $apiKey: '%env(string:OPENAI_API_KEY)%'
             $baseUrl: 'https://api.openai.com/v1'
-
-    # По умолчанию LlmClient — это OpenAiClient
-    App\Service\AI\LlmClient: '@App\Service\AI\OpenAiClient'
 
     # AI END Компоненты ------------------------------------------------------------------------------------------------
     App\Service\Messaging\TelegramService:
@@ -45,6 +58,7 @@ services:
             $logger: '@logger'
 
     App\Service\Messaging\MessageIngressService: ~
+
     App\Service\Messaging\MessageEgressService:
         arguments:
             $adapters:
@@ -76,26 +90,6 @@ services:
     App\AI\AiSuggestionContextService:
         arguments:
             $maxContextChars: '%ai.suggestions.max_company_context_chars%'
-
-
-    # PIPELINE
-    #App\Service\Messaging\MessagePipeline:
-    #    arguments:
-    #        $middlewares:
-    #            - '@App\Service\Messaging\Middleware\NormalizeMiddleware'
-    #            - '@App\Service\Messaging\Middleware\PersistMiddleware'
-    #            - '@App\Service\Messaging\Middleware\AiEnrichMiddleware'
-
-
-    # Middlewares
-    #App\Service\Messaging\Middleware\PersistMiddleware: ~
-    #App\Service\Messaging\Middleware\AiEnrichMiddleware: ~
-    #App\Service\Messaging\Middleware\NormalizeMiddleware:
-    #    arguments:
-    #        $clients: '@App\Repository\Messaging\ClientRepository'
-    #        $botRepo: '@App\Repository\Messaging\TelegramBotRepository'
-    #        $em: '@doctrine.orm.entity_manager'
-
 
     # Message END Компоненты -------------------------------------------------------------------------------------------
 

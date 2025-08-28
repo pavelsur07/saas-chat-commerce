@@ -82,6 +82,7 @@ final class SuggestionService
             $result = $this->llm->chat([
                 'company' => $company,
                 'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
+                'channel' => 'api',                    // ← ДОБАВИТЬ
                 'model' => $this->model,
                 'messages' => $messages,
                 'temperature' => $this->temperature,

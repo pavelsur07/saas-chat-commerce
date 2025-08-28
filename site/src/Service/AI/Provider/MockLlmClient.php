@@ -91,8 +91,6 @@ final class MockLlmClient implements LlmClient
         // НОВЫЙ контракт: content = JSON-строка, как будто это ответ модели
         $json = json_encode(['suggestions' => $s], JSON_UNESCAPED_UNICODE);
 
-
-
         return [
             'content' => $json,
             'usage' => [
