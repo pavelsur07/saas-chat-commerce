@@ -20,7 +20,7 @@ final class SuggestionService
         #[Autowire('%ai.suggestions.max_history%')] private readonly int $maxHistory = 12,
         #[Autowire('%ai.suggestions.max_chars%')] private readonly int $maxChars = 4000,
         #[Autowire('%ai.suggestions.timeout_seconds%')] private readonly int $timeoutSeconds = 10,
-        private readonly ?AiSuggestionContextService $contextService = null, // ← опционально
+        private readonly ?AiSuggestionContextService $contextService = null,
     ) {
     }
 
@@ -29,57 +29,72 @@ final class SuggestionService
      */
     public function suggest(Company $company, string $clientId): array
     {
-        $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
-
-        // Извлекаем последнюю реплику пользователя для поиска знаний
-        $lastUserText = '';
-        for ($i = count($context) - 1; $i >= 0; --$i) {
-            $r = $context[$i]['role'] ?? '';
-            if ('user' === $r) {
-                $lastUserText = (string) ($context[$i]['text'] ?? '');
-                break;
-            }
-        }
-        if ('' === $lastUserText && !empty($context)) {
-            $last = $context[count($context) - 1];
-            $lastUserText = (string) ($last['text'] ?? '');
-        }
-
-        $companyBlock = '';
-        if ($this->contextService && '' !== $lastUserText) {
-            $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
-        }
-
-        $prompt = $this->promptBuilder->build($context, $companyBlock);
-
-        // ... остальное без изменений (вызов LLM и парсинг JSON)
-
-        // Определяем канал клиента (telegram/whatsapp/instagram/...)
-        $client = $this->clients->find($clientId);
-        $channel = $client?->getChannel() ?? 'system'; // Нужно разработать механизм точного определения канала
-
         try {
-            /*
-                $result = $this->llm->chat([
-                    'company' => $company,
-                    'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
-                    'channel' => $channel->value,             // enum → строка
-                    'model' => $this->model,
-                    'messages' => [
-                        ['role' => 'system', 'content' => 'Ты помощник оператора. Верни строго JSON вида {"suggestions":[...]}'],
-                        ['role' => 'user',   'content' => $prompt],
-                      ],
-                    'temperature' => $this->temperature,
-                    'max_tokens' => 400,
-                    'timeout' => $this->timeoutSeconds,           // ← таймаут в секундах
-                ]);
-                */
+            // 1) История диалога (массивами), уже ограниченная maxHistory/maxChars
+            $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
 
+            // 2) Последняя пользовательская реплика — нужна для поиска знаний
+            $lastUserText = '';
+            for ($i = count($context) - 1; $i >= 0; --$i) {
+                if (($context[$i]['role'] ?? '') === 'user') {
+                    $lastUserText = (string) ($context[$i]['text'] ?? '');
+                    break;
+                }
+            }
+            if ('' === $lastUserText && !empty($context)) {
+                $last = $context[count($context) - 1];
+                $lastUserText = (string) ($last['text'] ?? '');
+            }
+
+            // 3) Контекст компании: ToV/УТП + релевантные знания (<=5), с обрезкой по AI_MAX_CONTEXT_CHARS
+            $companyBlock = '';
+            if ($this->contextService && '' !== $lastUserText) {
+                $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
+            }
+
+            // 4) SYSTEM: строгие правила + контекст бренда/знаний (без истории!)
+            $system = "Ты помощник оператора. Верни строго валидный JSON {\"suggestions\":[...]}.\n\n"
+                .$this->promptBuilder->buildSystemBlock(4, $companyBlock);
+
+            // 5) Историю отдаём отдельными ChatML-сообщениями (user/assistant), без «Верни JSON» в конце
+            $messages = [
+                ['role' => 'system', 'content' => $system],
+            ];
+
+            // Уберём подряд идущие дубли строк (иногда клиент шлёт один и тот же текст)
+            $prevRole = null;
+            $prevText = null;
+            foreach ($context as $row) {
+                $role = ($row['role'] ?? 'user') === 'agent' ? 'assistant' : 'user';
+                $text = trim((string) ($row['text'] ?? ''));
+                if ('' === $text) {
+                    continue;
+                }
+                if ($role === $prevRole && $text === $prevText) {
+                    continue; // пропустим точный дубль подряд
+                }
+                $messages[] = ['role' => $role, 'content' => $text];
+                $prevRole = $role;
+                $prevText = $text;
+            }
+
+            // 6) Вызов LLM (как у вас принято: ожидаем JSON в контенте ответа)
+            $result = $this->llm->chat([
+                'company' => $company,
+                'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
+                'channel' => 'api',                    // ← ДОБАВИТЬ
+                'model' => $this->model,
+                'messages' => $messages,
+                'temperature' => $this->temperature,
+                'max_tokens' => 400,
+                'timeout' => $this->timeoutSeconds,
+            ]);
+
+            // 7) Парсинг ответа — без изменений по вашему проекту
             $content = (string) ($result['content'] ?? '');
             $decoded = json_decode($content, true);
             $list = is_array($decoded['suggestions'] ?? null) ? $decoded['suggestions'] : [];
 
-            // Нормализация и ограничение 3–4 вариантов
             $list = array_values(
                 array_filter(
                     array_map(static fn ($s) => trim((string) $s), $list),
@@ -89,7 +104,7 @@ final class SuggestionService
 
             return array_slice($list, 0, 4);
         } catch (\Throwable $e) {
-            // В MVP — тихий фоллбек
+            // В MVP оставим мягкий фоллбек
             return [];
         }
     }

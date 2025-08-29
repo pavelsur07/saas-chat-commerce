@@ -20,6 +20,7 @@ final class SuggestionService
         #[Autowire('%ai.suggestions.max_history%')] private readonly int $maxHistory = 12,
         #[Autowire('%ai.suggestions.max_chars%')] private readonly int $maxChars = 4000,
         #[Autowire('%ai.suggestions.timeout_seconds%')] private readonly int $timeoutSeconds = 10,
+        // опционально, если сервис контекста подключён
         private readonly ?AiSuggestionContextService $contextService = null,
     ) {
     }
@@ -30,10 +31,10 @@ final class SuggestionService
     public function suggest(Company $company, string $clientId): array
     {
         try {
-            // 1) История диалога (массивами), уже ограниченная maxHistory/maxChars
+            // 1) История диалога (уже ограниченная maxHistory/maxChars)
             $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
 
-            // 2) Последняя пользовательская реплика — нужна для поиска знаний
+            // 2) Последняя user-реплика — нужна и для знаний, и для модели
             $lastUserText = '';
             for ($i = count($context) - 1; $i >= 0; --$i) {
                 if (($context[$i]['role'] ?? '') === 'user') {
@@ -42,69 +43,71 @@ final class SuggestionService
                 }
             }
             if ('' === $lastUserText && !empty($context)) {
-                $last = $context[count($context) - 1];
+                // если последняя не user — возьмём текст последнего сообщения
+                $last = $context[array_key_last($context)];
                 $lastUserText = (string) ($last['text'] ?? '');
             }
 
-            // 3) Контекст компании: ToV/УТП + релевантные знания (<=5), с обрезкой по AI_MAX_CONTEXT_CHARS
+            // 3) Бренд-контекст/знания (только если сервис доступен)
             $companyBlock = '';
-            if ($this->contextService && '' !== $lastUserText) {
+            if (null !== $this->contextService) {
+                // top-N знаний берём 5 — можно вынести в параметр
                 $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
             }
 
-            // 4) SYSTEM: строгие правила + контекст бренда/знаний (без истории!)
-            $system = "Ты помощник оператора. Верни строго валидный JSON {\"suggestions\":[...]}.\n\n"
-                .$this->promptBuilder->buildSystemBlock(4, $companyBlock);
+            // 4) SYSTEM-блок правил + (опционально) бренд-контекст
+            $system = $this->promptBuilder->buildSystemBlock(4, $companyBlock);
 
-            // 5) Историю отдаём отдельными ChatML-сообщениями (user/assistant), без «Верни JSON» в конце
-            $messages = [
-                ['role' => 'system', 'content' => $system],
-            ];
-
-            // Уберём подряд идущие дубли строк (иногда клиент шлёт один и тот же текст)
-            $prevRole = null;
-            $prevText = null;
-            foreach ($context as $row) {
-                $role = ($row['role'] ?? 'user') === 'agent' ? 'assistant' : 'user';
-                $text = trim((string) ($row['text'] ?? ''));
+            // 5) Переносим историю в формат messages[] с ключом "content"
+            $historyMessages = [];
+            foreach ($context as $m) {
+                $role = (string) ($m['role'] ?? 'user');
+                $text = (string) ($m['text'] ?? '');
                 if ('' === $text) {
                     continue;
                 }
-                if ($role === $prevRole && $text === $prevText) {
-                    continue; // пропустим точный дубль подряд
-                }
-                $messages[] = ['role' => $role, 'content' => $text];
-                $prevRole = $role;
-                $prevText = $text;
+                $historyMessages[] = [
+                    'role' => $role,
+                    'content' => $text,
+                ];
             }
 
-            // 6) Вызов LLM (как у вас принято: ожидаем JSON в контенте ответа)
+            // 6) Если история пуста или нет последнего user — всё равно просим модель
+            if ('' === $lastUserText) {
+                $lastUserText = 'Сгенерируй 4 релевантные стартовые подсказки для первой реплики клиента.';
+            }
+
+            // 7) Финальные messages
+            $messages = array_merge(
+                [['role' => 'system', 'content' => $system]],
+                $historyMessages,
+                [['role' => 'user', 'content' => $lastUserText]],
+            );
+
+            // 8) Вызов LLM (обёртка LlmClientWithLogging создаст лог OK/ERROR)
             $result = $this->llm->chat([
                 'company' => $company,
                 'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
-                'channel' => 'api',                    // ← ДОБАВИТЬ
+                'channel' => 'chat-center',
                 'model' => $this->model,
                 'messages' => $messages,
                 'temperature' => $this->temperature,
-                'max_tokens' => 400,
-                'timeout' => $this->timeoutSeconds,
+                'timeout_seconds' => $this->timeoutSeconds,
             ]);
 
-            // 7) Парсинг ответа — без изменений по вашему проекту
+            // 9) JSON ответа модели
             $content = (string) ($result['content'] ?? '');
-            $decoded = json_decode($content, true);
-            $list = is_array($decoded['suggestions'] ?? null) ? $decoded['suggestions'] : [];
+            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
 
-            $list = array_values(
-                array_filter(
-                    array_map(static fn ($s) => trim((string) $s), $list),
-                    static fn ($s) => '' !== $s
-                )
-            );
+            $list = (array) ($data['suggestions'] ?? []);
+            $list = array_values(array_filter(
+                array_map(static fn ($s) => trim((string) $s), $list),
+                static fn ($s) => '' !== $s
+            ));
 
             return array_slice($list, 0, 4);
         } catch (\Throwable $e) {
-            // В MVP оставим мягкий фоллбек
+            // MVP: мягкий фоллбек (лог ошибки уже записан в LlmClientWithLogging)
             return [];
         }
     }
