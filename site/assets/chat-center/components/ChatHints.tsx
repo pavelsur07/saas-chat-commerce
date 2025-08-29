@@ -30,9 +30,14 @@ const ChatHints: React.FC<Props> = ({
         try {
             setLoading(true);
             setError(null);
+
+            console.log('[ChatHints] API request: loadSuggestions');
             const list = await loadSuggestions();
+            console.log('[ChatHints] API response:', list);
+
             setItems(Array.isArray(list) ? list : []);
         } catch (e: any) {
+            console.error('[ChatHints] API error:', e);
             setError(e?.message || "Не удалось загрузить подсказки");
             setItems([]); // без хардкода — просто пусто
         } finally {
