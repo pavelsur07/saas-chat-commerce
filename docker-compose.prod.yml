@@ -83,6 +83,8 @@ services:
             REDIS_REALTIME_PORT: 6379
             AI_MAX_CONTEXT_CHARS: 2000
             AI_PROVIDER: mock
+            AI_KNOWLEDGE_CACHE_TTL: 600
+            AI_KNOWLEDGE_TOP_N: 5
         networks:
             - default
         depends_on:
@@ -101,7 +103,8 @@ services:
             REDIS_REALTIME_PORT: 6379
             AI_MAX_CONTEXT_CHARS: 2000
             AI_PROVIDER: mock
-        
+            AI_KNOWLEDGE_CACHE_TTL: 600
+            AI_KNOWLEDGE_TOP_N: 5
         networks:
             - default
         depends_on:
