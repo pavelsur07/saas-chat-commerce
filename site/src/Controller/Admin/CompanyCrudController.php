@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\Admin;
 
 use App\Entity\Company\Company;
 use App\Form\CompanyType;
 use App\Repository\Company\CompanyRepository;
-use App\Service\CompanyManager;
+use App\Service\Company\CompanyManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
