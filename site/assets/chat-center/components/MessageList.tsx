@@ -11,6 +11,14 @@ type Message = {
     createdAt: string;
 };
 
+type ApiMessage = {
+    id: string;
+    text: string;
+    direction: 'in' | 'out';
+    timestamp?: string;
+    createdAt?: string;
+};
+
 type Props = {
     clientId: string;
     onNewMessage?: () => void;
@@ -22,7 +30,13 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     useEffect(() => {
         if (!clientId) return;
         axios.get(`/api/messages/${clientId}`).then((res) => {
-            setMessages(res.data.messages);
+            const loadedMessages: Message[] = res.data.messages.map((msg: ApiMessage) => ({
+                id: msg.id,
+                text: msg.text,
+                direction: msg.direction,
+                createdAt: msg.createdAt || msg.timestamp || new Date().toISOString(),
+            }));
+            setMessages(loadedMessages);
             // После загрузки сообщений уведомляем родителя, чтобы прокрутить чат вниз
             onNewMessage && onNewMessage();
         });
@@ -52,7 +66,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
                 >
                     <div>{msg.text}</div>
                     <div className="text-xs text-right mt-1 opacity-70">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
+                        {new Date(msg.createdAt).toLocaleString()}
                     </div>
                 </div>
             ))}
