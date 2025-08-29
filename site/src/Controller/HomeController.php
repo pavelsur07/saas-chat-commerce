@@ -14,6 +14,7 @@ class HomeController extends AbstractController
     public function index(): Response
     {
         $this->addFlash('info', 'Welcome to your dashboard');
+        throw new \RuntimeException('Boom test error');
 
         return $this->render('home/index.html.twig',
             [

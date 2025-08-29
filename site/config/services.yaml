@@ -21,6 +21,20 @@ services:
     # please note that last definitions always *replace* previous ones
         # Базовый клиент к провайдеру
 
+    monolog.handler.telegram:
+        class: Monolog\Handler\TelegramBotHandler
+        arguments:
+            $apiKey: '%env(TELEGRAM_BOT_TOKEN)%'
+            $channel: '%env(TELEGRAM_CHAT_ID)%'
+            $level: 'error'
+            $bubble: true
+            $parseMode: 'MarkdownV2'
+            $disableWebPagePreview: true
+            $disableNotification: false
+        # Если пишешь в тред супергруппы — раскомментируй:
+        # calls:
+        #   - [ setThreadId, ['%env(int:TELEGRAM_TOPIC_ID)%'] ]
+
     # AI START Компоненты ----------------------------------------------------------------------------------------------------
     # Логгер для промптов (как у вас)
     App\Service\AI\AiPromptLogService: ~

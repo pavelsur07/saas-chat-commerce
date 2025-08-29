@@ -8,6 +8,40 @@ import './bootstrap.js';
  */
 import './styles/app.css';
 
+// ===== JS error reporting to backend =====
+/*window.onerror = function (message, source, lineno, colno, error) {
+    try {
+        fetch('/log-js-error', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                message,
+                source,
+                lineno,
+                colno,
+                stack: error && error.stack ? String(error.stack) : null,
+                userAgent: navigator.userAgent
+            }),
+            keepalive: true
+        });
+    } catch (e) {}
+};*/
+
+/*window.addEventListener('unhandledrejection', function (event) {
+    try {
+        fetch('/log-js-error', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                message: 'Unhandled Promise Rejection',
+                reason: event && event.reason ? String(event.reason) : null,
+                userAgent: navigator.userAgent
+            }),
+            keepalive: true
+        });
+    } catch (e) {}
+});*/
+
 console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
 
 registerReactControllerComponents(require.context('./react/controllers', true, /\.(j|t)sx?$/));

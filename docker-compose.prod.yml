@@ -85,6 +85,9 @@ services:
             AI_PROVIDER: mock
             AI_KNOWLEDGE_CACHE_TTL: 600
             AI_KNOWLEDGE_TOP_N: 5
+            TELEGRAM_BOT_TOKEN: 7878108394:AAGOe1pmUuK4S9Yp14EgsEqUqzKy-13JKvo
+            TELEGRAM_CHAT_ID: -1003037201129
+            TELEGRAM_TOPIC_ID: ''
         networks:
             - default
         depends_on:
@@ -105,6 +108,9 @@ services:
             AI_PROVIDER: mock
             AI_KNOWLEDGE_CACHE_TTL: 600
             AI_KNOWLEDGE_TOP_N: 5
+            TELEGRAM_BOT_TOKEN: 7878108394:AAGOe1pmUuK4S9Yp14EgsEqUqzKy-13JKvo
+            TELEGRAM_CHAT_ID: -1003037201129
+            TELEGRAM_TOPIC_ID: ''
         networks:
             - default
         depends_on:
