@@ -91,5 +91,13 @@ services:
         arguments:
             $maxContextChars: '%ai.suggestions.max_company_context_chars%'
 
+    App\Service\AI\KnowledgeSearchService:
+        arguments:
+            $cache: '@cache.app'
+            $ttlSeconds: '%env(int:AI_KNOWLEDGE_CACHE_TTL)%'
+            $topN: '%env(int:AI_KNOWLEDGE_TOP_N)%'
+
+    App\EventSubscriber\Knowledge\CompanyKnowledgeChangedSubscriber: ~
+
     # Message END Компоненты -------------------------------------------------------------------------------------------
 
