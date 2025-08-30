@@ -82,7 +82,7 @@
 ---
 
 ## 6) UI Chat Center: feedback и UX
-Файлы: `/site/assets/chat-center/components/ChatHints.tsx`, `SendMessageForm.tsx`, новый эндпойнт feedback
+Файлы: `/site/assets/chat-center/components/ChatHints.tsx`, `SendMessageForm.tsx_`, новый эндпойнт feedback
 
 - [ ] Кнопки «👍/👎» к каждой подсказке → `POST /api/suggestions/{clientId}/feedback` (создаём контроллер).
 - [ ] Показать спиннер/ошибки; троттлинг вызова (уже есть `SuggestionRateLimiter` на бэке).
