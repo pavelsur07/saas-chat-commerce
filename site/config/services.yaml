@@ -21,14 +21,14 @@ services:
     # please note that last definitions always *replace* previous ones
         # Базовый клиент к провайдеру
 
-    monolog.handler.telegram:
+    app.monolog.handler.telegram:
         class: Monolog\Handler\TelegramBotHandler
         arguments:
             $apiKey: '%env(TELEGRAM_BOT_TOKEN)%'
             $channel: '%env(TELEGRAM_CHAT_ID)%'
             $level: 'error'
             $bubble: true
-            $parseMode: 'MarkdownV2'
+            $parseMode: null
             $disableWebPagePreview: true
             $disableNotification: false
 
