@@ -84,10 +84,7 @@ final class SuggestionService
             $prevText = $text;
         }
 
-        return [
-            '// 5) История в ChatML',
 
-        ];
 
         // 6) Вызов LLM — если упадёт, вернём понятный fallback, чтобы UI не пустел
         try {
@@ -109,6 +106,11 @@ final class SuggestionService
                 'Если важно быстро — подскажу, что есть в наличии сейчас.',
             ];
         }
+
+        return [
+            '// 6) Вызов LLM — если упадёт, вернём понятный fallback, чтобы UI не пустел',
+
+        ];
 
         // 7) Парсинг — устойчивый к "грязному" JSON
         $content = (string) ($result['content'] ?? '');
