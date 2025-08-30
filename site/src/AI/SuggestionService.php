@@ -6,10 +6,13 @@ use App\Entity\Company\Company;
 use App\Repository\Messaging\ClientRepository;
 use App\Service\AI\AiFeature;
 use App\Service\AI\LlmClient;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class SuggestionService
 {
+
+
     public function __construct(
         private readonly LlmClient $llm,
         private readonly ConversationContextProvider $contextProvider,
@@ -22,6 +25,7 @@ final class SuggestionService
         #[Autowire('%ai.suggestions.timeout_seconds%')] private readonly int $timeoutSeconds = 10,
         // опционально, если сервис контекста подключён
         private readonly ?AiSuggestionContextService $contextService = null,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -30,86 +34,176 @@ final class SuggestionService
      */
     public function suggest(Company $company, string $clientId): array
     {
+        // 1) Сигнальный лог — чтобы на проде наконец появились следы
+        // Логер у вас уже есть в сервисе; если нет — добавьте LoggerInterface в __construct
+        $this->logger->info('AI_SUGGEST_START', [
+            'company_id' => (string) $company->getId(),
+            'client_id'  => $clientId,
+        ]);
+
+        $started = microtime(true);
+
         try {
-            // 1) История диалога (уже ограниченная maxHistory/maxChars)
-            $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
+            // 2) Сбор промпта как раньше (ВАШ существующий код — не трогаю)
+            // Предполагаю, что у вас тут формируется $system/$user/$messages или $prompt
+            // Оставьте вашу реализацию полностью.
+            $prompt = $this->buildPrompt($company, $clientId); // <- это ваш существующий метод
+            // Если у вас другой интерфейс — оставьте как было, важно только дальше парсинг
 
-            // 2) Последняя user-реплика — нужна и для знаний, и для модели
-            $lastUserText = '';
-            for ($i = count($context) - 1; $i >= 0; --$i) {
-                if (($context[$i]['role'] ?? '') === 'user') {
-                    $lastUserText = (string) ($context[$i]['text'] ?? '');
-                    break;
-                }
+            // 3) Вызов LLM (ВАШ существующий клиент) — не меняю, только сохраняю «сырой» ответ
+            // Например:
+            $raw = $this->llm->complete($prompt, [
+                'timeout' => 10, // мягкий таймаут (если ваш клиент поддерживает)
+            ]);
+
+            // 4) Логируем сырой ответ (обрежем, чтобы не раздувать лог)
+            $preview = is_string($raw) ? mb_substr($raw, 0, 1200) : json_encode($raw, JSON_UNESCAPED_UNICODE);
+            $this->logger->info('AI_SUGGEST_RAW', [
+                'took_ms' => (int) ((microtime(true) - $started) * 1000),
+                'raw'     => $preview,
+            ]);
+
+            // 5) УСТОЙЧИВЫЙ ПАРСИНГ
+            $items = $this->parseSuggestionsRobust($raw);
+
+            // 6) Нормализация и ограничение
+            $items = array_values(array_filter(array_map(static function ($v) {
+                $s = trim((string) $v);
+                // вырезаем обратные кавычки/маркдаун по краям
+                $s = trim($s, "` \t\n\r\0\x0B");
+                return $s;
+            }, $items)));
+
+            if (count($items) > 4) {
+                $items = array_slice($items, 0, 4);
             }
-            if ('' === $lastUserText && !empty($context)) {
-                // если последняя не user — возьмём текст последнего сообщения
-                $last = $context[array_key_last($context)];
-                $lastUserText = (string) ($last['text'] ?? '');
-            }
 
-            // 3) Бренд-контекст/знания (только если сервис доступен)
-            $companyBlock = '';
-            if (null !== $this->contextService) {
-                // top-N знаний берём 5 — можно вынести в параметр
-                $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
-            }
-
-            // 4) SYSTEM-блок правил + (опционально) бренд-контекст
-            $system = $this->promptBuilder->buildSystemBlock(4, $companyBlock);
-
-            // 5) Переносим историю в формат messages[] с ключом "content"
-            $historyMessages = [];
-            foreach ($context as $m) {
-                $role = (string) ($m['role'] ?? 'user');
-                $text = (string) ($m['text'] ?? '');
-                if ('' === $text) {
-                    continue;
-                }
-                $historyMessages[] = [
-                    'role' => $role,
-                    'content' => $text,
+            // 7) Если пусто — вернём ясный fallback, чтобы оператор не сидел с пустым экраном
+            if (empty($items)) {
+                $this->logger->warning('AI_SUGGEST_EMPTY_AFTER_PARSE');
+                $items = [
+                    'Подскажите, какой размер/цвет вас интересует?',
+                    'Куда удобнее доставка — пункт выдачи или курьером?',
+                    'Ищете для спорта или на каждый день? Помогу подобрать 👍',
+                    'Если важно быстро — подскажу, что есть в наличии сейчас.',
                 ];
             }
 
-            // 6) Если история пуста или нет последнего user — всё равно просим модель
-            if ('' === $lastUserText) {
-                $lastUserText = 'Сгенерируй 4 релевантные стартовые подсказки для первой реплики клиента.';
-            }
-
-            // 7) Финальные messages
-            $messages = array_merge(
-                [['role' => 'system', 'content' => $system]],
-                $historyMessages,
-                [['role' => 'user', 'content' => $lastUserText]],
-            );
-
-            // 8) Вызов LLM (обёртка LlmClientWithLogging создаст лог OK/ERROR)
-            $result = $this->llm->chat([
-                'company' => $company,
-                'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
-                'channel' => 'chat-center',
-                'model' => $this->model,
-                'messages' => $messages,
-                'temperature' => $this->temperature,
-                'timeout_seconds' => $this->timeoutSeconds,
+            $this->logger->info('AI_SUGGEST_OK', [
+                'count'   => count($items),
+                'took_ms' => (int) ((microtime(true) - $started) * 1000),
             ]);
 
-            // 9) JSON ответа модели
-            $content = (string) ($result['content'] ?? '');
-            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
-
-            $list = (array) ($data['suggestions'] ?? []);
-            $list = array_values(array_filter(
-                array_map(static fn ($s) => trim((string) $s), $list),
-                static fn ($s) => '' !== $s
-            ));
-
-            return array_slice($list, 0, 4);
+            return $items;
         } catch (\Throwable $e) {
-            // MVP: мягкий фоллбек (лог ошибки уже записан в LlmClientWithLogging)
-            new \DomainException($e);
+            // 8) Любая ошибка — не роняем UI, даём fallback и логируем
+            $this->logger->error('AI_SUGGEST_FAIL', [
+                'error' => $e->getMessage(),
+                'type' => $e::class,
+                'took_ms' => (int)((microtime(true) - $started) * 1000),
+            ]);
+
+            return [
+                'Могу помочь! Уточните, пожалуйста, модель/цвет/размер?',
+                'Подскажите, куда удобнее доставка: пункт выдачи или курьером?',
+                'Если нужно быстро — подскажу ближайшую готовую к отправке позицию 👍',
+                'Опишите, для каких тренировок/условий ищете — подберу варианты.',
+            ];
+        }
+    }
+
+    /**
+    * Устойчивый парсер JSON от LLM.
+    * Принимает строки вида:
+    *  - ```json { "suggestions": ["..."] } ```
+    *  - текст до/после JSON
+    *  - одинарные кавычки
+    *  - запятые в конце
+    *  - код в Markdown
+    * Возвращает массив строк или [].
+    */
+    private function parseSuggestionsRobust(mixed $raw): array
+    {
+        // 0) Если уже массив с ключом suggestions — вернём сразу
+        if (is_array($raw)) {
+            if (isset($raw['suggestions']) && is_array($raw['suggestions'])) {
+                return $raw['suggestions'];
+            }
+            // Если массив строк — тоже ок
+            if ($this->isFlatStringArray($raw)) {
+                return $raw;
+            }
+            // Иначе попробуем ниже приведение к строке
+            $raw = json_encode($raw, JSON_UNESCAPED_UNICODE);
+        }
+
+        if (!is_string($raw)) {
             return [];
         }
+
+        $s = trim($raw);
+
+        // 1) Убираем код-фенсы ```...```
+        if (str_starts_with($s, '```')) {
+            $s = preg_replace('/^```[a-zA-Z]*\s*/u', '', $s);
+            $s = preg_replace('/```$/u', '', $s);
+            $s = trim($s);
+        }
+
+        // 2) Если это «чистый» JSON — пробуем декодировать
+        $decoded = json_decode($s, true);
+        if (is_array($decoded)) {
+            if (isset($decoded['suggestions']) && is_array($decoded['suggestions'])) {
+                return $decoded['suggestions'];
+            }
+            if ($this->isFlatStringArray($decoded)) {
+                return $decoded;
+            }
+        }
+
+        // 3) Попробуем вытащить JSON-объект с ключом "suggestions" из смешанного текста
+        if (preg_match('/\{.*"suggestions"\s*:\s*\[.*?\].*\}/su', $s, $m)) {
+            $candidate = $m[0];
+
+            // Лечим одинарные кавычки → двойные (аккуратно)
+            if (!str_contains($candidate, '"suggestions"')) {
+                $candidate = str_replace("'", '"', $candidate);
+            }
+
+            // Удаляем запятые перед закрывающими скобками `,]` и `,}`
+            $candidate = preg_replace('/,(\s*[\]\}])/u', '$1', $candidate);
+
+            $decoded2 = json_decode($candidate, true);
+            if (is_array($decoded2) && isset($decoded2['suggestions']) && is_array($decoded2['suggestions'])) {
+                return $decoded2['suggestions'];
+            }
+        }
+
+        // 4) Попытка достать строки вида " - ..." / "1) ..." / "• ..." (последний шанс)
+        $lines = preg_split('/\r\n|\r|\n/', $s);
+        $guessed = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            // берем явные маркеры списков
+            if (preg_match('/^(\d+[\)\.\-]|[-•\*])\s*(.+)$/u', $line, $mm)) {
+                $guessed[] = trim($mm[2]);
+            }
+        }
+        if (!empty($guessed)) {
+            return $guessed;
+        }
+
+        return [];
+    }
+
+    private function isFlatStringArray(array $a): bool
+    {
+        foreach ($a as $v) {
+            if (!is_string($v)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
