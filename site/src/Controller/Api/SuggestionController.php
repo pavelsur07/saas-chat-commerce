@@ -41,7 +41,7 @@ final class SuggestionController extends AbstractController
             return $this->json(['suggestions' => []]);
         }
 
-        throw new \DomainException('Company Id'.$company->getId().'--- Client Id'.$clientId);
+        /*throw new \DomainException('Company Id'.$company->getId().'--- Client Id'.$clientId);*/
 
         return $this->json([
             'suggestions' => $this->suggestions->suggest($company, $clientId),
