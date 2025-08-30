@@ -40,7 +40,8 @@ final class SuggestionController extends AbstractController
             // "мягкая" отдача — пустой список, без 429
             return $this->json(['suggestions' => []]);
         }
-        throw new \DomainException('wwwww');
+
+        throw new \DomainException('Company Id'.$company->getId().'--- Client Id'.$clientId);
 
         return $this->json([
             'suggestions' => $this->suggestions->suggest($company, $clientId),
