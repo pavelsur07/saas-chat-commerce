@@ -107,11 +107,6 @@ final class SuggestionService
             ];
         }
 
-        return [
-            '// 6) Вызов LLM — если упадёт, вернём понятный fallback, чтобы UI не пустел',
-
-        ];
-
         // 7) Парсинг — устойчивый к "грязному" JSON
         $content = (string) ($result['content'] ?? '');
         $items = $this->parseSuggestionsRobust($content);
@@ -122,6 +117,11 @@ final class SuggestionService
         if (!is_array($itemsRaw)) {
             $itemsRaw = [];
         }
+
+        return [
+            '// 7) Парсинг — устойчивый к "грязному" JSON',
+
+        ];
 
         // Нормализация: строки, трим, убираем пустые
         $items = array_values(
