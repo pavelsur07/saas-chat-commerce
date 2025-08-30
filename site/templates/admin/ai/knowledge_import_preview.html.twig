@@ -1,0 +1,35 @@
+{# templates/admin/ai/knowledge_import_preview.html.twig #}
+{% extends 'base.html.twig' %}
+{% block title %}Предпросмотр импорта{% endblock %}
+
+{% block body %}
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="text-xl font-semibold">Предпросмотр импорта</h1>
+            <div class="text-xs text-gray-500">{{ filename }}</div>
+        </div>
+        <a class="px-3 py-2 border rounded hover:bg-gray-50" href="{{ path('admin_knowledge_import') }}">Выбрать другой файл</a>
+    </div>
+
+    {% if items is empty %}
+        <div class="p-3 bg-amber-50 text-amber-800 rounded">Не найдено записей.</div>
+    {% else %}
+        <div class="space-y-3">
+            {% for it in items %}
+                <div class="p-3 border rounded bg-white">
+                    <div class="text-xs text-gray-500 mb-1">
+                        {{ (it.type ?? 'faq')|lower|upper }} • Черновик
+                    </div>
+                    <div class="font-medium mb-1">{{ it.title }}</div>
+                    <pre class="text-sm whitespace-pre-wrap text-gray-800">{{ it.content }}</pre>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form method="post" class="mt-4">
+            <input type="hidden" name="publish" value="1">
+            <button class="px-3 py-2 bg-blue-600 text-white rounded">Опубликовать</button>
+            <a class="px-3 py-2 border rounded hover:bg-gray-50 ml-2" href="{{ path('admin_knowledge_import') }}">Отмена</a>
+        </form>
+    {% endif %}
+{% endblock %}

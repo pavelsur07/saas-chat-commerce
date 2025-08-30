@@ -84,8 +84,6 @@ final class SuggestionService
             $prevText = $text;
         }
 
-
-
         // 6) Вызов LLM — если упадёт, вернём понятный fallback, чтобы UI не пустел
         try {
             $result = $this->llm->chat([
@@ -132,7 +130,6 @@ final class SuggestionService
                 }
             )
         );
-
 
         // Ограничение до 4 штук
         if (count($items) > 4) {

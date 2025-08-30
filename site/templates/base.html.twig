@@ -80,6 +80,13 @@
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_switch' ? 'bg-gray-800' : '' }}">
                         🧪 AI Logs
                     </a>
+
+                    {# ⬆️ Импорт знаний (MD/CSV, превью/публикация) #}
+                    <a href="{{ path('admin_knowledge_import') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.attributes.get('_route') starts with 'admin_knowledge_import' ? 'bg-gray-800' : '' }}">
+                        ⬆️ Импорт знаний
+                    </a>
+
                     <a href="{{ path('admin_ai_profile') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
                         🧠 AI‑профиль

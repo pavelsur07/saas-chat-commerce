@@ -1,0 +1,33 @@
+{# templates/admin/ai/knowledge_import.html.twig #}
+{% extends 'base.html.twig' %}
+{% block title %}Импорт знаний{% endblock %}
+
+{% block body %}
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-semibold">Импорт знаний</h1>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="mb-3 p-3 bg-green-50 text-green-800 rounded">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="mb-3 p-3 bg-red-50 text-red-800 rounded">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-4 max-w-2xl">
+        <div>
+            <label class="block text-sm font-medium mb-1">Файл (MD/CSV)</label>
+            <input type="file" name="file" required class="block w-full border rounded px-3 py-2">
+            <p class="text-xs text-gray-500 mt-1">
+                <strong>Markdown:</strong> используйте заголовки уровня <code>##</code> как названия карточек.<br>
+                <strong>CSV:</strong> колонки <code>title,content[,type]</code>, где <code>type</code> = faq|delivery|product|policy.
+            </p>
+        </div>
+
+        <div class="flex gap-2">
+            <button class="px-3 py-2 border rounded hover:bg-gray-50" type="submit" name="preview" value="1">Предпросмотр</button>
+            <button class="px-3 py-2 bg-blue-600 text-white rounded" type="submit" name="publish" value="1">Опубликовать</button>
+            <a class="px-3 py-2 border rounded hover:bg-gray-50" href="{{ path('admin_ai_knowledge_index') }}">Назад к списку</a>
+        </div>
+    </form>
+{% endblock %}
