@@ -6,8 +6,10 @@ use App\AI\SuggestionRateLimiter;
 use App\AI\SuggestionService;
 use App\Repository\Messaging\ClientRepository;
 use App\Service\Company\CompanyContextService;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -20,11 +22,12 @@ final class SuggestionController extends AbstractController
         private readonly ClientRepository $clients,
         private readonly SuggestionService $suggestions,
         private readonly SuggestionRateLimiter $limiter,   // ← добавили
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     #[Route('/{clientId}', name: 'api_suggestions_generate', methods: ['POST'])]
-    public function generate(string $clientId): JsonResponse
+    public function generate(string $clientId, Request $request): JsonResponse
     {
         $company = $this->companyContext->getCompany();
         if (!$company) {
@@ -36,10 +39,18 @@ final class SuggestionController extends AbstractController
         }
 
         // Rate-limit: не чаще 1 запроса / 3 сек на диалог
-        if (!$this->limiter->acquire($company, $clientId)) {
+       /* if (!$this->limiter->acquire($company, $clientId)) {
             // "мягкая" отдача — пустой список, без 429
             return $this->json(['suggestions' => []]);
-        }
+        }*/
+
+        $this->logger->info('SUGGESTIONS_REQUEST', [
+            'method'  => $request->getMethod(),
+            'query'   => $request->query->all(),
+           /* 'headers' => array_filter($request->headers, fn($v) => $v !== null),*/
+            'body'    => $request->getContent() ?: null,
+        ]);
+
 
         return $this->json([
             'suggestions' => $this->suggestions->suggest($company, $clientId),

@@ -32,7 +32,6 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
     // POST /api/suggestions/{clientId} -> { suggestions: string[] }
     const loadHints = async (): Promise<Suggestion[]> => {
         const { data } = await axios.post(`/api/suggestions/${encodeURIComponent(clientId)}`);
-        console.log({ data });
         const arr: string[] = Array.isArray(data?.suggestions) ? data.suggestions : [];
         return arr.slice(0, 4).map((text, idx) => ({ id: String(idx), text }));
     };
