@@ -84,6 +84,11 @@ final class SuggestionService
             $prevText = $text;
         }
 
+        return [
+            '// 5) История в ChatML',
+
+        ];
+
         // 6) Вызов LLM — если упадёт, вернём понятный fallback, чтобы UI не пустел
         try {
             $result = $this->llm->chat([
