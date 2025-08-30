@@ -118,11 +118,6 @@ final class SuggestionService
             $itemsRaw = [];
         }
 
-        return [
-            '// 7) Парсинг — устойчивый к "грязному" JSON',
-
-        ];
-
         // Нормализация: строки, трим, убираем пустые
         $items = array_values(
             array_filter(
@@ -137,6 +132,11 @@ final class SuggestionService
                 }
             )
         );
+
+        return [
+            '// Нормализация: строки, трим, убираем пустые',
+
+        ];
 
         // Ограничение до 4 штук
         if (count($items) > 4) {
