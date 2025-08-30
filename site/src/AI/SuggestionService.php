@@ -108,6 +108,7 @@ final class SuggestionService
             return array_slice($list, 0, 4);
         } catch (\Throwable $e) {
             // MVP: мягкий фоллбек (лог ошибки уже записан в LlmClientWithLogging)
+            new \DomainException($e);
             return [];
         }
     }
