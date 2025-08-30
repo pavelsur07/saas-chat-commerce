@@ -133,10 +133,6 @@ final class SuggestionService
             )
         );
 
-        return [
-            '// Нормализация: строки, трим, убираем пустые',
-
-        ];
 
         // Ограничение до 4 штук
         if (count($items) > 4) {
