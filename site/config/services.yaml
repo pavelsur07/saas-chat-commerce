@@ -31,9 +31,6 @@ services:
             $parseMode: 'MarkdownV2'
             $disableWebPagePreview: true
             $disableNotification: false
-        # Если пишешь в тред супергруппы — раскомментируй:
-        # calls:
-        #   - [ setThreadId, ['%env(int:TELEGRAM_TOPIC_ID)%'] ]
 
     # AI START Компоненты ----------------------------------------------------------------------------------------------------
     # Логгер для промптов (как у вас)
