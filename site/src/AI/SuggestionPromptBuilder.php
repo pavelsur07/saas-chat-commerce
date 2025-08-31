@@ -12,6 +12,12 @@ final class SuggestionPromptBuilder
     ) {
     }
 
+    /** Совместимость с тестами/старым кодом */
+    public function build(int $count, string $companyContext = ''): string
+    {
+        return $this->buildSystemBlock($count, $companyContext);
+    }
+
     /**
      * Блок для SYSTEM: правила + (опц.) companyContext.
      * Сигнатура и порядок параметров — прежние.
