@@ -102,6 +102,7 @@ services:
 
     App\AI\AiSuggestionContextService:
         arguments:
+            #$maxContextChars: '%env(default:1200:int:AI_MAX_CONTEXT_CHARS)%'
             $maxContextChars: '%ai.suggestions.max_company_context_chars%'
 
     App\Service\AI\KnowledgeSearchService:
