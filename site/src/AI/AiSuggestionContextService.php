@@ -54,7 +54,8 @@ final class AiSuggestionContextService
     private function fetchCompanyProfile(Company $company): ?AiCompanyProfile
     {
         // У AiCompanyProfile PK = company_id (OneToOne) — можно искать по id компании
-        $profile = $this->profileRepo->find($company->getId());
+        #$profile = $this->profileRepo->find($company->getId());
+        $profile = $this->profileRepo->findOneBy(['company' => $company]);
         if ($profile instanceof AiCompanyProfile) {
             return $profile;
         }
