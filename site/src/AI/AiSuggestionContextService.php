@@ -110,6 +110,7 @@ final class AiSuggestionContextService
         }
 
         $lines = ['Knowledge Snippets:'];
+
         foreach ($items as $row) {
             $title = '';
             $content = '';
@@ -132,23 +133,30 @@ final class AiSuggestionContextService
                 }
             }
 
+            // нормализация
             $title = trim($title);
             $content = trim($content);
+            if ($content !== '') {
+                // убираем переводы строк и лишние пробелы
+                $content = preg_replace('/\s+/u', ' ', $content) ?? $content;
+                $content = trim($content);
 
-            if ($title !== '' && $content !== '') {
-                $lines[] = "- {$title}: {$content}";
-            } elseif ($content !== '') {
-                $lines[] = "- {$content}";
-            } elseif ($title !== '') {
-                $lines[] = "- {$title}";
+                // ВАЖНО: в блок знаний кладём именно КОНТЕНТ
+                $lines[] = '- ' . $content;
+                continue;
+            }
+
+            // fallback — если нет content, но есть заголовок (хотя это нежелательно)
+            if ($title !== '') {
+                $lines[] = '- ' . $title;
             }
         }
 
         $block = implode("\n", $lines);
 
-        // публичная обёртка — для изолированного юнит-теста
         return $this->applySoftLimitToKnowledge($block, $maxCharsForKnowledge);
     }
+
 
     private function normalizeQuery(string $text): string
     {
