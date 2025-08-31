@@ -39,7 +39,7 @@ final class KnowledgeImportController extends AbstractController
 
             // Публикация
             if ($req->request->has('publish')) {
-                $company = $this->ctx->getActiveCompany(); // используем ваш существующий метод
+                $company = $this->ctx->getCompany(); // используем ваш существующий метод
                 if (!$company) {
                     $this->addFlash('error', 'Активная компания не выбрана.');
 
