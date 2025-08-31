@@ -10,6 +10,7 @@ final class KnowledgeHit
         public string $id,
         public string $title,
         public string $snippet,
+        public string $content,
         public float $score,
         public \DateTimeImmutable $createdAt,
     ) {

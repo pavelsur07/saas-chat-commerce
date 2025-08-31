@@ -64,6 +64,7 @@ SQL;
                 (string) $r['id'],
                 (string) $r['title'],
                 (string) $r['snippet'],
+                (string) $r['content'],
                 (float) $r['score'],
                 new \DateTimeImmutable((string) $r['created_at'])
             );
