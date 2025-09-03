@@ -1,0 +1,9 @@
+{% set activeId = activeCompany ? activeCompany.id : null %}
+<div class="text-sm">
+    <label for="company-switcher" class="mr-2">Компания:</label>
+    <select id="company-switcher" class="border rounded px-2 py-1 bg-white" onchange="if(this.value) window.location.href=this.value;">
+        {% for uc in companies %}
+            <option value="{{ path('company.switch', {id: uc.company.id}) }}" {% if activeId == uc.company.id %}selected{% endif %}>{{ uc.company.name }}</option>
+        {% endfor %}
+    </select>
+</div>
