@@ -7,6 +7,7 @@ use App\Repository\Company\UserCompanyRepository;
 use App\Service\Company\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 class CompanySwitchController extends AbstractController
@@ -34,5 +35,15 @@ class CompanySwitchController extends AbstractController
         $context->setCompany($company);
 
         return $this->redirectToRoute('dashboard');
+    }
+
+    public function widget(UserCompanyRepository $repo, CompanyContextService $context): Response
+    {
+        $companies = $repo->findBy(['user' => $this->getUser()]);
+
+        return $this->render('company_switch/widget.html.twig', [
+            'companies' => $companies,
+            'activeCompany' => $context->getCompany(),
+        ]);
     }
 }
