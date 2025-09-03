@@ -29,18 +29,44 @@ class CompanyContextService
 
         $session = $this->requestStack->getSession();
         $companyId = $session->get('active_company_id');
-        if (!$companyId) {
-            return null;
-        }
 
         /** @var User $user */
         $user = $this->security->getUser();
+
+        if (!$companyId) {
+            $userCompany = $this->userCompanyRepository->findOneBy([
+                'user' => $user,
+            ]);
+
+            if (!$userCompany) {
+                return null;
+            }
+
+            $this->setCompany($userCompany->getCompany());
+
+            return $this->currentCompany;
+        }
+
         $userCompany = $this->userCompanyRepository->findOneBy([
             'user' => $user,
             'company' => $companyId,
         ]);
 
-        return $this->currentCompany = $userCompany?->getCompany();
+        if (!$userCompany) {
+            $userCompany = $this->userCompanyRepository->findOneBy([
+                'user' => $user,
+            ]);
+
+            if (!$userCompany) {
+                return null;
+            }
+
+            $this->setCompany($userCompany->getCompany());
+
+            return $this->currentCompany;
+        }
+
+        return $this->currentCompany = $userCompany->getCompany();
     }
 
     public function setCompany(Company $company): void

@@ -7,6 +7,7 @@ use App\Repository\Company\UserCompanyRepository;
 use App\Service\Company\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -21,8 +22,12 @@ class CompanySwitchController extends AbstractController
     }
 
     #[Route('/companies/switch/{id}', name: 'company.switch')]
-    public function switch(Company $company, CompanyContextService $context, UserCompanyRepository $repo): RedirectResponse
-    {
+    public function switch(
+        Company $company,
+        CompanyContextService $context,
+        UserCompanyRepository $repo,
+        RequestStack $requestStack
+    ): RedirectResponse {
         $userCompany = $repo->findOneBy([
             'user' => $this->getUser(),
             'company' => $company,
@@ -33,6 +38,12 @@ class CompanySwitchController extends AbstractController
         }
 
         $context->setCompany($company);
+
+        $referer = $requestStack->getCurrentRequest()?->headers->get('referer');
+
+        if ($referer) {
+            return $this->redirect($referer);
+        }
 
         return $this->redirectToRoute('dashboard');
     }
