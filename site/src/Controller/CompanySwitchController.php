@@ -26,7 +26,7 @@ class CompanySwitchController extends AbstractController
         Company $company,
         CompanyContextService $context,
         UserCompanyRepository $repo,
-        RequestStack $requestStack
+        RequestStack $requestStack,
     ): RedirectResponse {
         $userCompany = $repo->findOneBy([
             'user' => $this->getUser(),

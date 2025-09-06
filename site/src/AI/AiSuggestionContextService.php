@@ -31,17 +31,17 @@ final class AiSuggestionContextService
         // 1) Профиль компании (не режем отдельно, но учитываем в общем бюджете)
         $profile = $this->fetchCompanyProfile($company);
         $profileBlock = $this->buildProfileBlock($profile);
-        if ($profileBlock !== '') {
+        if ('' !== $profileBlock) {
             $parts[] = $profileBlock;
         }
 
         // 2) Знания с мягким ограничением с учётом уже занятых символов
         $query = $this->normalizeQuery($incomingText);
-        if ($query !== '') {
+        if ('' !== $query) {
             $budget = $this->maxContextChars;
 
             // если лимит задан, уменьшаем бюджет на профиль + разделитель между блоками
-            if ($budget > 0 && $profileBlock !== '') {
+            if ($budget > 0 && '' !== $profileBlock) {
                 $budget -= mb_strlen($profileBlock);
                 // учтём два перевода строки между блоками
                 $budget -= 2;
@@ -51,7 +51,7 @@ final class AiSuggestionContextService
             }
 
             $knowledgeBlock = $this->buildKnowledgeBlock($company, $query, $limit, $budget);
-            if ($knowledgeBlock !== '') {
+            if ('' !== $knowledgeBlock) {
                 $parts[] = $knowledgeBlock;
             }
         }
@@ -74,6 +74,7 @@ final class AiSuggestionContextService
     {
         // корректно для вашего маппинга: профиль по связи company
         $profile = $this->profileRepo->findOneBy(['company' => $company]);
+
         return $profile instanceof AiCompanyProfile ? $profile : null;
     }
 
@@ -86,12 +87,12 @@ final class AiSuggestionContextService
         $chunks = [];
 
         $tov = trim((string) ($profile->getToneOfVoice() ?? ''));
-        if ($tov !== '') {
+        if ('' !== $tov) {
             $chunks[] = "Tone of Voice:\n{$tov}";
         }
 
         $brand = trim((string) ($profile->getBrandNotes() ?? ''));
-        if ($brand !== '') {
+        if ('' !== $brand) {
             $chunks[] = "Brand Notes:\n{$brand}";
         }
 
@@ -102,7 +103,7 @@ final class AiSuggestionContextService
         Company $company,
         string $query,
         int $topN,
-        int $maxCharsForKnowledge
+        int $maxCharsForKnowledge,
     ): string {
         $items = $this->knowledgeRepo->findTopByQuery($company, $query, $topN);
         if (empty($items)) {
@@ -116,7 +117,7 @@ final class AiSuggestionContextService
             $content = '';
 
             if (is_array($row)) {
-                $title   = (string) ($row['title']   ?? '');
+                $title = (string) ($row['title'] ?? '');
                 $content = (string) ($row['content'] ?? '');
             } elseif (is_object($row)) {
                 if (method_exists($row, 'getTitle')) {
@@ -136,19 +137,19 @@ final class AiSuggestionContextService
             // нормализация
             $title = trim($title);
             $content = trim($content);
-            if ($content !== '') {
+            if ('' !== $content) {
                 // убираем переводы строк и лишние пробелы
                 $content = preg_replace('/\s+/u', ' ', $content) ?? $content;
                 $content = trim($content);
 
                 // ВАЖНО: в блок знаний кладём именно КОНТЕНТ
-                $lines[] = '- ' . $content;
+                $lines[] = '- '.$content;
                 continue;
             }
 
             // fallback — если нет content, но есть заголовок (хотя это нежелательно)
-            if ($title !== '') {
-                $lines[] = '- ' . $title;
+            if ('' !== $title) {
+                $lines[] = '- '.$title;
             }
         }
 
@@ -157,11 +158,10 @@ final class AiSuggestionContextService
         return $this->applySoftLimitToKnowledge($block, $maxCharsForKnowledge);
     }
 
-
     private function normalizeQuery(string $text): string
     {
         $q = trim(preg_replace('/\s+/u', ' ', $text) ?? '');
-        if ($q === '' || mb_strlen($q) < 2) {
+        if ('' === $q || mb_strlen($q) < 2) {
             return '';
         }
         $stop = ['ок', 'мск', 'спб', 'ага', 'да', 'нет'];
@@ -182,12 +182,12 @@ final class AiSuggestionContextService
             return $block;
         }
 
-        $header = "Knowledge Snippets:";
+        $header = 'Knowledge Snippets:';
         $blockTrim = trim($block);
 
-        if (mb_strpos($blockTrim, $header) === 0) {
+        if (0 === mb_strpos($blockTrim, $header)) {
             $pos = mb_strpos($block, "\n");
-            if ($pos === false) {
+            if (false === $pos) {
                 return $blockTrim;
             }
 
@@ -210,13 +210,14 @@ final class AiSuggestionContextService
         }
         $cut = max(0, $maxChars - 1);
         $out = rtrim(mb_substr($text, 0, $cut));
+
         return $out.'…';
     }
 
     /** Оставлено для совместимости с прежними тестами/кодом */
     private function pushBlock(array &$parts, string $block, int &$remain, bool $allowPartial = false): void
     {
-        if ($block === '' || $remain <= 0) {
+        if ('' === $block || $remain <= 0) {
             return;
         }
 
@@ -226,6 +227,7 @@ final class AiSuggestionContextService
         if ($need <= $remain) {
             $parts[] = $sep.$block;
             $remain -= $need;
+
             return;
         }
 

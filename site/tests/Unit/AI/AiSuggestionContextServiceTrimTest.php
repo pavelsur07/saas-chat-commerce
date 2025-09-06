@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tests\Unit\AI;
@@ -25,11 +26,11 @@ final class AiSuggestionContextServiceTrimTest extends TestCase
             5000 // не используется в данном тесте, передаем что-то валидное
         );
 
-        $header = "Knowledge Snippets:";
-        $body   = "- Строка 1: ".str_repeat('A', 2000)."\n"
-            . "- Строка 2: ".str_repeat('B', 2000)."\n"
-            . "- Строка 3: ".str_repeat('C', 2000);
-        $block  = $header."\n".$body;
+        $header = 'Knowledge Snippets:';
+        $body = '- Строка 1: '.str_repeat('A', 2000)."\n"
+            .'- Строка 2: '.str_repeat('B', 2000)."\n"
+            .'- Строка 3: '.str_repeat('C', 2000);
+        $block = $header."\n".$body;
 
         // ограничим, чтобы точно сработала обрезка
         $limited = $svc->applySoftLimitToKnowledge($block, 1200);
