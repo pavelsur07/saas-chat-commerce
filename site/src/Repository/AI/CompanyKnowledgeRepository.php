@@ -21,59 +21,57 @@ class CompanyKnowledgeRepository extends ServiceEntityRepository
      *
      * @throws Exception
      */
-    public function findTopByQuery(Company $company, string $query, int $limit = 5): array
+    public function findTopByQuery(Company $company, string $query, int $limit = 5, ?string $hintType = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
 
-        $sql = <<<'SQL'
-WITH q AS (
-  SELECT
-    id, title, content, created_at,
-    ts_rank_cd(ts_ru, plainto_tsquery('russian', :q))               AS rank_fts,
-    GREATEST(similarity(title,   :q), 0)                             AS sim_title,
-    GREATEST(similarity(content, :q), 0)                             AS sim_content,
-    1.0 / (1.0 + EXTRACT(EPOCH FROM (NOW() - created_at)) / 2592000) AS fresh
-  FROM company_knowledge
-  WHERE company_id = :company
-    AND (
-      ts_ru @@ plainto_tsquery('russian', :q)
-      OR similarity(title,   :q) > 0.2
-      OR similarity(content, :q) > 0.2
-    )
-)
-SELECT
-  id,
-  title,
-  content,
-    LEFT(content, 320) AS snippet,
-    created_at,
-  ((rank_fts * 1.0 + sim_title * 0.8 + sim_content * 0.3) * (0.6 + 0.4 * fresh)) AS score
-FROM q
-ORDER BY score DESC, created_at DESC
-LIMIT :limit
-SQL;
+        // если после normalizeQuery пришло пусто — безопасный fallback по заголовку
+        if ('' === $query) {
+            $sql = '
+            SELECT id, title, LEFT(answer, 300) AS snippet, answer AS content,
+                   (0.2 * CASE WHEN priority > 0 THEN 1 ELSE 0 END) AS score,
+                   created_at
+            FROM company_knowledge
+            WHERE company_id = :company
+            ORDER BY priority DESC, created_at DESC
+            LIMIT :limit
+        ';
+            $stmt = $conn->prepare($sql);
+            $stmt->bindValue('company', $company->getId(), \PDO::PARAM_STR);
+            $stmt->bindValue('limit', $limit, \PDO::PARAM_INT);
 
-        // ✅ без депрекейта: через Connection::executeQuery
-        $stmt = $conn->executeQuery($sql, [
-            'company' => $company->getId(),
-            'q' => $query,
-            'limit' => $limit,
-        ]);
-
-        $rows = $stmt->fetchAllAssociative();
-
-        $out = [];
-        foreach ($rows as $r) {
-            $out[] = new KnowledgeHit(
-                (string) $r['id'],
-                (string) $r['title'],
-                (string) $r['snippet'],
-                (string) $r['content'],
-                (float) $r['score'],
-                new \DateTimeImmutable((string) $r['created_at'])
-            );
+            return $stmt->executeQuery()->fetchAllAssociative();
         }
 
-        return $out;
+        $sql = "
+        SELECT id, title, LEFT(answer, 300) AS snippet, answer AS content,
+               (
+                   0.7 * ts_rank_cd(ts_ru, plainto_tsquery('russian', :q))
+                 + 0.3 * similarity(title, :q)
+                 + 0.2 * CASE WHEN priority > 0 THEN 1 ELSE 0 END
+                 ".($hintType ? ' + 0.2 * CASE WHEN type = :hintType THEN 1 ELSE 0 END ' : '')."
+               ) AS score,
+               created_at
+        FROM company_knowledge
+        WHERE company_id = :company
+          AND (
+                ts_ru @@ plainto_tsquery('russian', :q)
+             OR title ILIKE '%'||:q||'%'
+             OR answer ILIKE '%'||:q||'%'
+          )
+          ".(/* актуальность, если поля есть: */ false ? ' AND (valid_from IS NULL OR valid_from <= NOW()) AND (valid_to IS NULL OR valid_to >= NOW()) ' : '').'
+        ORDER BY score DESC, created_at DESC
+        LIMIT :limit
+    ';
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bindValue('company', $company->getId(), \PDO::PARAM_STR);
+        $stmt->bindValue('q', $query, \PDO::PARAM_STR);
+        if ($hintType) {
+            $stmt->bindValue('hintType', $hintType, \PDO::PARAM_STR);
+        }
+        $stmt->bindValue('limit', $limit, \PDO::PARAM_INT);
+
+        return $stmt->executeQuery()->fetchAllAssociative();
     }
 }

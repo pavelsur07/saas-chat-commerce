@@ -11,6 +11,11 @@ use App\Repository\AI\CompanyKnowledgeRepository;
 
 final class AiSuggestionContextService
 {
+    // внутри класса, метод normalizeQuery(string $q): array|string
+    private array $stopSingles = [
+        'ок', 'ага', 'да', 'нет', 'привет', 'здравствуйте', 'добрый день', 'алло', 'спс', 'спасибо',
+    ];
+
     public function __construct(
         private readonly AiCompanyProfileRepository $profileRepo,
         private readonly CompanyKnowledgeRepository $knowledgeRepo,
@@ -158,7 +163,41 @@ final class AiSuggestionContextService
         return $this->applySoftLimitToKnowledge($block, $maxCharsForKnowledge);
     }
 
-    private function normalizeQuery(string $text): string
+    public function normalizeQuery(string $q): array
+    {
+        $orig = $q;
+        $q = trim($q);
+
+        // 1) стоп-фразы, если всё сообщение - пустышка
+        if (in_array(mb_strtolower($q), $this->stopSingles, true)) {
+            return ['query' => '', 'hintType' => null, 'original' => $orig];
+        }
+
+        // 2) вырезаем мусорные вводные
+        $q = preg_replace('~^(скажите\s+пожалуйста|подскажите|можно ли|а у вас)\s+~ui', '', $q);
+        $q = preg_replace('~\s+(пожалуйста|спс|спасибо)$~ui', '', $q);
+
+        // 3) нормализация
+        $q = str_replace(['ё', 'йо'], ['е', 'е'], $q);
+        $q = preg_replace('~\s+~u', ' ', $q);
+        $q = trim($q);
+
+        // 4) (опц.) простой hintType (для мягкого буста)
+        $lower = mb_strtolower($q);
+        $hintType = null;
+        if (preg_match('~доставк|курьер|самовывоз|срок(и)?~u', $lower)) {
+            $hintType = 'delivery';
+        } elseif (preg_match('~оплат|карт|наличн|чек|возврат~u', $lower)) {
+            $hintType = 'policy';
+        } elseif (preg_match('~товар|продукт|наличи|остатк~u', $lower)) {
+            $hintType = 'product';
+        }
+
+        return ['query' => $q, 'hintType' => $hintType, 'original' => $orig];
+    }
+
+    /** deprecated */
+    /*private function normalizeQuery(string $text): string
     {
         $q = trim(preg_replace('/\s+/u', ' ', $text) ?? '');
         if ('' === $q || mb_strlen($q) < 2) {
@@ -167,7 +206,7 @@ final class AiSuggestionContextService
         $stop = ['ок', 'мск', 'спб', 'ага', 'да', 'нет'];
 
         return in_array(mb_strtolower($q), $stop, true) ? '' : $q;
-    }
+    }*/
 
     /**
      * Публичная обёртка — тестируем мягкую обрезку отдельно.
