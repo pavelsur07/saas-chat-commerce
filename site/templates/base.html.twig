@@ -62,11 +62,6 @@
                 <div>
                     <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Компания</h3>
 
-                    <a href="{{ path('company_switch.list') }}"
-                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_switch' ? 'bg-gray-800' : '' }}">
-                        🔀 Выбор компании
-                    </a>
-
                     <a href="{{ path('company_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
                         🏢 Мои компании
