@@ -6,10 +6,12 @@
 
 {% block body %}
     <h1 class="text-2xl font-bold mb-4">Чат-центр</h1>
-    <a href="{{ path('telegram_poll.test') }}"
-       class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded mb-4 inline-block">
-        + обновить тест
-    </a>
+    {% if app.environment != 'prod' %}
+        <a href="{{ path('telegram_poll.test') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded mb-4 inline-block">
+            + обновить тест
+        </a>
+    {% endif %}
 
     <div id="chat-center-root"></div>
 {% endblock %}
