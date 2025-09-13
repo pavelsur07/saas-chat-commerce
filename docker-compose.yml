@@ -35,7 +35,6 @@ services:
     build:
       context: site/docker
       dockerfile: development/php-fpm/Dockerfile
-    # container_name: site-php-fpm   # ← УДАЛИ эту строку, чтобы DNS по имени сервиса работал всегда
     volumes:
       - ./site:/app
     networks:
