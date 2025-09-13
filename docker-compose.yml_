@@ -1,0 +1,144 @@
+services:
+    traefik:
+        image: traefik:3.3
+        command:
+            - --providers.docker=true
+            - --providers.docker.exposedByDefault=false
+            - --entryPoints.http.address=:80
+        ports:
+            - "80:80"
+            - "8080:8080"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+        networks:
+            - traefik-public
+    
+    site:
+        build:
+            context: site/docker
+            dockerfile: development/nginx/Dockerfile
+        volumes:
+            - ./site:/app
+        networks:
+            - traefik-public
+            - default
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+            - traefik.http.routers.site.rule=Host(`site.localhost`)
+            - traefik.http.routers.site.entryPoints=http
+            - traefik.http.services.site.loadBalancer.server.port=80
+    
+    site-php-fpm:
+        build:
+            context: site/docker
+            dockerfile: development/php-fpm/Dockerfile
+        container_name: site-php-fpm
+        volumes:
+            - ./site:/app
+    
+    site-php-cli:
+        build:
+            context: site/docker
+            dockerfile: development/php-cli/Dockerfile
+        container_name: site-php-cli
+        working_dir: /app
+        volumes:
+            - ./site:/app
+        command: php bin/console
+    
+    site-node-watch:
+        image: node:18-alpine
+        volumes:
+            - ./site:/app
+        working_dir: /app
+        command: sh -c "yarn run watch"
+        tty: true
+        environment:
+            SOCKET_URL: http://localhost:3001
+
+    site-node-cli:
+        image: node:18-alpine
+        volumes:
+            - ./site:/app
+        working_dir: /app
+        environment:
+            SOCKET_URL: http://localhost:3001
+    
+    site-postgres:
+        image: postgres:15-alpine
+        container_name: site-postgres
+        restart: always
+        environment:
+            POSTGRES_DB: app
+            POSTGRES_USER: app
+            POSTGRES_PASSWORD: secret
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+    socket-server:
+        build:
+            context: ./socket-server
+        ports:
+            - "3001:3001"
+        volumes:
+            - ./socket-server:/app
+        environment:
+            PORT: 3001
+            REDIS_URL: redis://redis-realtime:6379
+            SOCKET_PATH: /socket.io
+            SOCKET_ORIGIN: '*'
+            NODE_ENV: 'dev'
+        depends_on:
+            - redis-realtime
+        networks:
+            - traefik-public
+            - default
+
+    redis-realtime:
+        image: redis:alpine
+        container_name: redis-realtime
+        restart: always
+    
+    adminer:
+        image: adminer
+        restart: always
+        networks:
+            - traefik-public
+            - default
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+            - traefik.http.routers.adminer.rule=Host(`adminer.localhost`)
+            - traefik.http.routers.adminer.entrypoints=http
+            - traefik.http.services.adminer.loadBalancer.server.port=8080
+        depends_on:
+            - site-postgres
+    wiremock:
+        image: wiremock/wiremock:3x-alpine
+        networks:
+            - traefik-public
+            - default
+        volumes:
+            - ./wiremock:/home/wiremock
+        healthcheck:
+            test: wget --no-verbose --tries=1 --spider http://localhost/__admin/health || exit 1
+        command:
+            - '--port=80'
+            - '--global-response-templating'
+            - '--verbose'
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+            - traefik.http.routers.wiremock.rule=Host(`wiremock.localhost`)
+            - traefik.http.services.wiremock.loadBalancer.server.port=80
+            - traefik.http.routers.wiremock.entryPoints=http
+volumes:
+    postgres_data:
+
+networks:
+    traefik-public:
+        name: traefik-public
+        driver: bridge
