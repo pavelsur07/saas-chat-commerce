@@ -1,0 +1,6 @@
+# config/packages/dev/framework.yaml  (или в общем framework.yaml)
+framework:
+    session:
+        handler_id: 'session.handler.native_file'
+        storage_factory_id: session.storage.factory.native
+        save_path: '/var/lib/php/sessions'

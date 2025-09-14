@@ -1,0 +1,13 @@
+services:
+  site-php-fpm:
+    image: php:8.2-fpm-alpine
+    volumes:
+      - ./site:/app
+    working_dir: /app
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pidof php-fpm || pgrep php-fpm || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s

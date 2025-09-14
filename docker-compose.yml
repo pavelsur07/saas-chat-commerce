@@ -18,7 +18,9 @@ services:
       context: site/docker
       dockerfile: development/nginx/Dockerfile
     volumes:
-      - ./site:/app
+      #- ./site:/app
+      - ./site:/app:rw
+      - symfony_var:/app/var
     networks:
       - traefik-public
       - backend              # ← явная общая сеть с php-fpm
@@ -39,6 +41,7 @@ services:
       - ./site:/app
     networks:
       - backend              # ← та же сеть, что у site
+      - default
 
 
   site-php-cli:
@@ -121,6 +124,7 @@ services:
 
 volumes:
   postgres_data:
+  symfony_var:
 
 networks:
   traefik-public:
