@@ -11,7 +11,7 @@ use App\Repository\AI\CompanyKnowledgeRepository;
 
 final class AiSuggestionContextService
 {
-    // внутри класса, метод normalizeQuery(string $q): array|string
+    // внутри класса, метод normalizeQuery(string $q): array{query:string,hintType:?string,original:string}
     private array $stopSingles = [
         'ок', 'ага', 'да', 'нет', 'привет', 'здравствуйте', 'добрый день', 'алло', 'спс', 'спасибо',
     ];
@@ -41,7 +41,18 @@ final class AiSuggestionContextService
         }
 
         // 2) Знания с мягким ограничением с учётом уже занятых символов
-        $query = $this->normalizeQuery($incomingText);
+        $normalizedQuery = $this->normalizeQuery($incomingText);
+        $query = '';
+        $hintType = null;
+
+        if (is_array($normalizedQuery)) {
+            $query = trim((string) ($normalizedQuery['query'] ?? ''));
+            $hintValue = $normalizedQuery['hintType'] ?? null;
+            $hintType = is_string($hintValue) && '' !== $hintValue ? $hintValue : null;
+        } else {
+            $query = trim((string) $normalizedQuery);
+        }
+
         if ('' !== $query) {
             $budget = $this->maxContextChars;
 
@@ -55,7 +66,7 @@ final class AiSuggestionContextService
                 }
             }
 
-            $knowledgeBlock = $this->buildKnowledgeBlock($company, $query, $limit, $budget);
+            $knowledgeBlock = $this->buildKnowledgeBlock($company, $query, $limit, $budget, $hintType);
             if ('' !== $knowledgeBlock) {
                 $parts[] = $knowledgeBlock;
             }
@@ -109,8 +120,9 @@ final class AiSuggestionContextService
         string $query,
         int $topN,
         int $maxCharsForKnowledge,
+        ?string $hintType = null,
     ): string {
-        $items = $this->knowledgeRepo->findTopByQuery($company, $query, $topN);
+        $items = $this->knowledgeRepo->findTopByQuery($company, $query, $topN, $hintType);
         if (empty($items)) {
             return '';
         }
