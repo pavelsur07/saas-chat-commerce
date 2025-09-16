@@ -1,5 +1,5 @@
 // assets/chat-center/components/SendMessageForm.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -12,6 +12,7 @@ type Props = {
 
 const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
     const { register, handleSubmit, reset, setValue } = useForm<{ message: string }>();
+    const [knowledgeHitsCount, setKnowledgeHitsCount] = useState<number | null>(null);
 
     const onSubmit = async (data: { message: string }) => {
         try {
@@ -31,7 +32,13 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
 
     // POST /api/suggestions/{clientId} -> { suggestions: string[] }
     const loadHints = async (): Promise<Suggestion[]> => {
+        setKnowledgeHitsCount(null);
+
         const { data } = await axios.post(`/api/suggestions/${encodeURIComponent(clientId)}`);
+        const hitsValue = Number(data?.knowledgeHitsCount);
+        const normalizedHits = Number.isFinite(hitsValue) && hitsValue >= 0 ? Math.floor(hitsValue) : null;
+        setKnowledgeHitsCount(normalizedHits);
+
         const arr: string[] = Array.isArray(data?.suggestions) ? data.suggestions : [];
         return arr.slice(0, 4).map((text, idx) => ({ id: String(idx), text }));
     };
@@ -58,6 +65,11 @@ const SendMessageForm: React.FC<Props> = ({ clientId, onMessageSent }) => {
                         setValue('message', text, { shouldDirty: true, shouldTouch: true });
                     }}
                 />
+                {knowledgeHitsCount !== null && (
+                    <div className="mt-1 text-xs text-slate-500">
+                        Нашли {knowledgeHitsCount} фактов из базы знаний
+                    </div>
+                )}
             </div>
         </div>
     );

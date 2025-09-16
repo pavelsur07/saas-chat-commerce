@@ -10,6 +10,13 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class SuggestionService
 {
+    private const FALLBACK_SUGGESTIONS = [
+        'Подскажите, какой размер/цвет вас интересует?',
+        'Куда удобнее доставка — пункт выдачи или курьером?',
+        'Ищете для спорта или на каждый день? Помогу подобрать 👍',
+        'Если важно быстро — подскажу, что есть в наличии сейчас.',
+    ];
+
     public function __construct(
         private readonly LlmClient $llm,
         private readonly ConversationContextProvider $contextProvider,
@@ -26,10 +33,12 @@ final class SuggestionService
     }
 
     /**
-     * @return string[] max 4 suggestions
+     * @return array{suggestions:string[], knowledgeHitsCount:int}
      */
     public function suggest(Company $company, string $clientId): array
     {
+        $fallback = self::FALLBACK_SUGGESTIONS;
+
         // 1) История диалога — безопасно: даже при ошибке продолжаем без истории
         try {
             $context = $this->contextProvider->getContext($clientId, $this->maxHistory, $this->maxChars);
@@ -50,13 +59,19 @@ final class SuggestionService
             $lastUserText = (string) ($last['text'] ?? '');
         }
 
-        // 3) Контекст компании (ToV/знания) — безопасно
+        // 3) Контекст компании (ToV/знания) + телеметрия запроса
         $companyBlock = '';
-        if ($this->contextService && '' !== $lastUserText) {
+        $normalizedQuery = '';
+        $knowledgeHitsCount = 0;
+        if ($this->contextService) {
             try {
                 $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
+                $normalizedQuery = $this->contextService->normalizeQuery($lastUserText);
+                $knowledgeHitsCount = $this->contextService->getLastHitsCount();
             } catch (\Throwable $e) {
                 $companyBlock = '';
+                $normalizedQuery = '';
+                $knowledgeHitsCount = 0;
             }
         }
 
@@ -95,23 +110,25 @@ final class SuggestionService
                 'temperature' => $this->temperature,
                 'max_tokens' => 400,
                 'timeout' => $this->timeoutSeconds,
+                'metadata' => [
+                    'search' => [
+                        'norm_query' => $normalizedQuery,
+                        'hits_count' => $knowledgeHitsCount,
+                        'client_id' => $clientId,
+                    ],
+                ],
             ]);
         } catch (\Throwable $e) {
             return [
-                'Подскажите, какой размер/цвет вас интересует?',
-                'Куда удобнее доставка — пункт выдачи или курьером?',
-                'Ищете для спорта или на каждый день? Помогу подобрать 👍',
-                'Если важно быстро — подскажу, что есть в наличии сейчас.',
+                'suggestions' => $fallback,
+                'knowledgeHitsCount' => $knowledgeHitsCount,
             ];
         }
 
         // 7) Парсинг — устойчивый к "грязному" JSON
         $content = (string) ($result['content'] ?? '');
-        $items = $this->parseSuggestionsRobust($content);
-        // после получения $content из LLM
-        $itemsRaw = $this->parseSuggestionsRobust((string) ($result['content'] ?? ''));
+        $itemsRaw = $this->parseSuggestionsRobust($content);
 
-        // ГАРАНТИЯ: во второй аргумент array_map попадёт массив
         if (!is_array($itemsRaw)) {
             $itemsRaw = [];
         }
@@ -138,19 +155,17 @@ final class SuggestionService
 
         // Если пусто — вернём fallback, чтобы UI не пустел
         if (empty($items)) {
-            return [
-                'Подскажите, какой размер/цвет вас интересует?',
-                'Куда удобнее доставка — пункт выдачи или курьером?',
-                'Ищете для спорта или на каждый день? Помогу подобрать 👍',
-                'Если важно быстро — подскажу, что есть в наличии сейчас.',
-            ];
+            $items = $fallback;
         }
 
-        return $items;
+        return [
+            'suggestions' => $items,
+            'knowledgeHitsCount' => $knowledgeHitsCount,
+        ];
     }
 
     /**
-     * Устойчивый парсер JSON от модели (```json …```, лишний текст, запятые, одинарные кавычки).
+     * Устойчивый парсер JSON от модели (```json …```; лишний текст, запятые, одинарные кавычки).
      * Возвращает массив строк.
      */
     private function parseSuggestionsRobust(string $raw): array

@@ -12,7 +12,7 @@ use App\Repository\AI\CompanyKnowledgeRepository;
 final class AiSuggestionContextService
 {
     private array $stopSingles = [
-        'ок', 'ага', 'да', 'нет', 'привет', 'здравствуйте', 'добрый день', 'алло', 'спс', 'спасибо',
+        'ок', 'окей', 'ага', 'да', 'нет', 'привет', 'здравствуйте', 'добрый день', 'алло', 'спс', 'спасибо',
     ];
 
     private array $lastHitIds = [];
@@ -46,14 +46,11 @@ final class AiSuggestionContextService
         $normalizedQuery = $this->normalizeQuery($incomingText);
 
         $knowledgeHits = [];
-        if ($limit > 0) {
-            $knowledgeHits = $this->knowledgeRepo->findTopByQuery($company, $normalizedQuery, $limit);
-            if (
-                $limit > 0
-                && is_countable($knowledgeHits)
-                && \count($knowledgeHits) > $limit
-            ) {
-                $knowledgeHits = \array_slice($knowledgeHits, 0, $limit);
+        if ('' !== $normalizedQuery && $limit > 0) {
+            try {
+                $knowledgeHits = $this->knowledgeRepo->findTopByQuery($company, $normalizedQuery, $limit);
+            } catch (\Throwable $e) {
+                $knowledgeHits = [];
             }
         }
 
@@ -85,6 +82,10 @@ final class AiSuggestionContextService
                 }
             }
 
+            if ($this->lastHitIds) {
+                $this->lastHitIds = array_values(array_unique($this->lastHitIds));
+            }
+
             $hasGlobalLimit = $this->maxContextChars > 0;
             $knowledgeBudget = 0;
             if ($hasGlobalLimit) {
@@ -95,11 +96,17 @@ final class AiSuggestionContextService
                 $knowledgeBudget = max(0, $knowledgeBudget);
             }
 
+            $knowledgeAppended = false;
             if (!$hasGlobalLimit || $knowledgeBudget > 0) {
                 $knowledgeBlock = $this->buildKnowledgeBlock($knowledgeHits, $hasGlobalLimit ? $knowledgeBudget : 0);
                 if ('' !== $knowledgeBlock) {
                     $parts[] = $knowledgeBlock;
+                    $knowledgeAppended = true;
                 }
+            }
+
+            if (!$knowledgeAppended) {
+                $this->lastHitIds = [];
             }
         }
 
@@ -160,7 +167,7 @@ final class AiSuggestionContextService
 
             if (is_array($row)) {
                 $title = (string) ($row['title'] ?? '');
-                $content = (string) ($row['content'] ?? $row['snippet'] ?? '');
+                $content = (string) ($row['snippet'] ?? $row['content'] ?? '');
             } elseif (is_object($row)) {
                 if (method_exists($row, 'getTitle')) {
                     $title = (string) $row->getTitle();
@@ -207,31 +214,91 @@ final class AiSuggestionContextService
 
     public function normalizeQuery(string $q): string
     {
+        $q = str_replace(["\r", "\n"], ' ', $q);
         $q = trim($q);
 
         if ('' === $q) {
             return '';
         }
 
-        // 1) стоп-фразы, если всё сообщение - пустышка
-        if (in_array(mb_strtolower($q), $this->stopSingles, true)) {
+        $q = str_replace(['ё', 'Ё'], ['е', 'е'], $q);
+        $q = mb_strtolower($q);
+
+        $q = preg_replace('/\s+/u', ' ', $q) ?? $q;
+        $q = trim($q);
+
+        $startPatterns = [
+            '~^(скажите\s*(?:,\s*)?пожалуйста)\s*[,:;-]*\s*~u',
+            '~^(подскажите(?:\s*,?\s*пожалуйста)?)\s*[,:;-]*\s*~u',
+            '~^(можно\s+ли)\s*[,:;-]*\s*~u',
+            '~^(а\s+у\s+вас)\s*[,:;-]*\s*~u',
+        ];
+        $endPatterns = [
+            '~[,\s]*(пожалуйста|спс|спасибо)\s*[!.,…]*$~u',
+        ];
+
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            foreach ($startPatterns as $pattern) {
+                $next = preg_replace($pattern, '', $q);
+                if (null !== $next && $next !== $q) {
+                    $q = $next;
+                    $changed = true;
+                }
+            }
+        }
+
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            foreach ($endPatterns as $pattern) {
+                $next = preg_replace($pattern, '', $q);
+                if (null !== $next && $next !== $q) {
+                    $q = $next;
+                    $changed = true;
+                }
+            }
+        }
+
+        $q = preg_replace('/\s+/u', ' ', $q) ?? $q;
+        $q = trim($q);
+        $q = preg_replace('/^[,.;:\-\s]+/u', '', $q) ?? $q;
+        $q = preg_replace('/[,.;:\-\s]+$/u', '', $q) ?? $q;
+        $q = preg_replace('/\s+/u', ' ', $q) ?? $q;
+        $q = trim($q);
+
+        if ('' === $q) {
             return '';
         }
 
-        // 2) вырезаем мусорные вводные
-        $q = preg_replace('~^(скажите\s+пожалуйста|подскажите|можно ли|а у вас)\s+~ui', '', $q) ?? $q;
-        $q = preg_replace('~\s+(пожалуйста|спс|спасибо)$~ui', '', $q) ?? $q;
+        $lettersOnly = preg_replace('/[^\p{L}\p{N}]+/u', '', $q) ?? '';
+        if ('' === $lettersOnly) {
+            return '';
+        }
 
-        // 3) нормализация
-        $q = str_replace(['ё', 'йо'], ['е', 'е'], $q);
-        $q = preg_replace('~\s+~u', ' ', $q) ?? $q;
-        $q = trim($q);
+        foreach ($this->stopSingles as $stop) {
+            $normalizedStop = preg_replace(
+                '/[^\p{L}\p{N}]+/u',
+                '',
+                mb_strtolower(str_replace(['ё', 'Ё'], ['е', 'е'], $stop))
+            ) ?? '';
 
-        if ('' === $q || mb_strlen($q) < 2) {
+            if ('' !== $normalizedStop && $lettersOnly === $normalizedStop) {
+                return '';
+            }
+        }
+
+        if (mb_strlen($lettersOnly) < 2) {
             return '';
         }
 
         return $q;
+    }
+
+    public function getLastHitsCount(): int
+    {
+        return \count($this->lastHitIds);
     }
 
     /** deprecated */

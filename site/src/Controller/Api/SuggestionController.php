@@ -38,13 +38,24 @@ final class SuggestionController extends AbstractController
         // Rate-limit: не чаще 1 запроса / 3 сек на диалог
         if (!$this->limiter->acquire($company, $clientId)) {
             // "мягкая" отдача — пустой список, без 429
-            return $this->json(['suggestions' => []]);
+            return $this->json([
+                'suggestions' => [],
+                'knowledgeHitsCount' => 0,
+            ]);
         }
 
         /* throw new \DomainException('Company Id'.$company->getId().'--- Client Id'.$clientId); */
 
+        $result = $this->suggestions->suggest($company, $clientId);
+        $knowledgeHits = (int) ($result['knowledgeHitsCount'] ?? 0);
+        $suggestions = [];
+        if (isset($result['suggestions']) && is_array($result['suggestions'])) {
+            $suggestions = $result['suggestions'];
+        }
+
         return $this->json([
-            'suggestions' => $this->suggestions->suggest($company, $clientId),
+            'suggestions' => $suggestions,
+            'knowledgeHitsCount' => $knowledgeHits,
         ]);
     }
 }
