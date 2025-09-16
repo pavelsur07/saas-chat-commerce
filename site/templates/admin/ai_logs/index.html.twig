@@ -22,6 +22,9 @@
                 <th class="p-2 text-left">Latency</th>
                 <th class="p-2 text-left">Prompt</th>
                 <th class="p-2 text-left">Response</th>
+                {# NEW COLUMNS #}
+                <th class="p-2 text-left">Search: raw_query</th>
+                <th class="p-2 text-left">Search: norm_query</th>
             </tr>
             </thead>
             <tbody>
@@ -46,9 +49,20 @@
                     <td class="p-2 w-1/2">
                         <pre class="text-xs whitespace-pre-wrap bg-gray-50 border rounded p-2">{{ r.response ?? '—' }}</pre>
                     </td>
+                    {# NEW CELL: raw_query #}
+                    <td class="p-2 text-xs">
+                        {% set rq = r.metadata.search.raw_query ?? '' %}
+                        {{ rq is iterable ? '' : (rq|slice(0,120)|e) }}{% if rq is not iterable and rq|length > 120 %}…{% endif %}
+                    </td>
+
+                    {# NEW CELL: norm_query #}
+                    <td class="p-2 text-xs">
+                        {% set nq = r.metadata.search.norm_query ?? '' %}
+                        {{ nq is iterable ? '' : (nq|slice(0,120)|e) }}{% if nq is not iterable and nq|length > 120 %}…{% endif %}
+                    </td>
                 </tr>
             {% else %}
-                <tr><td colspan="9" class="p-4 text-center text-gray-500">Нет записей.</td></tr>
+                <tr><td colspan="11" class="p-4 text-center text-gray-500">Нет записей.</td></tr>
             {% endfor %}
             </tbody>
         </table>
