@@ -65,7 +65,10 @@ final class LlmClientWithLogging implements LlmClient
                 completionTokens: $completionTokens,
                 errorMessage: null,
                 costUsd: $costUsd,
-                meta: $result,
+                meta: array_merge(
+                    is_array($payload['metadata'] ?? null) ? (array) $payload['metadata'] : [],
+                    ['llm' => $result]
+                ),
             );
 
             return $result;
@@ -85,7 +88,10 @@ final class LlmClientWithLogging implements LlmClient
                 completionTokens: 0,
                 errorMessage: $e->getMessage(),
                 costUsd: null,
-                meta: ['exception' => get_class($e)]
+                meta: array_merge(
+                    is_array($payload['metadata'] ?? null) ? (array) $payload['metadata'] : [],
+                    ['exception' => get_class($e)]
+                )
             );
 
             throw $e;
