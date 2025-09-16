@@ -61,16 +61,16 @@ final class SuggestionService
 
         // 3) Контекст компании (ToV/знания) + телеметрия запроса
         $companyBlock = '';
-        $normalizedQuery = '';
+        $normQuery = '';
         $knowledgeHitsCount = 0;
         if ($this->contextService) {
             try {
                 $companyBlock = $this->contextService->buildBlock($company, $lastUserText, 5);
-                $normalizedQuery = $this->contextService->normalizeQuery($lastUserText);
+                $normQuery = $this->contextService->normalizeQuery($lastUserText);
                 $knowledgeHitsCount = $this->contextService->getLastHitsCount();
             } catch (\Throwable $e) {
                 $companyBlock = '';
-                $normalizedQuery = '';
+                $normQuery = '';
                 $knowledgeHitsCount = 0;
             }
         }
@@ -112,7 +112,8 @@ final class SuggestionService
                 'timeout' => $this->timeoutSeconds,
                 'metadata' => [
                     'search' => [
-                        'norm_query' => $normalizedQuery,
+                        'raw_query' => (string) $lastUserText,
+                        'norm_query' => (string) $normQuery,
                         'hits_count' => $knowledgeHitsCount,
                         'client_id' => $clientId,
                     ],
