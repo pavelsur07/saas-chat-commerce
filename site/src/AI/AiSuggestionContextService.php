@@ -11,10 +11,11 @@ use App\Repository\AI\CompanyKnowledgeRepository;
 
 final class AiSuggestionContextService
 {
-    // внутри класса, метод normalizeQuery(string $q): array{query:string,hintType:?string,original:string}
     private array $stopSingles = [
         'ок', 'ага', 'да', 'нет', 'привет', 'здравствуйте', 'добрый день', 'алло', 'спс', 'спасибо',
     ];
+
+    private array $lastHitIds = [];
 
     public function __construct(
         private readonly AiCompanyProfileRepository $profileRepo,
@@ -31,6 +32,7 @@ final class AiSuggestionContextService
      */
     public function buildBlock(Company $company, string $incomingText, int $limit = 5): string
     {
+        $this->lastHitIds = [];
         $parts = [];
 
         // 1) Профиль компании (не режем отдельно, но учитываем в общем бюджете)
@@ -42,33 +44,62 @@ final class AiSuggestionContextService
 
         // 2) Знания с мягким ограничением с учётом уже занятых символов
         $normalizedQuery = $this->normalizeQuery($incomingText);
-        $query = '';
-        $hintType = null;
 
-        if (is_array($normalizedQuery)) {
-            $query = trim((string) ($normalizedQuery['query'] ?? ''));
-            $hintValue = $normalizedQuery['hintType'] ?? null;
-            $hintType = is_string($hintValue) && '' !== $hintValue ? $hintValue : null;
-        } else {
-            $query = trim((string) $normalizedQuery);
+        $knowledgeHits = [];
+        if ($limit > 0) {
+            $knowledgeHits = $this->knowledgeRepo->findTopByQuery($company, $normalizedQuery, $limit);
+            if (
+                $limit > 0
+                && is_countable($knowledgeHits)
+                && \count($knowledgeHits) > $limit
+            ) {
+                $knowledgeHits = \array_slice($knowledgeHits, 0, $limit);
+            }
         }
 
-        if ('' !== $query) {
-            $budget = $this->maxContextChars;
+        if (!empty($knowledgeHits)) {
+            foreach ($knowledgeHits as $hit) {
+                $id = null;
+                if (is_array($hit)) {
+                    $candidate = $hit['id'] ?? null;
+                    if (null !== $candidate && '' !== (string) $candidate) {
+                        $id = (string) $candidate;
+                    }
+                } elseif (is_object($hit)) {
+                    if (method_exists($hit, 'getId')) {
+                        $candidate = $hit->getId();
+                        if (null !== $candidate && '' !== (string) $candidate) {
+                            $id = (string) $candidate;
+                        }
+                    } elseif (property_exists($hit, 'id')) {
+                        /** @phpstan-ignore-next-line */
+                        $candidate = $hit->id;
+                        if (null !== $candidate && '' !== (string) $candidate) {
+                            $id = (string) $candidate;
+                        }
+                    }
+                }
 
-            // если лимит задан, уменьшаем бюджет на профиль + разделитель между блоками
-            if ($budget > 0 && '' !== $profileBlock) {
-                $budget -= mb_strlen($profileBlock);
-                // учтём два перевода строки между блоками
-                $budget -= 2;
-                if ($budget < 0) {
-                    $budget = 0;
+                if (null !== $id) {
+                    $this->lastHitIds[] = $id;
                 }
             }
 
-            $knowledgeBlock = $this->buildKnowledgeBlock($company, $query, $limit, $budget, $hintType);
-            if ('' !== $knowledgeBlock) {
-                $parts[] = $knowledgeBlock;
+            $hasGlobalLimit = $this->maxContextChars > 0;
+            $knowledgeBudget = 0;
+            if ($hasGlobalLimit) {
+                $knowledgeBudget = $this->maxContextChars;
+                if ('' !== $profileBlock) {
+                    $knowledgeBudget -= mb_strlen($profileBlock) + 2; // два перевода строки между блоками
+                }
+                $knowledgeBudget = max(0, $knowledgeBudget);
+            }
+
+            if (!$hasGlobalLimit || $knowledgeBudget > 0) {
+                $knowledgeBlock = $this->buildKnowledgeBlock($knowledgeHits, $hasGlobalLimit ? $knowledgeBudget : 0);
+                if ('' !== $knowledgeBlock) {
+                    $parts[] = $knowledgeBlock;
+                }
             }
         }
 
@@ -115,14 +146,8 @@ final class AiSuggestionContextService
         return $chunks ? implode("\n\n", $chunks) : '';
     }
 
-    private function buildKnowledgeBlock(
-        Company $company,
-        string $query,
-        int $topN,
-        int $maxCharsForKnowledge,
-        ?string $hintType = null,
-    ): string {
-        $items = $this->knowledgeRepo->findTopByQuery($company, $query, $topN, $hintType);
+    private function buildKnowledgeBlock(array $items, int $maxCharsForKnowledge): string
+    {
         if (empty($items)) {
             return '';
         }
@@ -135,7 +160,7 @@ final class AiSuggestionContextService
 
             if (is_array($row)) {
                 $title = (string) ($row['title'] ?? '');
-                $content = (string) ($row['content'] ?? '');
+                $content = (string) ($row['content'] ?? $row['snippet'] ?? '');
             } elseif (is_object($row)) {
                 if (method_exists($row, 'getTitle')) {
                     $title = (string) $row->getTitle();
@@ -145,9 +170,14 @@ final class AiSuggestionContextService
                 }
                 if (method_exists($row, 'getContent')) {
                     $content = (string) $row->getContent();
+                } elseif (method_exists($row, 'getSnippet')) {
+                    $content = (string) $row->getSnippet();
                 } elseif (property_exists($row, 'content')) {
                     /** @phpstan-ignore-next-line */
                     $content = (string) $row->content;
+                } elseif (property_exists($row, 'snippet')) {
+                    /** @phpstan-ignore-next-line */
+                    $content = (string) $row->snippet;
                 }
             }
 
@@ -175,37 +205,33 @@ final class AiSuggestionContextService
         return $this->applySoftLimitToKnowledge($block, $maxCharsForKnowledge);
     }
 
-    public function normalizeQuery(string $q): array
+    public function normalizeQuery(string $q): string
     {
-        $orig = $q;
         $q = trim($q);
+
+        if ('' === $q) {
+            return '';
+        }
 
         // 1) стоп-фразы, если всё сообщение - пустышка
         if (in_array(mb_strtolower($q), $this->stopSingles, true)) {
-            return ['query' => '', 'hintType' => null, 'original' => $orig];
+            return '';
         }
 
         // 2) вырезаем мусорные вводные
-        $q = preg_replace('~^(скажите\s+пожалуйста|подскажите|можно ли|а у вас)\s+~ui', '', $q);
-        $q = preg_replace('~\s+(пожалуйста|спс|спасибо)$~ui', '', $q);
+        $q = preg_replace('~^(скажите\s+пожалуйста|подскажите|можно ли|а у вас)\s+~ui', '', $q) ?? $q;
+        $q = preg_replace('~\s+(пожалуйста|спс|спасибо)$~ui', '', $q) ?? $q;
 
         // 3) нормализация
         $q = str_replace(['ё', 'йо'], ['е', 'е'], $q);
-        $q = preg_replace('~\s+~u', ' ', $q);
+        $q = preg_replace('~\s+~u', ' ', $q) ?? $q;
         $q = trim($q);
 
-        // 4) (опц.) простой hintType (для мягкого буста)
-        $lower = mb_strtolower($q);
-        $hintType = null;
-        if (preg_match('~доставк|курьер|самовывоз|срок(и)?~u', $lower)) {
-            $hintType = 'delivery';
-        } elseif (preg_match('~оплат|карт|наличн|чек|возврат~u', $lower)) {
-            $hintType = 'policy';
-        } elseif (preg_match('~товар|продукт|наличи|остатк~u', $lower)) {
-            $hintType = 'product';
+        if ('' === $q || mb_strlen($q) < 2) {
+            return '';
         }
 
-        return ['query' => $q, 'hintType' => $hintType, 'original' => $orig];
+        return $q;
     }
 
     /** deprecated */
