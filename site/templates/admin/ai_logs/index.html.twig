@@ -22,6 +22,7 @@
                 <th class="p-2 text-left">Latency</th>
                 <th class="p-2 text-left">Prompt</th>
                 <th class="p-2 text-left">Response</th>
+                <th class="p-2 text-left">Search (JSON)</th>
                 {# NEW COLUMNS #}
                 <th class="p-2 text-left">Search: raw_query</th>
                 <th class="p-2 text-left">Search: norm_query</th>
@@ -49,6 +50,15 @@
                     <td class="p-2 w-1/2">
                         <pre class="text-xs whitespace-pre-wrap bg-gray-50 border rounded p-2">{{ r.response ?? '—' }}</pre>
                     </td>
+                    <td class="p-2 w-1/2">
+                        {% set search = r.metadata.search ?? {} %}
+                        {% set searchBlock = {
+                            'raw_query': search.raw_query is defined ? search.raw_query : null,
+                            'norm_query': search.norm_query is defined ? search.norm_query : null,
+                            'knowledge_hits': search.hits_count is defined ? search.hits_count : 0
+                        } %}
+                        <pre class="text-xs whitespace-pre-wrap bg-gray-50 border rounded p-2">{{ searchBlock|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_PRETTY_PRINT')) }}</pre>
+                    </td>
                     {# NEW CELL: raw_query #}
                     <td class="p-2 text-xs">
                         {% set rq = r.metadata.search.raw_query ?? '' %}
@@ -62,7 +72,7 @@
                     </td>
                 </tr>
             {% else %}
-                <tr><td colspan="11" class="p-4 text-center text-gray-500">Нет записей.</td></tr>
+                <tr><td colspan="12" class="p-4 text-center text-gray-500">Нет записей.</td></tr>
             {% endfor %}
             </tbody>
         </table>
