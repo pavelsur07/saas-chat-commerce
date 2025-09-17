@@ -28,11 +28,11 @@ class CompanyKnowledgeRepository extends ServiceEntityRepository
         if ('' === $query) {
             $sql = <<<SQL
 SELECT id, title, LEFT(content, 300) AS snippet, content,
-       (0.2 * CASE WHEN priority > 0 THEN 1 ELSE 0 END) AS score,
+       0.0 AS score,
        created_at
 FROM company_knowledge
 WHERE company_id = :company
-ORDER BY priority DESC, created_at DESC
+ORDER BY created_at DESC
 LIMIT :limit
 SQL;
 
@@ -46,7 +46,6 @@ SQL;
         $scoreParts = [
             "0.7 * ts_rank_cd(ts_ru, plainto_tsquery('russian', :q))",
             "0.3 * similarity(title, :q)",
-            "0.2 * CASE WHEN priority > 0 THEN 1 ELSE 0 END",
         ];
 
         if (null !== $hintType) {
