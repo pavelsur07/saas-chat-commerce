@@ -27,7 +27,7 @@ class CompanyKnowledgeRepository extends ServiceEntityRepository
 
         if ('' === $query) {
             $sql = <<<SQL
-SELECT id, title, LEFT(answer, 300) AS snippet, answer AS content,
+SELECT id, title, LEFT(content, 300) AS snippet, content,
        (0.2 * CASE WHEN priority > 0 THEN 1 ELSE 0 END) AS score,
        created_at
 FROM company_knowledge
@@ -56,7 +56,7 @@ SQL;
         $scoreExpr = implode(' + ', $scoreParts);
 
         $sql = <<<SQL
-SELECT id, title, LEFT(answer, 300) AS snippet, answer AS content,
+SELECT id, title, LEFT(content, 300) AS snippet, content,
        ({$scoreExpr}) AS score,
        created_at
 FROM company_knowledge
@@ -64,7 +64,7 @@ WHERE company_id = :company
   AND (
         ts_ru @@ plainto_tsquery('russian', :q)
      OR title ILIKE '%'||:q||'%'
-     OR answer ILIKE '%'||:q||'%'
+     OR content ILIKE '%'||:q||'%'
   )
 ORDER BY score DESC, created_at DESC
 LIMIT :limit
