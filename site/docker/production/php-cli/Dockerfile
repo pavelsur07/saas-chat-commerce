@@ -1,6 +1,6 @@
 FROM php:8.2-fpm-alpine AS builder
 
-RUN apk add --no-cache libpq-dev \
+RUN apk add --no-cache git libpq-dev \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-install pdo_pgsql opcache
 
@@ -21,9 +21,10 @@ RUN composer install --no-dev --prefer-dist --no-progress --no-scripts --optimiz
 
 FROM php:8.2-cli-alpine
 
-RUN apk add --no-cache libpq-dev bash coreutils \
+RUN apk add --no-cache bash coreutils icu-dev libpq-dev \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-install pdo_pgsql opcache
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install intl pdo_pgsql opcache
 
 RUN mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
