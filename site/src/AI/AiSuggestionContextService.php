@@ -8,6 +8,8 @@ use App\Entity\AI\AiCompanyProfile;
 use App\Entity\Company\Company;
 use App\Repository\AI\AiCompanyProfileRepository;
 use App\Repository\AI\CompanyKnowledgeRepository;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class AiSuggestionContextService
 {
@@ -20,6 +22,8 @@ final class AiSuggestionContextService
     public function __construct(
         private readonly AiCompanyProfileRepository $profileRepo,
         private readonly CompanyKnowledgeRepository $knowledgeRepo,
+        #[Autowire(service: 'monolog.logger.ai.knowledge')]
+        private readonly LoggerInterface $knowledgeLogger,
         private int $maxContextChars = 1200,
     ) {
         // защита от случайного 0 из конфига
@@ -47,36 +51,38 @@ final class AiSuggestionContextService
 
         $knowledgeHits = [];
         if ('' !== $normalizedQuery && $limit > 0) {
+            $startedAt = microtime(true);
+            $baseLogContext = [
+                'company_id' => $company->getId(),
+                'raw_query' => $incomingText,
+                'norm_query' => $normalizedQuery,
+                'engine' => 'fts+trgm+ilike',
+            ];
+
             try {
                 $knowledgeHits = $this->knowledgeRepo->findTopByQuery($company, $normalizedQuery, $limit);
+                $elapsedMs = (microtime(true) - $startedAt) * 1000;
+                $resultCount = \is_countable($knowledgeHits) ? \count($knowledgeHits) : 0;
+                $this->knowledgeLogger->info('AI_KNOWLEDGE_SEARCH', array_merge($baseLogContext, [
+                    'result_count' => $resultCount,
+                    'elapsed_ms' => round($elapsedMs, 3),
+                    'top_ids' => $this->collectTopIds($knowledgeHits),
+                ]));
             } catch (\Throwable $e) {
+                $elapsedMs = (microtime(true) - $startedAt) * 1000;
+                $this->knowledgeLogger->error('AI_KNOWLEDGE_SEARCH_ERROR', array_merge($baseLogContext, [
+                    'result_count' => 0,
+                    'elapsed_ms' => round($elapsedMs, 3),
+                    'top_ids' => [],
+                    'exception_message' => $e->getMessage(),
+                ]));
                 $knowledgeHits = [];
             }
         }
 
         if (!empty($knowledgeHits)) {
             foreach ($knowledgeHits as $hit) {
-                $id = null;
-                if (is_array($hit)) {
-                    $candidate = $hit['id'] ?? null;
-                    if (null !== $candidate && '' !== (string) $candidate) {
-                        $id = (string) $candidate;
-                    }
-                } elseif (is_object($hit)) {
-                    if (method_exists($hit, 'getId')) {
-                        $candidate = $hit->getId();
-                        if (null !== $candidate && '' !== (string) $candidate) {
-                            $id = (string) $candidate;
-                        }
-                    } elseif (property_exists($hit, 'id')) {
-                        /** @phpstan-ignore-next-line */
-                        $candidate = $hit->id;
-                        if (null !== $candidate && '' !== (string) $candidate) {
-                            $id = (string) $candidate;
-                        }
-                    }
-                }
-
+                $id = $this->extractHitId($hit);
                 if (null !== $id) {
                     $this->lastHitIds[] = $id;
                 }
@@ -347,6 +353,35 @@ final class AiSuggestionContextService
         return $this->softTruncate($block, $maxChars);
     }
 
+    /**
+     * @param iterable<mixed> $hits
+     *
+     * @return list<string>
+     */
+    private function collectTopIds(iterable $hits, int $max = 3): array
+    {
+        if ($max <= 0) {
+            return [];
+        }
+
+        $topIds = [];
+
+        foreach ($hits as $hit) {
+            $id = $this->extractHitId($hit);
+            if (null === $id) {
+                continue;
+            }
+
+            $topIds[] = $id;
+
+            if (\count($topIds) >= $max) {
+                break;
+            }
+        }
+
+        return $topIds;
+    }
+
     private function softTruncate(string $text, int $maxChars): string
     {
         if ($maxChars <= 0 || mb_strlen($text) <= $maxChars) {
@@ -356,6 +391,35 @@ final class AiSuggestionContextService
         $out = rtrim(mb_substr($text, 0, $cut));
 
         return $out.'…';
+    }
+
+    private function extractHitId(mixed $hit): ?string
+    {
+        if (is_array($hit)) {
+            $candidate = $hit['id'] ?? null;
+            if (null !== $candidate && '' !== (string) $candidate) {
+                return (string) $candidate;
+            }
+
+            return null;
+        }
+
+        if (is_object($hit)) {
+            if (method_exists($hit, 'getId')) {
+                $candidate = $hit->getId();
+                if (null !== $candidate && '' !== (string) $candidate) {
+                    return (string) $candidate;
+                }
+            } elseif (property_exists($hit, 'id')) {
+                /** @phpstan-ignore-next-line */
+                $candidate = $hit->id;
+                if (null !== $candidate && '' !== (string) $candidate) {
+                    return (string) $candidate;
+                }
+            }
+        }
+
+        return null;
     }
 
     /** Оставлено для совместимости с прежними тестами/кодом */
