@@ -2,6 +2,13 @@ monolog:
     channels:
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
         - ai.knowledge
+        - crm
+    handlers:
+        crm:
+            type: stream
+            path: "%kernel.logs_dir%/crm.log"
+            level: info
+            channels: ["crm"]
 
 when@dev:
     monolog:
