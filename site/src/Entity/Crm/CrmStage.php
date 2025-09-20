@@ -5,7 +5,7 @@ namespace App\Entity\Crm;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
-use Webmozart\Assert\Assert;
+use Webmozart\Assert\Assert as WebmozartAssert;
 
 #[ORM\Entity]
 #[ORM\Table(name: '`crm_stages`')]
@@ -52,7 +52,7 @@ class CrmStage
 
     public function __construct(string $id, CrmPipeline $pipeline)
     {
-        Assert::uuid($id);
+        WebmozartAssert::uuid($id);
 
         $this->id = $id;
         $this->pipeline = $pipeline;
