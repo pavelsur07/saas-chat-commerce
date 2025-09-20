@@ -23,6 +23,7 @@ Encore
      */
     .addEntry('app', './assets/app.js')
     .addEntry('chatCenter', './assets/chat-center/index.tsx')
+    .addEntry('crm', './assets/crm/index.tsx')
 
 
     // enables the Symfony UX Stimulus bridge (used in assets/bootstrap.js)
