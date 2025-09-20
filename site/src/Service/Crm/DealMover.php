@@ -45,7 +45,12 @@ class DealMover
         if ($to->isWon() || $to->isLost()) {
             $deal->setIsClosed(true);
             $deal->setClosedAt($now);
+        } else {
+            $deal->setIsClosed(false);
+            $deal->setClosedAt(null);
         }
+
+        $deal->setUpdatedAt($now);
 
         $this->em->persist($history);
         $this->em->flush();
