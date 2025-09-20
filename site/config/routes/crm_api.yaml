@@ -1,0 +1,3 @@
+resource: '../../src/Controller/Api/Crm/'
+type: attribute
+prefix: /api/crm
