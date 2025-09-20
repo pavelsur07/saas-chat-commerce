@@ -1,3 +1,4 @@
-resource: '../../src/Controller/Api/Crm/'
-type: attribute
-prefix: /api/crm
+crm_api:
+  resource: '../../src/Controller/Api/Crm/'
+  type: attribute
+  prefix: /api/crm
