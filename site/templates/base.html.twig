@@ -35,9 +35,9 @@
                         💬 Чат-центр
                     </a>
 
-                    <a href="{{ path('crm.index') }}"
+                    <a href="{{ path('crm_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800
-                              {{ app.request.attributes.get('_route') starts with 'crm.' ? 'bg-gray-800' : '' }}">
+                              {{ app.request.attributes.get('_route') starts with 'crm_' ? 'bg-gray-800' : '' }}">
                         📊 CRM
                     </a>
 
