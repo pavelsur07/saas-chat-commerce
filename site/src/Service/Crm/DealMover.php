@@ -41,6 +41,7 @@ class DealMover
         $history->setSpentHours((int) floor($spentSeconds / 3600));
 
         $deal->setStage($to);
+        $deal->setStageEnteredAt($now);
 
         if ($to->isWon() || $to->isLost()) {
             $deal->setIsClosed(true);

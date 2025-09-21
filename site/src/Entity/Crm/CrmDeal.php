@@ -30,6 +30,9 @@ class CrmDeal
     #[ORM\JoinColumn(nullable: false)]
     private CrmStage $stage;
 
+    #[ORM\Column(type: 'datetime_immutable')]
+    private \DateTimeImmutable $stageEnteredAt;
+
     #[ORM\ManyToOne(targetEntity: Client::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Client $client = null;
@@ -96,6 +99,7 @@ class CrmDeal
         $this->createdBy = $createdBy;
         $this->title = $title;
         $this->openedAt = $openedAt;
+        $this->stageEnteredAt = $openedAt;
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -133,6 +137,16 @@ class CrmDeal
     public function setStage(CrmStage $stage): void
     {
         $this->stage = $stage;
+    }
+
+    public function getStageEnteredAt(): \DateTimeImmutable
+    {
+        return $this->stageEnteredAt;
+    }
+
+    public function setStageEnteredAt(\DateTimeImmutable $stageEnteredAt): void
+    {
+        $this->stageEnteredAt = $stageEnteredAt;
     }
 
     public function getClient(): ?Client
