@@ -1,6 +1,7 @@
 // site/assets/crm/components/PipelineList.tsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import PipelineCreateModal from './PipelineCreateModal';
 
 type Pipeline = { id: string; name: string };
 type Props = { activeId: string | null; onSelect: (pipeline: Pipeline) => void; };
@@ -22,25 +23,21 @@ export default function PipelineList({ activeId, onSelect }: Props) {
     }
   }, [activeId, pipelines, onSelect]);
 
-  const createPipeline = async () => {
-    const name = window.prompt('Название воронки');
-    if (!name) return;
-    try {
-      const { data } = await axios.post<Pipeline>('/api/crm/pipelines', { name: name.trim() });
-      setPipelines(prev => [...prev, data]);
-      onSelect(data);
-      if (window.confirm('Перейти к редактору этапов?')) {
-        window.location.href = `/crm/pipelines/${data.id}/stages`;
-      }
-    } catch (e) {
-      alert('Не удалось создать воронку');
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+
+  const handlePipelineCreated = (pipeline: Pipeline) => {
+    setPipelines((prev) => [...prev, pipeline]);
+    onSelect(pipeline);
+    setCreateModalOpen(false);
+    if (window.confirm('Перейти к редактору этапов?')) {
+      window.location.href = `/crm/pipelines/${pipeline.id}/stages`;
     }
   };
 
   return (
     <div className="space-y-2">
       <button
-        onClick={createPipeline}
+        onClick={() => setCreateModalOpen(true)}
         className="w-full px-3 py-2 rounded-xl border bg-white hover:bg-gray-50"
       >
         + Добавить воронку
@@ -59,6 +56,12 @@ export default function PipelineList({ activeId, onSelect }: Props) {
           </div>
         </div>
       ))}
+
+      <PipelineCreateModal
+        open={isCreateModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={handlePipelineCreated}
+      />
     </div>
   );
 }
