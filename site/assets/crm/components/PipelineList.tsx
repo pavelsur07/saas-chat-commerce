@@ -50,8 +50,26 @@ export default function PipelineList({ activeId, onSelect }: Props) {
         >
           <div className="flex items-center justify-between">
             <button onClick={() => onSelect(p)} className="font-semibold text-left">{p.name}</button>
-            <a href={`/crm/pipelines/${p.id}/stages`} className="text-sm text-blue-600 hover:underline">
-              Редактировать этапы
+            <a
+              href={`/crm/pipelines/${p.id}/stages`}
+              className="inline-flex items-center justify-center rounded-full p-1 text-blue-600 hover:text-blue-800"
+              aria-label="Редактировать этапы"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="h-5 w-5"
+              >
+                <circle cx="12" cy="12" r="3.25" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 3.75v1.5M12 18.75v1.5M5.47 5.47l1.06 1.06M17.47 17.47l1.06 1.06M3.75 12h1.5M18.75 12h1.5M5.47 18.53l1.06-1.06M17.47 6.53l1.06-1.06"
+                />
+              </svg>
             </a>
           </div>
         </div>
