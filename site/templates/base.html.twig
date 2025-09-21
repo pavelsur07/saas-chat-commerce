@@ -22,6 +22,11 @@
             </div>
             <nav class="flex-1 px-4 py-6 space-y-6 text-sm">
 
+                <!-- Выбор компании -->
+                <div>
+                    {{ render(controller('App\\Controller\\CompanySwitchController::widget')) }}
+                </div>
+
                 <!-- Рабочая зона -->
                 <div>
                     <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Рабочая зона</h3>
@@ -138,9 +143,6 @@
 
         <!-- Main content -->
         <main class="flex-1 p-8 overflow-auto">
-            <div class="mb-4 flex justify-end">
-                {{ render(controller('App\\Controller\\CompanySwitchController::widget')) }}
-            </div>
             {% set flashTypes = ['success', 'warning', 'danger', 'info'] %}
             {% set flashClasses = {
                 'success': 'border-green-400 bg-green-100 text-green-700',
