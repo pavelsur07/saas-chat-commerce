@@ -6,11 +6,17 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-class CrmController extends AbstractController
+final class CrmController extends AbstractController
 {
-    #[Route('/crm', name: 'crm.index', methods: ['GET'])]
+    #[Route('/crm', name: 'crm_index', methods: ['GET'])]
     public function index(): Response
     {
         return $this->render('crm/index.html.twig');
+    }
+
+    #[Route('/crm/pipelines/{id}/stages', name: 'crm_stages', methods: ['GET'])]
+    public function stages(string $id): Response
+    {
+        return $this->render('crm/stages.html.twig', ['pipelineId' => $id]);
     }
 }
