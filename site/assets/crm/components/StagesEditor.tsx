@@ -167,7 +167,7 @@ export default function StagesEditor({ pipelineId }: { pipelineId: UUID }) {
       });
     };
     return (
-      <form onSubmit={submit} className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
+      <form onSubmit={submit} className="rounded-2xl border border-gray-200 bg-white px-3 py-2 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-gray-900">{initial?.id ? 'Редактировать этап' : 'Добавить этап'}</h4>
           <button type="button" onClick={onCancel} className="text-gray-500 hover:text-gray-700">×</button>
@@ -252,7 +252,7 @@ export default function StagesEditor({ pipelineId }: { pipelineId: UUID }) {
           {stages.map(s => (
             <div
               key={s.id}
-              className="group rounded-2xl shadow p-4 bg-white border border-gray-200 w-80 select-none"
+              className="group rounded-2xl border border-gray-200 bg-white px-3 py-2 shadow w-80 select-none"
               draggable
               onDragStart={(e) => onDragStart(e, s.id)}
               onDragOver={onDragOver}
@@ -271,7 +271,7 @@ export default function StagesEditor({ pipelineId }: { pipelineId: UUID }) {
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>Позиция: {s.position}</span>
                 <div className="flex gap-2">
-                  <button className="px-3 py-1.5 rounded-xl border hover:bg-gray-50" onClick={() => setEditStage(s)}>Ред.</button>
+                  <button className="px-3 py-1.5 rounded-xl border border-gray-300 hover:bg-gray-50" onClick={() => setEditStage(s)}>Ред.</button>
                   <button className="px-3 py-1.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50" onClick={() => deleteStage(s.id)}>Удалить</button>
                 </div>
               </div>

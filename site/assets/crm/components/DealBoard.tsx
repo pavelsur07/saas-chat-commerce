@@ -229,14 +229,14 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
       {stages.map((stage) => (
         <div
           key={stage.id}
-          className="flex flex-col rounded-2xl border bg-white"
+          className="flex flex-col rounded-2xl border border-gray-200 bg-white px-3 py-2"
           onDragOver={allowDrop}
           onDrop={(event) => handleDrop(event, stage.id)}
         >
-          <div className="p-3 border-b">
+          <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-semibold">{stage.name}</div>
           </div>
-          <div className="p-3 space-y-2 min-h-[1rem]">
+          <div className="space-y-2 min-h-[1rem]">
             {(dealsByStage[stage.id] || []).map((deal) => {
               const slaHours = stage.slaHours;
               let isSlaOverdue = false;
@@ -254,7 +254,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
               }
 
               const className = [
-                'w-full rounded-2xl border bg-white p-3 shadow-sm text-left relative',
+                'w-full rounded-2xl border border-gray-200 bg-white px-3 py-2 shadow-sm text-left relative',
                 isSlaOverdue ? 'ring-1 ring-rose-300' : '',
               ]
                 .filter(Boolean)

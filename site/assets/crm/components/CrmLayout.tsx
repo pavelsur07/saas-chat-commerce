@@ -20,22 +20,22 @@ export default function CrmLayout() {
 
   return (
     <div className="h-full grid grid-cols-12 gap-4">
-      <aside className="col-span-2 bg-white rounded-2xl border p-3">
+      <aside className="col-span-2 rounded-2xl border border-gray-200 bg-white px-3 py-2">
         <div className="flex items-center gap-2 mb-3"><div className="text-lg font-semibold">Воронки</div></div>
         <PipelineList activeId={activePipelineId} onSelect={setActivePipelineId} />
       </aside>
 
-      <main className="col-span-7 bg-white rounded-2xl border flex flex-col">
-        <div className="p-3 border-b flex items-center gap-3">
+      <main className="col-span-7 rounded-2xl border border-gray-200 bg-white px-3 py-2 flex flex-col">
+        <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-2">
           <FiltersBar value={filters} onChange={setFilters} />
-          <button className="ml-auto px-3 py-2 rounded-xl border hover:bg-gray-50">Новая сделка</button>
+          <button className="ml-auto px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50">Новая сделка</button>
         </div>
-        <div className="flex-1 p-3 overflow-auto">
+        <div className="flex-1 overflow-auto pt-2">
           <DealBoard pipelineId={activePipelineId} filters={filters} onOpenDeal={setActiveDeal} />
         </div>
       </main>
 
-      <aside className="col-span-3 bg-white rounded-2xl border p-3">
+      <aside className="col-span-3 rounded-2xl border border-gray-200 bg-white px-3 py-2">
         <DealProfile deal={activeDeal} />
       </aside>
     </div>

@@ -30,12 +30,19 @@ export default function PipelineList({ activeId, onSelect }: Props) {
 
   return (
     <div className="space-y-2">
-      <button onClick={createPipeline} className="w-full px-3 py-2 rounded-xl border bg-white hover:bg-gray-50">
+      <button onClick={createPipeline} className="w-full px-3 py-2 rounded-2xl border border-gray-300 bg-white hover:bg-gray-50">
         + Добавить воронку
       </button>
 
       {pipelines.map((p) => (
-        <div key={p.id} className={`px-3 py-2 rounded-xl border ${p.id === activeId ? 'bg-white border-black' : 'bg-white/60 border-transparent hover:border-gray-300'}`}>
+        <div
+          key={p.id}
+          className={`rounded-2xl border px-3 py-2 transition ${
+            p.id === activeId
+              ? 'border-gray-900 bg-white shadow-sm'
+              : 'border-gray-200 bg-white hover:border-gray-300'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <button onClick={() => onSelect(p.id)} className="font-semibold text-left">{p.name}</button>
             <a href={`/crm/pipelines/${p.id}/stages`} className="text-sm text-blue-600 hover:underline">Редактировать этапы</a>
