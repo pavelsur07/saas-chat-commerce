@@ -7,15 +7,19 @@ use App\Entity\Crm\CrmDeal;
 use App\Entity\Crm\CrmPipeline;
 use App\Entity\Crm\CrmStage;
 use App\Service\Company\CompanyContextService;
+use App\Service\Crm\PipelineSeeder;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 /**
  * Контракты API:
@@ -62,6 +66,9 @@ final class PipelineController extends AbstractController
     public function __construct(
         private readonly CompanyContextService $companyContext,
         private readonly EntityManagerInterface $em,
+        private readonly PipelineSeeder $pipelineSeeder,
+        #[Autowire(service: 'monolog.logger.crm')]
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -139,7 +146,16 @@ final class PipelineController extends AbstractController
         $this->em->persist($pipeline);
         $this->em->flush();
 
-        return $this->json($this->formatPipeline($pipeline), Response::HTTP_CREATED);
+        try {
+            $this->pipelineSeeder->seedDefaults($pipeline);
+        } catch (Throwable $exception) {
+            $this->logger->error('crm.pipeline_seed_defaults_failed', [
+                'pipelineId' => $pipeline->getId(),
+                'exception' => $exception,
+            ]);
+        }
+
+        return $this->json($this->formatPipeline($pipeline, true), Response::HTTP_CREATED);
     }
 
     /**
