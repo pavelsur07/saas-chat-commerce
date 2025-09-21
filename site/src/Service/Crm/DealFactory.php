@@ -59,6 +59,7 @@ class DealFactory
         $deal->setOwner($owner);
         $deal->setSource($source);
         $deal->setMeta($meta);
+        $deal->setStageEnteredAt($openedAt);
 
         $this->em->persist($deal);
         $this->em->flush();
