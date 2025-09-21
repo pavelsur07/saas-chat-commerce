@@ -19,6 +19,7 @@ type Deal = {
   stage: Stage;
   pipeline: { id: string; name: string };
   client?: { id: string | number; name?: string; displayName?: string; firstName?: string; lastName?: string; channels?: Array<{ type: string; identifier: string }> } | null;
+  stageEnteredAt?: string | null;
   [key: string]: any;
 };
 
@@ -236,19 +237,51 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
             <div className="font-semibold">{stage.name}</div>
           </div>
           <div className="p-3 space-y-2 min-h-[1rem]">
-            {(dealsByStage[stage.id] || []).map((deal) => (
-              <button
-                key={deal.id}
-                type="button"
-                draggable
-                onDragStart={(event) => handleDragStart(event, stage.id, deal)}
-                onDragEnd={handleDragEnd}
-                onClick={() => onOpenDeal(deal)}
-                className="w-full rounded-2xl border bg-white p-3 shadow-sm text-left"
-              >
-                <div className="font-semibold">{deal.title}</div>
-              </button>
-            ))}
+            {(dealsByStage[stage.id] || []).map((deal) => {
+              const slaHours = stage.slaHours;
+              let isSlaOverdue = false;
+              let overdueHours = 0;
+
+              if (slaHours != null && deal.stageEnteredAt) {
+                const enteredAtTimestamp = new Date(deal.stageEnteredAt).getTime();
+                if (!Number.isNaN(enteredAtTimestamp)) {
+                  const hoursInStage = (Date.now() - enteredAtTimestamp) / 3600000;
+                  if (hoursInStage > slaHours) {
+                    isSlaOverdue = true;
+                    overdueHours = Math.max(0, Math.ceil(hoursInStage - slaHours));
+                  }
+                }
+              }
+
+              const className = [
+                'w-full rounded-2xl border bg-white p-3 shadow-sm text-left relative',
+                isSlaOverdue ? 'ring-1 ring-rose-300' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+
+              return (
+                <button
+                  key={deal.id}
+                  type="button"
+                  draggable
+                  onDragStart={(event) => handleDragStart(event, stage.id, deal)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => onOpenDeal(deal)}
+                  className={className}
+                >
+                  {isSlaOverdue && (
+                    <span
+                      className="absolute right-3 top-3 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700"
+                      title={`SLA просрочен на ${overdueHours} ч`}
+                    >
+                      SLA
+                    </span>
+                  )}
+                  <div className="font-semibold">{deal.title}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
