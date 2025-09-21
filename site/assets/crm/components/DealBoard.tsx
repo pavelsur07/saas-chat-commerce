@@ -6,6 +6,7 @@ type Props = {
   pipelineId: string | null;
   filters: { assignee: string | 'all'; channel: string | 'all'; q: string };
   onOpenDeal: (deal: any) => void;
+  reloadKey?: number;
 };
 
 type StageCol = { id: string; name: string; position: number; slaHours: number | null };
@@ -16,7 +17,7 @@ type Deal = {
   stageEnteredAt?: string;
 };
 
-export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
+export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey = 0 }: Props) {
   const [stages, setStages] = useState<StageCol[]>([]);
   const [dealsByStage, setDealsByStage] = useState<Record<string, Deal[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -31,13 +32,19 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
         .map((s: any) => ({ id: s.id, name: s.name, position: s.position, slaHours: s.slaHours ?? null }));
       setStages(cols);
 
+      const params: Record<string, string | number> = { pipeline: pipelineId, limit: 100, offset: 0 };
+      if (filters.assignee && filters.assignee !== 'all') { params.owner = filters.assignee; }
+      if (filters.q) { params.search = filters.q; }
+
       const { data: dealsResp } = await axios.get<{ items: Deal[] }>(`/api/crm/deals`, {
-        params: { pipeline: pipelineId, limit: 100, offset: 0 }
+        params,
       });
       const grouped: Record<string, Deal[]> = {};
       (dealsResp.items || []).forEach((d: Deal) => {
-        grouped[d.stageId] ||= [];
-        grouped[d.stageId].push(d);
+        const stageKey = (d as any).stageId || (d as any).stage?.id;
+        if (!stageKey) { return; }
+        grouped[stageKey] ||= [];
+        grouped[stageKey].push({ ...d, stageId: stageKey });
       });
       setDealsByStage(grouped);
       setError(null);
@@ -46,7 +53,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pipelineId]);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pipelineId, reloadKey, filters.assignee, filters.q]);
 
   const onCardDragStart = (deal: Deal) => (e: React.DragEvent) => {
     dragDeal.current = deal;
@@ -82,10 +89,12 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal }: Props) {
     return ageH > stage.slaHours;
   };
 
+  const sortedStages = useMemo(() => stages.slice().sort((a, b) => a.position - b.position), [stages]);
+
   return (
     <div className="grid grid-cols-3 gap-3">
       {error && <div className="col-span-3 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
-      {stages.map((s) => (
+      {sortedStages.map((s) => (
         <div key={s.id} className="flex flex-col rounded-2xl border bg-white" onDragOver={onColDragOver} onDrop={onColDrop(s.id)}>
           <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
           <div className="p-3 space-y-2 min-h-24">
