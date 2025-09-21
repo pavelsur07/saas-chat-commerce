@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}CRM — Редактор этапов{% endblock %}
+
+{% block body %}
+  <div id="crm-stages-root" data-pipeline-id="{{ pipelineId }}"></div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  {{ encore_entry_script_tags('crm') }}
+{% endblock %}
