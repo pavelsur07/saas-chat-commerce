@@ -16,10 +16,8 @@ export default function PipelineList({ activeId, onSelect }: Props) {
   const createPipeline = async () => {
     const name = window.prompt('Название воронки');
     if (!name) return;
-    const trimmed = name.trim();
-    if (!trimmed) return;
     try {
-      const { data } = await axios.post<Pipeline>('/api/crm/pipelines', { name: trimmed });
+      const { data } = await axios.post<Pipeline>('/api/crm/pipelines', { name: name.trim() });
       setPipelines(prev => [...prev, data]);
       onSelect(data.id);
       if (window.confirm('Перейти к редактору этапов?')) {
