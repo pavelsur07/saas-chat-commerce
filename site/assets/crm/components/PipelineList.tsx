@@ -3,16 +3,24 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 type Pipeline = { id: string; name: string };
-type Props = { activeId: string | null; onSelect: (id: string) => void; };
+type Props = { activeId: string | null; onSelect: (pipeline: Pipeline) => void; };
 
 export default function PipelineList({ activeId, onSelect }: Props) {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
 
   useEffect(() => {
     axios.get<Pipeline[]>('/api/crm/pipelines')
-      .then(({ data }) => setPipelines(data))
+      .then(({ data }) => {
+        setPipelines(data);
+      })
       .catch(() => setPipelines([]));
   }, []);
+
+  useEffect(() => {
+    if (!activeId && pipelines.length > 0) {
+      onSelect(pipelines[0]);
+    }
+  }, [activeId, pipelines, onSelect]);
 
   const createPipeline = async () => {
     const name = window.prompt('Название воронки');
@@ -20,7 +28,7 @@ export default function PipelineList({ activeId, onSelect }: Props) {
     try {
       const { data } = await axios.post<Pipeline>('/api/crm/pipelines', { name: name.trim() });
       setPipelines(prev => [...prev, data]);
-      onSelect(data.id);
+      onSelect(data);
       if (window.confirm('Перейти к редактору этапов?')) {
         window.location.href = `/crm/pipelines/${data.id}/stages`;
       }
@@ -44,7 +52,7 @@ export default function PipelineList({ activeId, onSelect }: Props) {
           className={`px-3 py-2 rounded-xl border ${p.id === activeId ? 'bg-white border-black' : 'bg-white/60 border-transparent hover:border-gray-300'}`}
         >
           <div className="flex items-center justify-between">
-            <button onClick={() => onSelect(p.id)} className="font-semibold text-left">{p.name}</button>
+            <button onClick={() => onSelect(p)} className="font-semibold text-left">{p.name}</button>
             <a href={`/crm/pipelines/${p.id}/stages`} className="text-sm text-blue-600 hover:underline">
               Редактировать этапы
             </a>
