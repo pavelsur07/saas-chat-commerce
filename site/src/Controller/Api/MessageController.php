@@ -5,6 +5,9 @@ namespace App\Controller\Api;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
+use App\Entity\Company\User as CompanyUser;
+use App\Entity\Messaging\ClientReadState;
+use App\Repository\Messaging\ClientReadStateRepository;
 use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;
 use App\Service\Messaging\Dto\OutboundMessage;
@@ -153,5 +156,70 @@ class MessageController extends AbstractController
             'status' => 'success',
             'message_id' => $message->getId(),
         ]);
+    }
+
+    #[Route('/api/messages/{client_id}/read', name: 'api.messages.read', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function markRead(
+        string $client_id,
+        EntityManagerInterface $em,
+        ClientRepository $clients,
+        MessageRepository $messages,
+        ClientReadStateRepository $readStates,
+        Request $request
+    ): JsonResponse {
+        $activeCompanyId = $request->getSession()->get('active_company_id');
+        if (!$activeCompanyId) {
+            return new JsonResponse(['error' => 'Active company not selected'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->getUser();
+        if (!$user instanceof CompanyUser) {
+            return new JsonResponse(['error' => 'User not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        /** @var Client|null $client */
+        $client = $clients->find($client_id);
+        if (!$client) {
+            return new JsonResponse(['error' => 'Client not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $company = $client->getCompany();
+        if ($company->getId() !== $activeCompanyId) {
+            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        $lastMessage = $messages->findLastOneByClient($client_id);
+        if (!$lastMessage) {
+            return new JsonResponse(['ok' => true, 'unread_count' => 0]);
+        }
+
+        $state = $readStates->findOneBy([
+            'company' => $company,
+            'client' => $client,
+            'user' => $user,
+        ]);
+
+        $lastCreatedAt = $lastMessage->getCreatedAt();
+
+        if (!$state) {
+            $state = new ClientReadState(
+                Uuid::uuid4()->toString(),
+                $company,
+                $client,
+                $user,
+            );
+            $state->setLastReadAt($lastCreatedAt);
+            $em->persist($state);
+        } else {
+            $prevReadAt = $state->getLastReadAt();
+            if (!$prevReadAt || $lastCreatedAt > $prevReadAt) {
+                $state->setLastReadAt($lastCreatedAt);
+            }
+        }
+
+        $em->flush();
+
+        return new JsonResponse(['ok' => true, 'unread_count' => 0]);
     }
 }
