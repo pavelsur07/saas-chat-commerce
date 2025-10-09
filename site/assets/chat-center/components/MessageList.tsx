@@ -24,6 +24,11 @@ type Props = {
     onNewMessage?: () => void;
 };
 
+const markRead = async (clientId: string) =>
+    axios.post(`/api/messages/${clientId}/read`).catch((error) => {
+        console.warn('Failed to mark messages as read', error);
+    });
+
 const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     const [messages, setMessages] = useState<Message[]>([]);
 
@@ -54,6 +59,18 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
         ]);
         onNewMessage && onNewMessage();
     });
+
+    useEffect(() => {
+        if (!clientId) {
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            markRead(clientId);
+        }, 500);
+
+        return () => clearTimeout(timeout);
+    }, [clientId, messages]);
 
     return (
         <div className="space-y-2">

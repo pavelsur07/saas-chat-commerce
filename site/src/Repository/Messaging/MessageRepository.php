@@ -39,6 +39,43 @@ class MessageRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    public function findLastOneByClient(string $clientId): ?Message
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.client = :clientId')
+            ->setParameter('clientId', $clientId)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function countInboundAfter(string $clientId, \DateTimeImmutable $after): int
+    {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->andWhere('m.client = :clientId')
+            ->andWhere('m.direction = :direction')
+            ->andWhere('m.createdAt > :after')
+            ->setParameter('clientId', $clientId)
+            ->setParameter('direction', Message::IN)
+            ->setParameter('after', $after)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countAllInbound(string $clientId): int
+    {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->andWhere('m.client = :clientId')
+            ->andWhere('m.direction = :direction')
+            ->setParameter('clientId', $clientId)
+            ->setParameter('direction', Message::IN)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /**
      * Возвращает последние сообщения клиента (новые в конце массива),
      * упорядоченные по createdAt ASC (для удобства построения истории).

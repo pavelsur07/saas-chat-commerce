@@ -9,6 +9,8 @@ type Client = {
     id: string;
     name: string;
     source: string;
+    unread_count?: number;
+    awaiting?: boolean;
 };
 
 const ChatLayout: React.FC = () => {
