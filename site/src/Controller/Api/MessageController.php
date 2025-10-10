@@ -29,7 +29,13 @@ class MessageController extends AbstractController
 {
     #[Route('/api/messages/{client_id}', name: 'api.messages', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function list(string $client_id, Request $request, ClientRepository $clients, MessageRepository $messages): JsonResponse
+    public function list(
+        string $client_id,
+        Request $request,
+        ClientRepository $clients,
+        MessageRepository $messages,
+        ClientReadStateRepository $readStates,
+    ): JsonResponse
     {
         $activeCompanyId = $request->getSession()->get('active_company_id');
         if (!$activeCompanyId) {
@@ -45,7 +51,83 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        $items = $messages->findBy(['client' => $client], ['createdAt' => 'ASC']);
+        $user = $this->getUser();
+        if (!$user instanceof CompanyUser) {
+            return new JsonResponse(['error' => 'User not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        $limitValue = $request->query->get('limit');
+        $limit = 30;
+        if (is_numeric($limitValue)) {
+            $limit = (int) $limitValue;
+        }
+        $limit = max(1, min($limit, 50));
+
+        $beforeIdRaw = $request->query->get('before_id');
+        $afterIdRaw = $request->query->get('after_id');
+        $beforeId = is_string($beforeIdRaw) && '' !== trim($beforeIdRaw) ? $beforeIdRaw : null;
+        $afterId = is_string($afterIdRaw) && '' !== trim($afterIdRaw) ? $afterIdRaw : null;
+
+        if (null !== $beforeId) {
+            $afterId = null;
+        }
+
+        $anchorMessage = null;
+        if (null !== $beforeId) {
+            $anchorMessage = $messages->find($beforeId);
+            $items = $messages->findByClientBeforeId($client_id, $beforeId, $limit);
+        } elseif (null !== $afterId) {
+            $anchorMessage = $messages->find($afterId);
+            $items = $messages->findByClientAfterId($client_id, $afterId, $limit);
+        } else {
+            $items = $messages->findByClientLatest($client_id, $limit);
+        }
+
+        $messageCount = count($items);
+        $oldestMessage = $messageCount > 0 ? $items[0] : null;
+        $newestMessage = $messageCount > 0 ? $items[$messageCount - 1] : null;
+
+        $referenceForTop = null;
+        if ($oldestMessage instanceof Message) {
+            $referenceForTop = $oldestMessage->getCreatedAt();
+        } elseif (null !== $beforeId && $anchorMessage instanceof Message && $anchorMessage->getClient()->getId() === $client_id) {
+            $referenceForTop = $anchorMessage->getCreatedAt();
+        }
+
+        $hasMoreTop = false;
+        if ($referenceForTop instanceof \DateTimeImmutable) {
+            $hasMoreTop = (bool) $messages->createQueryBuilder('mt')
+                ->select('COUNT(mt.id)')
+                ->andWhere('mt.client = :clientId')
+                ->andWhere('mt.createdAt < :reference')
+                ->setParameter('clientId', $client_id)
+                ->setParameter('reference', $referenceForTop)
+                ->getQuery()
+                ->getSingleScalarResult();
+        }
+
+        $hasMoreBottom = false;
+        if (null !== $afterId && $anchorMessage instanceof Message && $anchorMessage->getClient()->getId() === $client_id) {
+            $referenceForBottom = $newestMessage instanceof Message ? $newestMessage->getCreatedAt() : $anchorMessage->getCreatedAt();
+            $hasMoreBottom = (bool) $messages->createQueryBuilder('mb')
+                ->select('COUNT(mb.id)')
+                ->andWhere('mb.client = :clientId')
+                ->andWhere('mb.createdAt > :reference')
+                ->setParameter('clientId', $client_id)
+                ->setParameter('reference', $referenceForBottom)
+                ->getQuery()
+                ->getSingleScalarResult();
+        }
+
+        $company = $client->getCompany();
+        $state = $readStates->findOneBy([
+            'company' => $company,
+            'client' => $client,
+            'user' => $user,
+        ]);
+        $lastReadAt = $state?->getLastReadAt();
+        $firstUnreadId = $messages->findFirstUnreadId($client_id, $lastReadAt);
+
         $dataMessages = array_map(static function (Message $message) {
             return [
                 'id' => $message->getId(),
@@ -63,6 +145,13 @@ class MessageController extends AbstractController
                 'external_id' => $client->getExternalId(),
             ],
             'messages' => $dataMessages,
+            'page' => [
+                'oldest_id' => $oldestMessage?->getId(),
+                'newest_id' => $newestMessage?->getId(),
+                'has_more_top' => $hasMoreTop,
+                'has_more_bottom' => $hasMoreBottom,
+            ],
+            'first_unread_id' => $firstUnreadId,
         ];
 
         return new JsonResponse($data);
