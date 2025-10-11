@@ -41,7 +41,7 @@ export function useSocket(
 
         const socket = io(getSocketUrl(), {
             path: PATH,
-            transports: ['websocket'], // ← временно оставляем два
+            transports: ['websocket', 'polling'], // оставляем fallback на long-polling для нестабильного handshake
             withCredentials: true,
             reconnection: true,
             reconnectionAttempts: Infinity,
