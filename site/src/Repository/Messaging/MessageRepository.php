@@ -84,100 +84,15 @@ class MessageRepository extends ServiceEntityRepository
      */
     public function findLastByClient(string $clientId, int $limit = 12): array
     {
-        return $this->findByClientLatest($clientId, $limit);
-    }
-
-    /**
-     * @return Message[]
-     */
-    public function findByClientLatest(string $clientId, int $limit): array
-    {
-        $items = $this->createQueryBuilder('m')
-            ->andWhere('m.client = :clientId')
-            ->setParameter('clientId', $clientId)
-            ->orderBy('m.createdAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
-
-        return array_reverse($items);
-    }
-
-    /**
-     * @return Message[]
-     */
-    public function findByClientBeforeId(string $clientId, string $beforeId, int $limit): array
-    {
-        /** @var Message|null $anchor */
-        $anchor = $this->find($beforeId);
-
-        if (!$anchor || $anchor->getClient()->getId() !== $clientId) {
-            return [];
-        }
-
-        $items = $this->createQueryBuilder('m')
-            ->andWhere('m.client = :clientId')
-            ->andWhere('m.createdAt < :anchorCreatedAt')
-            ->setParameter('clientId', $clientId)
-            ->setParameter('anchorCreatedAt', $anchor->getCreatedAt())
-            ->orderBy('m.createdAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
-
-        return array_reverse($items);
-    }
-
-    /**
-     * @return Message[]
-     */
-    public function findByClientAfterId(string $clientId, string $afterId, int $limit): array
-    {
-        /** @var Message|null $anchor */
-        $anchor = $this->find($afterId);
-
-        if (!$anchor || $anchor->getClient()->getId() !== $clientId) {
-            return [];
-        }
-
-        return $this->createQueryBuilder('m')
-            ->andWhere('m.client = :clientId')
-            ->andWhere('m.createdAt > :anchorCreatedAt')
-            ->setParameter('clientId', $clientId)
-            ->setParameter('anchorCreatedAt', $anchor->getCreatedAt())
-            ->orderBy('m.createdAt', 'ASC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
-    }
-
-    public function findFirstUnreadId(string $clientId, ?\DateTimeImmutable $lastReadAt): ?string
-    {
         $qb = $this->createQueryBuilder('m')
-            ->select('m.id')
             ->andWhere('m.client = :clientId')
-            ->andWhere('m.direction = :direction')
             ->setParameter('clientId', $clientId)
-            ->setParameter('direction', Message::IN)
-            ->orderBy('m.createdAt', 'ASC')
-            ->setMaxResults(1);
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit);
 
-        if (null !== $lastReadAt) {
-            $qb
-                ->andWhere('m.createdAt > :lastReadAt')
-                ->setParameter('lastReadAt', $lastReadAt);
-        }
+        $items = $qb->getQuery()->getResult();
 
-        $result = $qb->getQuery()->getOneOrNullResult();
-
-        if (!$result) {
-            return null;
-        }
-
-        if (is_array($result)) {
-            return $result['id'] ?? null;
-        }
-
-        return is_string($result) ? $result : null;
+        // Переворачиваем, чтобы сверху были старые, снизу новые
+        return array_reverse($items);
     }
 }
