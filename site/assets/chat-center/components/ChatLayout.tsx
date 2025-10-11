@@ -17,7 +17,6 @@ const ChatLayout: React.FC = () => {
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [reload, setReload] = useState(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
-    const messageContainerRef = useRef<HTMLDivElement | null>(null);
 
     // Скролл вниз при новых сообщениях
     useEffect(() => {
@@ -44,13 +43,12 @@ const ChatLayout: React.FC = () => {
           </span>
                 </div>
 
-                <div ref={messageContainerRef} className="flex-1 overflow-y-auto px-4 py-2">
+                        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
                     {selectedClient && (
                         <>
                             <MessageList
                                 clientId={selectedClient.id}
-                                containerRef={messageContainerRef}
-                                onNewMessage={() => setReload((prev) => !prev)}
+                                onNewMessage={() => setReload(!reload)}
                             />
                             <div ref={bottomRef} />
                         </>
@@ -61,7 +59,7 @@ const ChatLayout: React.FC = () => {
                     {selectedClient && (
                         <SendMessageForm
                             clientId={selectedClient.id}
-                            onMessageSent={() => setReload((prev) => !prev)}
+                            onMessageSent={() => setReload(!reload)}
                         />
                     )}
                 </div>
