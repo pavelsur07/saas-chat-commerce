@@ -45,48 +45,15 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        $limit = (int) $request->query->get('limit', 20);
-        if ($limit < 1) {
-            $limit = 1;
-        }
-        if ($limit > 100) {
-            $limit = 100;
-        }
-
-        $beforeId = $request->query->get('before');
-        $beforeMessage = null;
-        if ($beforeId) {
-            $beforeMessage = $messages->findOneBy([
-                'id' => $beforeId,
-                'client' => $client,
-            ]);
-
-            if (!$beforeMessage) {
-                return new JsonResponse(['error' => 'Reference message not found'], Response::HTTP_BAD_REQUEST);
-            }
-        }
-
-        $fetchLimit = $limit + 1; // +1, чтобы определить наличие старших сообщений
-
-        $items = $messages->findChunkByClient($client, $fetchLimit, $beforeMessage?->getCreatedAt());
-
-        $hasMore = false;
-        if (count($items) > $limit) {
-            $hasMore = true;
-            array_shift($items);
-        }
-
+        $items = $messages->findBy(['client' => $client], ['createdAt' => 'ASC']);
         $dataMessages = array_map(static function (Message $message) {
             return [
                 'id' => $message->getId(),
                 'text' => $message->getText(),
                 'direction' => Message::IN === $message->getDirection() ? 'in' : 'out',
                 'timestamp' => $message->getCreatedAt()->format(DATE_ATOM),
-                'createdAt' => $message->getCreatedAt()->format(DATE_ATOM),
             ];
         }, $items);
-
-        $nextCursor = $hasMore && !empty($items) ? $items[0]->getId() : null;
 
         $data = [
             'client' => [
@@ -96,10 +63,6 @@ class MessageController extends AbstractController
                 'external_id' => $client->getExternalId(),
             ],
             'messages' => $dataMessages,
-            'pagination' => [
-                'has_more' => $hasMore,
-                'next_before_id' => $nextCursor,
-            ],
         ];
 
         return new JsonResponse($data);
