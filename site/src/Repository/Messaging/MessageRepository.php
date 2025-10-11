@@ -96,6 +96,27 @@ class MessageRepository extends ServiceEntityRepository
         return array_reverse($items);
     }
 
+    /**
+     * Возвращает сообщения клиента, созданные до указанного момента (не включая его),
+     * упорядоченные по возрастанию createdAt.
+     *
+     * @return Message[]
+     */
+    public function findBefore(Client $client, \DateTimeImmutable $before, int $limit = 30): array
+    {
+        $items = $this->createQueryBuilder('m')
+            ->andWhere('m.client = :client')
+            ->andWhere('m.createdAt < :before')
+            ->setParameter('client', $client)
+            ->setParameter('before', $before)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return array_reverse($items);
+    }
+
     public function findLastBeforeOrEqual(Client $client, \DateTimeImmutable $moment): ?Message
     {
         return $this->createQueryBuilder('m')
