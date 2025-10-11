@@ -39,6 +39,33 @@ class MessageRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * Возвращает последовательность сообщений клиента, ограниченную лимитом.
+     * Сообщения отсортированы по времени создания по возрастанию (старые сверху).
+     *
+     * @param int                   $limit  Максимальное количество записей (включая служебную «лишнюю» для определения hasMore).
+     * @param \DateTimeImmutable|null $before Сообщения строго раньше указанной даты (используется для пагинации «вверх»).
+     *
+     * @return Message[]
+     */
+    public function findChunkByClient(Client $client, int $limit, ?\DateTimeImmutable $before = null): array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->andWhere('m.client = :client')
+            ->setParameter('client', $client)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit);
+
+        if ($before) {
+            $qb->andWhere('m.createdAt < :before')
+                ->setParameter('before', $before);
+        }
+
+        $items = $qb->getQuery()->getResult();
+
+        return array_reverse($items);
+    }
+
     public function findLastOneByClient(string $clientId): ?Message
     {
         return $this->createQueryBuilder('m')
