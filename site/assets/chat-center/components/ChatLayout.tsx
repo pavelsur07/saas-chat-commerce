@@ -23,7 +23,7 @@ const ChatLayout: React.FC = () => {
         if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [selectedClient, reload]);
+    }, [reload]);
 
     return (
         <div className="flex h-[85vh] bg-white border rounded-lg shadow overflow-hidden">
@@ -48,7 +48,7 @@ const ChatLayout: React.FC = () => {
                         <>
                             <MessageList
                                 clientId={selectedClient.id}
-                                onNewMessage={() => setReload(!reload)}
+                                onNewMessage={() => setReload((prev) => !prev)}
                             />
                             <div ref={bottomRef} />
                         </>
@@ -59,7 +59,7 @@ const ChatLayout: React.FC = () => {
                     {selectedClient && (
                         <SendMessageForm
                             clientId={selectedClient.id}
-                            onMessageSent={() => setReload(!reload)}
+                            onMessageSent={() => setReload((prev) => !prev)}
                         />
                     )}
                 </div>
