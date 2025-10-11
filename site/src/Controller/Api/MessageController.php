@@ -55,8 +55,24 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        $limit = 30;
-        $items = $messages->findLastByClient($client->getId(), $limit);
+        $limit = (int) $request->query->get('limit', 30);
+        if ($limit <= 0) {
+            $limit = 30;
+        }
+        $limit = min($limit, 100);
+
+        $beforeId = $request->query->get('before_id');
+
+        if ($beforeId) {
+            $beforeMessage = $messages->find($beforeId);
+            if ($beforeMessage && $beforeMessage->getClient()->getId() === $client->getId()) {
+                $items = $messages->findBefore($client, $beforeMessage->getCreatedAt(), $limit);
+            } else {
+                $items = [];
+            }
+        } else {
+            $items = $messages->findLastByClient($client->getId(), $limit);
+        }
 
         $lastReadMessageId = null;
         $state = $readStates->findOneBy([
