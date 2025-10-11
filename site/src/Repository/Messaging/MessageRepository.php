@@ -95,4 +95,17 @@ class MessageRepository extends ServiceEntityRepository
         // Переворачиваем, чтобы сверху были старые, снизу новые
         return array_reverse($items);
     }
+
+    public function findLastBeforeOrEqual(Client $client, \DateTimeImmutable $moment): ?Message
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.client = :client')
+            ->andWhere('m.createdAt <= :moment')
+            ->setParameter('client', $client)
+            ->setParameter('moment', $moment)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

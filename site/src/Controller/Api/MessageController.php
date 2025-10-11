@@ -29,11 +29,21 @@ class MessageController extends AbstractController
 {
     #[Route('/api/messages/{client_id}', name: 'api.messages', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function list(string $client_id, Request $request, ClientRepository $clients, MessageRepository $messages): JsonResponse
-    {
+    public function list(
+        string $client_id,
+        Request $request,
+        ClientRepository $clients,
+        MessageRepository $messages,
+        ClientReadStateRepository $readStates,
+    ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
         if (!$activeCompanyId) {
             return new JsonResponse(['error' => 'Active company not selected'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->getUser();
+        if (!$user instanceof CompanyUser) {
+            return new JsonResponse(['error' => 'User not found'], Response::HTTP_FORBIDDEN);
         }
 
         $client = $clients->find($client_id);
@@ -45,7 +55,23 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        $items = $messages->findBy(['client' => $client], ['createdAt' => 'ASC']);
+        $limit = 30;
+        $items = $messages->findLastByClient($client->getId(), $limit);
+
+        $lastReadMessageId = null;
+        $state = $readStates->findOneBy([
+            'company' => $client->getCompany(),
+            'client' => $client,
+            'user' => $user,
+        ]);
+
+        if ($state && $state->getLastReadAt()) {
+            $lastReadMessage = $messages->findLastBeforeOrEqual($client, $state->getLastReadAt());
+            if ($lastReadMessage) {
+                $lastReadMessageId = $lastReadMessage->getId();
+            }
+        }
+
         $dataMessages = array_map(static function (Message $message) {
             return [
                 'id' => $message->getId(),
@@ -63,6 +89,7 @@ class MessageController extends AbstractController
                 'external_id' => $client->getExternalId(),
             ],
             'messages' => $dataMessages,
+            'last_read_message_id' => $lastReadMessageId,
         ];
 
         return new JsonResponse($data);
