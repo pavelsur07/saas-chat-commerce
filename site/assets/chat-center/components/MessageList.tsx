@@ -234,6 +234,36 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
         }
     }, [clientId, hasMore, isLoadingMore]);
 
+    useEffect(() => {
+        if (!lastReadLoaded || initialScrollDone) {
+            return;
+        }
+
+        if (!lastReadMessageId) {
+            return;
+        }
+
+        const hasLastReadMessage = messages.some((message) => message.id === lastReadMessageId);
+
+        if (hasLastReadMessage) {
+            return;
+        }
+
+        if (!hasMore || isLoadingMore) {
+            return;
+        }
+
+        loadOlderMessages();
+    }, [
+        hasMore,
+        initialScrollDone,
+        isLoadingMore,
+        lastReadLoaded,
+        lastReadMessageId,
+        loadOlderMessages,
+        messages,
+    ]);
+
     useLayoutEffect(() => {
         if (!pendingScrollAdjustment.current) {
             return;
