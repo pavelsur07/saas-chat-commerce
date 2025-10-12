@@ -165,6 +165,10 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
             return;
         }
 
+        if (lastReadMessageId) {
+            return;
+        }
+
         const lastMessage = messages[messages.length - 1];
         if (lastMessage) {
             scrollToMessage(lastMessage.id);
@@ -235,7 +239,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     }, [clientId, hasMore, isLoadingMore]);
 
     useEffect(() => {
-        if (!lastReadLoaded || initialScrollDone) {
+        if (!lastReadLoaded) {
             return;
         }
 
@@ -306,7 +310,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     }, [hasMore, loadOlderMessages, messages.length]);
 
     useEffect(() => {
-        if (!clientId) {
+        if (!clientId || !initialScrollDone) {
             return;
         }
 
@@ -315,7 +319,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
         }, 500);
 
         return () => clearTimeout(timeout);
-    }, [clientId, messages]);
+    }, [clientId, messages, initialScrollDone]);
 
     return (
         <div ref={rootRef} className="space-y-2">
