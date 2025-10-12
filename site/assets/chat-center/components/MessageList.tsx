@@ -39,6 +39,7 @@ const markRead = async (clientId: string) =>
 const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [lastReadMessageId, setLastReadMessageId] = useState<string | null>(null);
+    const [lastReadLoaded, setLastReadLoaded] = useState(false);
     const [initialScrollDone, setInitialScrollDone] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -63,6 +64,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
         setMessages([]);
         setLastReadMessageId(null);
         setInitialScrollDone(false);
+        setLastReadLoaded(false);
         setHasMore(true);
         setIsLoadingMore(false);
         messageRefs.current = new Map<string, HTMLDivElement>();
@@ -88,10 +90,12 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
 
                 setMessages(loadedMessages);
                 setLastReadMessageId(data.last_read_message_id ?? null);
+                setLastReadLoaded(true);
                 setHasMore(loadedMessages.length >= PAGE_SIZE);
             })
             .catch((error) => {
                 console.warn('Failed to load messages', error);
+                setLastReadLoaded(true);
             });
 
         return () => {
@@ -134,7 +138,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     }, [clientId]);
 
     useEffect(() => {
-        if (initialScrollDone) {
+        if (initialScrollDone || !lastReadLoaded) {
             return;
         }
 
@@ -165,7 +169,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
         if (lastMessage) {
             scrollToMessage(lastMessage.id);
         }
-    }, [messages, lastReadMessageId, initialScrollDone]);
+    }, [messages, lastReadMessageId, initialScrollDone, lastReadLoaded]);
 
     const loadOlderMessages = useCallback(async () => {
         if (isLoadingMore || !hasMore) {
