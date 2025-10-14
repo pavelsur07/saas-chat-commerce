@@ -72,6 +72,22 @@ services:
 
     App\Service\Messaging\MessageIngressService: ~
 
+    App\Service\Messaging\MessagePipeline:
+        arguments:
+            $middlewares: !tagged_iterator app.messaging.middleware
+
+    App\Service\Messaging\Middleware\NormalizeMiddleware:
+        tags:
+            - { name: 'app.messaging.middleware', priority: 300 }
+
+    App\Service\Messaging\Middleware\PersistMiddleware:
+        tags:
+            - { name: 'app.messaging.middleware', priority: 200 }
+
+    App\Service\Messaging\Middleware\AiEnrichMiddleware:
+        tags:
+            - { name: 'app.messaging.middleware', priority: 100 }
+
     App\Service\Messaging\MessageEgressService:
         arguments:
             $adapters:

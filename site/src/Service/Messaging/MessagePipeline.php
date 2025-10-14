@@ -9,9 +9,17 @@ use App\Service\Messaging\Pipeline\MessageMiddlewareInterface;
 
 final class MessagePipeline
 {
-    /** @param MessageMiddlewareInterface[] $middlewares */
-    public function __construct(private array $middlewares)
+    /** @var MessageMiddlewareInterface[] */
+    private array $middlewares;
+
+    /**
+     * @param iterable<MessageMiddlewareInterface> $middlewares
+     */
+    public function __construct(iterable $middlewares)
     {
+        $this->middlewares = is_array($middlewares)
+            ? $middlewares
+            : iterator_to_array($middlewares, false);
     }
 
     public function handle(InboundMessage $m): void
