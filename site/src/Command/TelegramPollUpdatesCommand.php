@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Entity\Messaging\Client;
 use App\Repository\Messaging\TelegramBotRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
+use App\Service\Messaging\TelegramInboundMessageFactory;
 use App\Service\Messaging\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -26,6 +26,7 @@ final class TelegramPollUpdatesCommand extends Command
         private readonly TelegramService $telegram,
         private readonly TelegramBotRepository $bots,
         private readonly MessageIngressService $ingress,
+        private readonly TelegramInboundMessageFactory $messageFactory,
         private readonly EntityManagerInterface $em,
     ) {
         parent::__construct();
@@ -69,45 +70,18 @@ final class TelegramPollUpdatesCommand extends Command
 
                 foreach ($updates as $upd) {
                     $updateId = $upd['update_id'] ?? null;
-                    $message = $upd['message'] ?? ($upd['edited_message'] ?? null);
 
-                    if (!$updateId) {
+                    if (null === $updateId) {
                         continue;
                     }
 
-                    if (!$message || !is_array($message)) {
-                        $maxUpdateId = $this->maxUpdateId($maxUpdateId, $updateId);
-                        continue;
+                    $inbound = $this->messageFactory->createFromUpdate($bot, $upd);
+
+                    if ($inbound instanceof InboundMessage) {
+                        $this->ingress->accept($inbound);
+                        ++$accepted;
                     }
 
-                    $text = (string) ($message['text'] ?? '');
-                    $chat = $message['chat'] ?? [];
-                    $chatId = (string) ($chat['id'] ?? '');
-
-                    if ('' === $text || '' === $chatId) {
-                        $maxUpdateId = $this->maxUpdateId($maxUpdateId, $updateId);
-                        continue;
-                    }
-
-                    $meta = [
-                        'username' => $chat['username'] ?? null,
-                        'firstName' => $chat['first_name'] ?? null,
-                        'lastName' => $chat['last_name'] ?? null,
-                        'company' => $bot->getCompany(),
-                        'update_id' => $updateId,
-                        'bot_id' => $bot->getId(),
-                        'raw' => $upd,
-                    ];
-
-                    $this->ingress->accept(new InboundMessage(
-                        channel: Client::TELEGRAM,
-                        externalId: $chatId,
-                        text: $text,
-                        clientId: null,
-                        meta: $meta
-                    ));
-
-                    ++$accepted;
                     $maxUpdateId = $this->maxUpdateId($maxUpdateId, $updateId);
                 }
 

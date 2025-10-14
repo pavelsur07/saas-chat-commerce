@@ -6,6 +6,7 @@ use App\Entity\Messaging\Client;
 use App\Repository\Messaging\TelegramBotRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
+use App\Service\Messaging\TelegramInboundMessageFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,7 @@ class TelegramWebhookController extends AbstractController
         Request $request,
         TelegramBotRepository $botRepo,
         MessageIngressService $ingress,
+        TelegramInboundMessageFactory $messageFactory,
     ): JsonResponse {
         $bot = $botRepo->findOneBy(['token' => $token, 'isActive' => true]);
         if (!$bot) {
@@ -31,71 +33,11 @@ class TelegramWebhookController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $msg = $data['message'] ?? $data['edited_message'] ?? null;
-        if (!$msg || !is_array($msg)) {
+        $inbound = $messageFactory->createFromUpdate($bot, $data);
+
+        if (!$inbound instanceof InboundMessage) {
             return new JsonResponse(['ok' => true]);
         }
-
-        // Валидация наличия from.id и chat.id
-        $from = $msg['from'] ?? null;
-        $chat = $msg['chat'] ?? null;
-
-        if (!is_array($from) || !isset($from['id'])) {
-            // В этом тесте как раз нет from.id — корректно выходим
-            return new JsonResponse(['ok' => true]);
-        }
-
-        if (!is_array($chat) || !isset($chat['id'])) {
-            // Без chat.id не можем привязать чат
-            return new JsonResponse(['ok' => true]);
-        }
-
-        $telegramId = (string) $chat['id']; // для private чат = user id
-
-        $hasText = array_key_exists('text', $msg) && is_string($msg['text']);
-        $hasPhoto = array_key_exists('photo', $msg);
-        $hasVideo = array_key_exists('video', $msg);
-        $caption = $msg['caption'] ?? null;
-
-        $resolvedText = $hasText ? (string) $msg['text'] : '';
-        if ('' === $resolvedText && is_string($caption)) {
-            $resolvedText = $caption;
-        }
-
-        $ingestType = 'unknown';
-        if (array_key_exists('sticker', $msg)) {
-            $ingestType = 'sticker';
-        } elseif ($hasPhoto) {
-            $ingestType = 'photo';
-        } elseif ($hasVideo) {
-            $ingestType = 'video';
-        } elseif ('' !== $resolvedText) {
-            $ingestType = 'text';
-        }
-
-        $meta = [
-            'username' => $from['username'] ?? ($chat['username'] ?? null),
-            'firstName' => $from['first_name'] ?? ($chat['first_name'] ?? null),
-            'lastName' => $from['last_name'] ?? ($chat['last_name'] ?? null),
-            'company' => $bot->getCompany(),
-            'bot_id' => $bot->getId(),
-            'update_id' => $data['update_id'] ?? null,
-            'raw' => $data,
-            'ingest' => [
-                'type' => $ingestType,
-                'message_id' => $msg['message_id'] ?? null,
-                'date' => $msg['date'] ?? null,
-                'has_text' => '' !== trim((string) $resolvedText),
-            ],
-        ];
-
-        $inbound = new InboundMessage(
-            channel: Client::TELEGRAM,
-            externalId: $telegramId,
-            text: $resolvedText,
-            clientId: null,
-            meta: $meta
-        );
 
         $ingress->accept($inbound);
 
