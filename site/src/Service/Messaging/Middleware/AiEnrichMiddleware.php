@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service\Messaging\Middleware;
 
+use App\Entity\Company\Company;
+use App\Entity\Messaging\Client as DbClient;
 use App\Entity\Messaging\Message as DbMessage;
 use App\Repository\Messaging\MessageRepository;
 use App\Service\AI\AiFeature;
@@ -23,11 +25,30 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
 
     public function __invoke(InboundMessage $m, callable $next): void
     {
+        if ('' === trim((string) $m->text)) {
+            $next($m);
+
+            return;
+        }
+
+        $company = $m->meta['company'] ?? null;
+        if (!$company instanceof Company && ($m->meta['_client'] ?? null) instanceof DbClient) {
+            $company = $m->meta['_client']->getCompany();
+        }
+
+        if (!$company instanceof Company) {
+            $next($m);
+
+            return;
+        }
+
         $intentRes = $this->llm->chat([
             'model' => 'gpt-4o-mini',
             'messages' => [['role' => 'user', 'content' => $m->text]],
             'feature' => AiFeature::INTENT_CLASSIFY->value,
             'channel' => $m->channel,
+            'company' => $company,
+            'metadata' => ['message_direction' => 'in'],
         ]);
 
         if (!empty($m->meta['_persisted_message_id'])) {
@@ -53,6 +74,8 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
             ],
             'feature' => AiFeature::AGENT_SUGGEST_REPLY->value,
             'channel' => $m->channel,
+            'company' => $company,
+            'metadata' => ['message_direction' => 'in'],
         ]);
 
         $next($m);
