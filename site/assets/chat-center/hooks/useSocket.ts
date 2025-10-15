@@ -35,6 +35,11 @@ export function useSocket(
     onMessage: (data: MessagePayload) => void
 ) {
     const socketRef = useRef<Socket | null>(null);
+    const onMessageRef = useRef(onMessage);
+
+    useEffect(() => {
+        onMessageRef.current = onMessage;
+    }, [onMessage]);
 
     useEffect(() => {
         if (!clientId) return;
@@ -60,7 +65,9 @@ export function useSocket(
         socket.emit('join', { room });
 
         const handler = (data: MessagePayload) => {
-            if (String(data.clientId) === String(clientId)) onMessage(data);
+            if (String(data.clientId) === String(clientId)) {
+                onMessageRef.current?.(data);
+            }
         };
         socket.on('new_message', handler);
 
@@ -70,5 +77,5 @@ export function useSocket(
                 socket.disconnect();
             }
         };
-    }, [clientId, onMessage]);
+    }, [clientId]);
 }
