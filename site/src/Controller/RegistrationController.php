@@ -45,7 +45,9 @@ class RegistrationController extends AbstractController
 
             // do anything else you need here, like send an email
 
-            return $security->login($user, 'form_login', 'main');
+            $dashboardRedirect = $this->redirectToRoute('dashboard');
+
+            return $security->login($user, 'form_login', 'main', $dashboardRedirect);
         }
 
         return $this->render('security/register.html.twig', [
