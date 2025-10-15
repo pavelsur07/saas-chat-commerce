@@ -39,7 +39,9 @@ services:
         container_name: site-php-fpm
         volumes:
             - ./site:/app
-    
+        environment:
+            REDIS_SESSION_DSN: redis://redis-realtime:6379/1
+
     site-php-cli:
         build:
             context: site/docker
@@ -49,6 +51,8 @@ services:
         volumes:
             - ./site:/app
         command: php bin/console
+        environment:
+            REDIS_SESSION_DSN: redis://redis-realtime:6379/1
     
     site-node-watch:
         image: node:18-alpine
