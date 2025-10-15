@@ -1,14 +1,35 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, Root } from 'react-dom/client';
 import ChatLayout from './components/ChatLayout';
 import '../styles/app.css'; // Если используете Tailwind
 
-const renderChat = () => {
+let root: Root | null = null;
+
+const mountChat = () => {
     const rootElement = document.getElementById('chat-center-root');
-    if (rootElement) {
-        const root = createRoot(rootElement);
-        root.render(<ChatLayout />);
+    if (!rootElement) {
+        return;
+    }
+
+    if (!root) {
+        root = createRoot(rootElement);
+    }
+
+    root.render(<ChatLayout />);
+};
+
+const unmountChat = () => {
+    if (root) {
+        root.unmount();
+        root = null;
     }
 };
 
-document.addEventListener('turbo:load', renderChat);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountChat, { once: true });
+} else {
+    mountChat();
+}
+
+document.addEventListener('turbo:load', mountChat);
+document.addEventListener('turbo:before-cache', unmountChat);
