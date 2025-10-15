@@ -322,7 +322,7 @@ const MessageList: React.FC<Props> = ({ clientId, onNewMessage }) => {
     }, [clientId, messages, initialScrollDone]);
 
     return (
-        <div ref={rootRef} className="space-y-2">
+        <div ref={rootRef} className="flex flex-col space-y-2">
             <div ref={topSentinelRef} className="h-0" />
             {isLoadingMore && (
                 <div className="text-center text-xs text-gray-400">Загрузка сообщений…</div>
