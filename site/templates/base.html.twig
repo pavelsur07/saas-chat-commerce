@@ -64,6 +64,11 @@
                         🤖 Telegram
                     </a>
 
+                    <a href="{{ path('web_chat_site_index') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'web_chat_site_' ? 'bg-gray-800' : '' }}">
+                        💬 WebChat
+                    </a>
+
                     <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
                         🅰️ Avito <span class="text-xs text-gray-400">(в планах)</span>
                     </a>
