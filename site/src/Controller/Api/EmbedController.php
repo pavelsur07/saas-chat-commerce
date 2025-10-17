@@ -16,6 +16,30 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class EmbedController extends AbstractController
 {
+    /**
+     * Initialize an embed chat session for the requesting origin.
+     *
+     * Expected JSON payload:
+     *  - site_key (string, required) — public identifier of the web chat site.
+     *  - page_url (string, optional) — absolute URL of the page that hosts the widget; used for
+     *    origin validation when the Origin header is absent.
+     *
+     * Successful response (200):
+     *  - session_id (string) — identifier stored in the "web_session_id" cookie for subsequent
+     *    requests.
+     *  - socket_path (string) — Socket.IO namespace path for real-time updates.
+     *  - room (string|null) — populated once the visitor is associated with a client record.
+     *  - policy.maxTextLen (int) — maximum number of characters accepted by /api/embed/message.
+     *
+     * Error responses:
+     *  - 400+ JSON payload containing "error" message for validation issues.
+     *  - 403 when the site key is invalid or the request origin is not allow-listed.
+     *  - 503 when the web chat storage backend is unavailable.
+     *
+     * CORS behaviour: when the request origin matches the site's allow list the controller
+     * mirrors the Origin value in Access-Control-Allow-Origin and enables credentials so that
+     * the session cookie can be persisted by the browser.
+     */
     #[Route('/api/embed/init', name: 'api.embed.init', methods: ['POST'])]
     public function init(Request $request, WebChatSiteRepository $sites): JsonResponse
     {
@@ -77,6 +101,41 @@ class EmbedController extends AbstractController
         return $this->applyCors($response, $request, $allowedOrigin);
     }
 
+    /**
+     * Accept a visitor message submitted from the embedded chat widget.
+     *
+     * Expected JSON payload:
+     *  - site_key (string, required) — public identifier of the web chat site.
+     *  - text (string, required) — UTF-8 message body, trimmed and limited by policy.maxTextLen.
+     *  - session_id (string, optional) — visitor session identifier when the cookie is missing.
+     *  - page_url (string, optional) — absolute URL of the page that hosts the widget.
+     *  - referrer (string, optional) — raw document.referrer value captured by the widget.
+     *  - utm_* (string, optional) — any UTM markers forwarded as discrete fields; persisted as
+     *    meta.source.utm.* for downstream analytics.
+     *
+     * Metadata captured for the ingest service:
+     *  - meta.source.site_id — database identifier of the resolved web chat site.
+     *  - meta.source.page_url — value provided via page_url.
+     *  - meta.source.referrer — visitor referrer string when supplied.
+     *  - meta.source.utm — associative array of forwarded utm_* fields.
+     *  - meta.source.ip — resolved client IP from the Symfony request context.
+     *  - meta.source.ua — raw User-Agent header.
+     *
+     * Successful response (200):
+     *  - ok (bool) — indicates that the message was accepted for delivery.
+     *  - clientId (string) — identifier of the resolved client entity.
+     *  - room (string) — socket room name for follow-up events.
+     *  - socket_path (string) — Socket.IO namespace path for real-time updates.
+     *
+     * Error responses:
+     *  - 400 for invalid session or message text violations.
+     *  - 403 when the site key is invalid or the request origin is not allow-listed.
+     *  - 429 when a visitor exceeds 20 messages within a 10 second window (rate limit).
+     *  - 500 when downstream message processing fails.
+     *
+     * CORS behaviour mirrors /api/embed/init. Rate limiting is enforced per session and site in
+     * Redis where available; failures to connect to Redis do not block message processing.
+     */
     #[Route('/api/embed/message', name: 'api.embed.message', methods: ['POST'])]
     public function send(
         Request $request,
