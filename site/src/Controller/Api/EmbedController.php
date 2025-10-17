@@ -26,10 +26,11 @@ class EmbedController extends AbstractController
             return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
         }
 
-        $site = $sites->findOneBy([
-            'siteKey' => $siteKey,
-            'isActive' => true,
-        ]);
+        if (!$sites->isStorageReady()) {
+            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $site = $sites->findActiveBySiteKey($siteKey);
 
         if (!$site) {
             return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
