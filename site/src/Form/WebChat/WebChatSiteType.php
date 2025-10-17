@@ -25,7 +25,7 @@ class WebChatSiteType extends AbstractType
                 ],
             ])
             ->add('allowedOrigins', TextareaType::class, [
-                'label' => 'Разрешённые Origin (JSON массив строк)',
+                'label' => 'Разрешённые Origin (по одному в строке или JSON массив строк)',
                 'required' => false,
                 'attr' => [
                     'rows' => 6,
@@ -48,22 +48,28 @@ class WebChatSiteType extends AbstractType
                 return json_encode($origins, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             },
             static function (?string $value): array {
-                $value = $value ?? '';
-                if (trim($value) === '') {
+                $value = trim((string) ($value ?? ''));
+                if ($value === '') {
                     return [];
                 }
 
                 try {
                     $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+                    if (!is_array($decoded)) {
+                        throw new TransformationFailedException('JSON должен быть массивом.');
+                    }
+
+                    return array_values(array_map(static fn ($origin): string => (string) $origin, $decoded));
                 } catch (\JsonException $exception) {
-                    throw new TransformationFailedException('Некорректный JSON: '.$exception->getMessage());
-                }
+                    $lines = preg_split('/[\r\n,]+/', $value) ?: [];
+                    $lines = array_values(array_filter(array_map(static fn (string $origin): string => trim($origin), $lines), static fn (string $origin): bool => $origin !== ''));
 
-                if (!is_array($decoded)) {
-                    throw new TransformationFailedException('JSON должен быть массивом.');
-                }
+                    if ($lines !== []) {
+                        return array_map(static fn (string $origin): string => $origin, $lines);
+                    }
 
-                return array_values(array_map(static fn ($origin): string => (string) $origin, $decoded));
+                    throw new TransformationFailedException('Не удалось распознать список origin. Используйте JSON массив или укажите каждый origin с новой строки.');
+                }
             }
         ));
     }
