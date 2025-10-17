@@ -61,6 +61,8 @@ final class NormalizeMiddleware implements MessageMiddlewareInterface
         $this->em->persist($client);
         $this->em->flush();
 
+        // 5.1) Фиксируем идентификатор клиента в сообщении для последующих middleware
+        $m->clientId = $client->getId();
         $m->meta['_client'] = $client;
 
         // 6) Продолжаем обработку
