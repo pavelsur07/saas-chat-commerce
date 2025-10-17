@@ -184,6 +184,8 @@ class EmbedController extends AbstractController
 
         if ($client instanceof Client && null !== $persistedMessageId) {
             $socketPath = $_ENV['SOCKET_PATH'] ?? '/socket.io';
+            $room = sprintf('client-%s', $client->getId());
+
             if ($redis === null) {
                 $redis = $this->createRedisClient();
             }
@@ -193,6 +195,7 @@ class EmbedController extends AbstractController
                     $redis->publish("chat.client.{$client->getId()}", json_encode([
                         'id' => $persistedMessageId,
                         'clientId' => $client->getId(),
+                        'room' => $room,
                         'text' => $inbound->text,
                         'direction' => 'in',
                         'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
@@ -205,7 +208,7 @@ class EmbedController extends AbstractController
             return $this->applyCors(new JsonResponse([
                 'ok' => true,
                 'clientId' => $client->getId(),
-                'room' => 'client-' . $client->getId(),
+                'room' => $room,
                 'socket_path' => $socketPath,
             ]), $request, $allowedOrigin);
         }
