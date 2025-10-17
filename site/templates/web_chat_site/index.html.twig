@@ -16,18 +16,26 @@
                         <div class="text-xs text-gray-500">{{ site.createdAt|date('Y-m-d H:i') }}</div>
                         <div class="text-lg font-medium">{{ site.name }}</div>
                         <div class="text-sm text-gray-500 break-all">Site key: {{ site.siteKey }}</div>
-                        {% if site.allowedOrigins is not empty %}
-                            <div class="mt-2 text-sm">
-                                <div class="font-medium text-gray-700">Разрешённые origin:</div>
+                        <div class="mt-2 text-sm">
+                            <div class="font-medium text-gray-700">Разрешённые origin:</div>
+                            {% if site.allowedOrigins is not empty %}
                                 <ul class="list-disc list-inside text-gray-600">
                                     {% for origin in site.allowedOrigins %}
                                         <li>{{ origin }}</li>
                                     {% endfor %}
                                 </ul>
-                            </div>
-                        {% else %}
-                            <div class="mt-2 text-sm text-gray-500">Origin не ограничены.</div>
-                        {% endif %}
+                            {% else %}
+                                <div class="text-gray-500">Список пуст.</div>
+                            {% endif %}
+                            <div class="mt-1 text-xs text-gray-500">Если пусто — принимаются только точные origin из запроса.</div>
+                        </div>
+
+                        <div class="mt-4 text-sm">
+                            <div class="font-medium text-gray-700">Код для вставки</div>
+                            <p class="mt-1 text-xs text-gray-500">Скопируйте и вставьте этот скрипт на страницу сайта перед закрывающим тегом &lt;/body&gt;.</p>
+                            <pre class="mt-2 p-3 bg-gray-50 border rounded text-xs overflow-auto"><code>{% apply escape %}<script async src="https://{{ app.request.host }}/webchat/widget.js"
+        data-site-key="{{ site.siteKey }}"></script>{% endapply %}</code></pre>
+                        </div>
                     </div>
                     <div class="flex flex-col items-end space-y-2">
                         <span class="inline-flex items-center px-2 py-1 rounded text-xs {{ site.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600' }}">
