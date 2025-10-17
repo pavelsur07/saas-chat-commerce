@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Web Chat сайты{% endblock %}
+
+{% block body %}
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-semibold">Web Chat сайты</h1>
+        <a class="px-3 py-2 bg-blue-600 text-white rounded" href="{{ path('web_chat_site_create') }}">Добавить сайт</a>
+    </div>
+
+    <div class="space-y-3">
+        {% for site in sites %}
+            <div class="p-4 bg-white border rounded">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="text-xs text-gray-500">{{ site.createdAt|date('Y-m-d H:i') }}</div>
+                        <div class="text-lg font-medium">{{ site.name }}</div>
+                        <div class="text-sm text-gray-500 break-all">Site key: {{ site.siteKey }}</div>
+                        {% if site.allowedOrigins is not empty %}
+                            <div class="mt-2 text-sm">
+                                <div class="font-medium text-gray-700">Разрешённые origin:</div>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    {% for origin in site.allowedOrigins %}
+                                        <li>{{ origin }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                            <div class="mt-2 text-sm text-gray-500">Origin не ограничены.</div>
+                        {% endif %}
+                    </div>
+                    <div class="flex flex-col items-end space-y-2">
+                        <span class="inline-flex items-center px-2 py-1 rounded text-xs {{ site.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600' }}">
+                            {{ site.isActive ? 'Активен' : 'Отключён' }}
+                        </span>
+                        <div class="flex space-x-3">
+                            <a class="text-blue-600" href="{{ path('web_chat_site_edit', {id: site.id}) }}">Редактировать</a>
+                            <form method="post" action="{{ path('web_chat_site_toggle', {id: site.id}) }}" onsubmit="return confirm('Изменить статус сайта?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle_web_chat_site_' ~ site.id) }}">
+                                <button type="submit" class="text-{{ site.isActive ? 'amber' : 'green' }}-600">
+                                    {{ site.isActive ? 'Отключить' : 'Включить' }}
+                                </button>
+                            </form>
+                            <form method="post" action="{{ path('web_chat_site_delete', {id: site.id}) }}" onsubmit="return confirm('Удалить сайт? Это действие нельзя отменить.');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete_web_chat_site_' ~ site.id) }}">
+                                <button type="submit" class="text-red-600">Удалить</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-sm text-gray-500">Сайты ещё не добавлены.</div>
+        {% endfor %}
+    </div>
+{% endblock %}

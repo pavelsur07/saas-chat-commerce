@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ isEdit ? 'Редактировать' : 'Создать' }} Web Chat сайт{% endblock %}
+
+{% block body %}
+    <div class="max-w-2xl mx-auto bg-white border rounded p-6">
+        <h1 class="text-xl font-semibold mb-4">{{ isEdit ? 'Редактирование Web Chat сайта' : 'Создание Web Chat сайта' }}</h1>
+
+        {{ form_start(form) }}
+            <div class="space-y-4">
+                {{ form_row(form.name) }}
+                {{ form_row(form.allowedOrigins) }}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Site key</label>
+                    <input type="text" value="{{ site.siteKey }}" readonly class="w-full border rounded px-3 py-2 bg-gray-100 text-sm font-mono">
+                </div>
+                {{ form_row(form.isActive) }}
+            </div>
+
+            <div class="mt-6 flex justify-between">
+                <a href="{{ path('web_chat_site_index') }}" class="px-3 py-2 border rounded">Назад</a>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded" type="submit">{{ isEdit ? 'Сохранить' : 'Создать' }}</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
