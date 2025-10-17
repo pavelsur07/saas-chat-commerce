@@ -35,6 +35,32 @@
     console.warn("[WebChat] data-site-key is missing on <script> tag.");
   }
 
+  const apiBase = (() => {
+    const src =
+      scriptTag && typeof scriptTag.getAttribute === "function"
+        ? scriptTag.getAttribute("src") || ""
+        : "";
+    if (src) {
+      try {
+        return new URL(src, window.location.href).origin;
+      } catch (e) {
+        console.warn("[WebChat] failed to resolve widget origin", e);
+      }
+    }
+    return window.location.origin;
+  })();
+
+  const buildApiUrl = (path, params = {}) => {
+    const url = new URL(path, apiBase);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value == null) return;
+      const stringValue = String(value);
+      if (stringValue === "") return;
+      url.searchParams.set(key, stringValue);
+    });
+    return url.toString();
+  };
+
   let sessionId = null;       // from /api/embed/init
   let clientId = null;        // from /api/embed/message (first send)
   let room = null;            // "client-{id}"
@@ -265,15 +291,21 @@
   const API = {
     init: async () => {
       try {
-        const res = await fetch("/api/embed/init", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const res = await fetch(
+          buildApiUrl("/api/embed/init", {
             site_key: SITE_KEY,
             page_url: location.href,
           }),
-        });
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              site_key: SITE_KEY,
+              page_url: location.href,
+            }),
+          }
+        );
         if (!res.ok) throw new Error("init failed " + res.status);
         const data = await res.json();
         sessionId = data.session_id || null;
@@ -295,12 +327,15 @@
         page_url: location.href,
         referrer: document.referrer || "",
       };
-      const res = await fetch("/api/embed/message", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        buildApiUrl("/api/embed/message", { site_key: SITE_KEY }),
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) throw new Error("message failed " + res.status);
       return res.json(); // expects { clientId, room, socket_path }
     },
