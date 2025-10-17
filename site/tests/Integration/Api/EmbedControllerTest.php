@@ -14,6 +14,7 @@ use App\Tests\Doubles\LlmClientSpy;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
 
 final class EmbedControllerTest extends WebTestCase
 {
@@ -96,5 +97,107 @@ final class EmbedControllerTest extends WebTestCase
 
         self::assertCount(1, $storedMessages, 'Сообщение должно быть сохранено');
         self::assertSame('Hello from embed', $storedMessages[0]->getText());
+    }
+
+    public function testInitReturnsForbiddenWhenSiteIsDisabled(): void
+    {
+        $browser = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $owner = CompanyUserBuild::make()
+            ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('cmp_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $site = new WebChatSite(
+            Uuid::uuid4()->toString(),
+            $company,
+            'Disabled Site',
+            'site_'.bin2hex(random_bytes(4)),
+            ['https://chat.example.com'],
+            false,
+        );
+        $em->persist($site);
+        $em->flush();
+
+        $payload = [
+            'site_key' => $site->getSiteKey(),
+            'page_url' => 'https://chat.example.com/landing',
+        ];
+
+        $browser->request(
+            'POST',
+            '/api/embed/init',
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_ORIGIN' => 'https://chat.example.com',
+            ],
+            content: json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    public function testSendReturnsForbiddenWhenSiteIsDisabled(): void
+    {
+        $browser = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $owner = CompanyUserBuild::make()
+            ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('cmp_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $site = new WebChatSite(
+            Uuid::uuid4()->toString(),
+            $company,
+            'Disabled Site',
+            'site_'.bin2hex(random_bytes(4)),
+            ['https://chat.example.com'],
+            false,
+        );
+        $em->persist($site);
+        $em->flush();
+
+        $payload = [
+            'site_key' => $site->getSiteKey(),
+            'text' => 'Should not be delivered',
+            'session_id' => 'sess_'.bin2hex(random_bytes(8)),
+            'page_url' => 'https://chat.example.com/landing',
+        ];
+
+        $browser->request(
+            'POST',
+            '/api/embed/message',
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_ORIGIN' => 'https://chat.example.com',
+            ],
+            content: json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 }
