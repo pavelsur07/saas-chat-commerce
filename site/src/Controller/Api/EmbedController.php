@@ -40,15 +40,22 @@ class EmbedController extends AbstractController
      * mirrors the Origin value in Access-Control-Allow-Origin and enables credentials so that
      * the session cookie can be persisted by the browser.
      */
-    #[Route('/api/embed/init', name: 'api.embed.init', methods: ['POST'])]
-    public function init(Request $request, WebChatSiteRepository $sites): JsonResponse
+    #[Route('/api/embed/init', name: 'api.embed.init', methods: ['POST', 'OPTIONS'])]
+    public function init(Request $request, WebChatSiteRepository $sites): Response
     {
+        if ($response = $this->handlePreflight($request, $sites)) {
+            return $response;
+        }
+
         $data = json_decode($request->getContent(), true);
         if (!is_array($data)) {
             $data = [];
         }
 
-        $siteKey = isset($data['site_key']) ? (string) $data['site_key'] : '';
+        $siteKey = (string) $request->query->get('site_key', '');
+        if ($siteKey === '' && isset($data['site_key'])) {
+            $siteKey = (string) $data['site_key'];
+        }
         $siteKey = trim($siteKey);
         if ($siteKey === '') {
             return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
@@ -136,12 +143,16 @@ class EmbedController extends AbstractController
      * CORS behaviour mirrors /api/embed/init. Rate limiting is enforced per session and site in
      * Redis where available; failures to connect to Redis do not block message processing.
      */
-    #[Route('/api/embed/message', name: 'api.embed.message', methods: ['POST'])]
+    #[Route('/api/embed/message', name: 'api.embed.message', methods: ['POST', 'OPTIONS'])]
     public function send(
         Request $request,
         WebChatSiteRepository $sites,
         MessageIngressService $ingress
-    ): JsonResponse {
+    ): Response {
+        if ($response = $this->handlePreflight($request, $sites)) {
+            return $response;
+        }
+
         $data = json_decode($request->getContent(), true);
         if (!is_array($data)) {
             $data = [];
@@ -273,6 +284,44 @@ class EmbedController extends AbstractController
         }
 
         return $this->applyCors(new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+    }
+
+    private function handlePreflight(Request $request, WebChatSiteRepository $sites): ?Response
+    {
+        if (!$request->isMethod('OPTIONS')) {
+            return null;
+        }
+
+        if (!$sites->isStorageReady()) {
+            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $siteKey = trim((string) $request->query->get('site_key', ''));
+        $originHeader = $request->headers->get('Origin');
+        $host = $this->extractHost($originHeader);
+
+        $site = null;
+        if ($siteKey !== '') {
+            $site = $sites->findActiveBySiteKey($siteKey);
+        }
+
+        if ($site === null && $host !== null) {
+            $site = $sites->findActiveAllowingOriginHost($host);
+        }
+
+        if (!$site) {
+            return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
+            return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
+        }
+
+        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins());
+
+        $response = new Response('', Response::HTTP_NO_CONTENT);
+
+        return $this->applyCors($response, $request, $allowedOrigin);
     }
 
     private function createRedisClient(): ?\Predis\Client

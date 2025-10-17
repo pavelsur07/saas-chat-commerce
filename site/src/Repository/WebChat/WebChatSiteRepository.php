@@ -49,6 +49,61 @@ class WebChatSiteRepository extends ServiceEntityRepository
         }
     }
 
+    public function findActiveAllowingOriginHost(string $host): ?WebChatSite
+    {
+        if (!$this->isStorageReady()) {
+            return null;
+        }
+
+        $normalizedHost = strtolower($host);
+        if ($normalizedHost === '') {
+            return null;
+        }
+
+        $query = $this->createQueryBuilder('site')
+            ->andWhere('site.isActive = true')
+            ->getQuery();
+
+        foreach ($query->toIterable() as $site) {
+            if (!$site instanceof WebChatSite) {
+                continue;
+            }
+
+            foreach ($site->getAllowedOrigins() as $origin) {
+                $allowedHost = $this->extractHost($origin);
+                if ($allowedHost === null || $allowedHost === '') {
+                    continue;
+                }
+
+                if ($normalizedHost === $allowedHost || str_ends_with($normalizedHost, '.' . $allowedHost)) {
+                    return $site;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractHost(string $value): ?string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $normalized = $trimmed;
+        if (!str_contains($normalized, '://')) {
+            $normalized = 'https://' . ltrim($normalized, '/');
+        }
+
+        $host = parse_url($normalized, PHP_URL_HOST);
+        if (is_string($host) && $host !== '') {
+            return strtolower($host);
+        }
+
+        return null;
+    }
+
     public function isStorageReady(): bool
     {
         try {
