@@ -34,7 +34,8 @@
                             <div class="font-medium text-gray-700">Код для вставки</div>
                             <p class="mt-1 text-xs text-gray-500">Скопируйте и вставьте этот скрипт на страницу сайта перед закрывающим тегом &lt;/body&gt;.</p>
                             <pre class="mt-2 p-3 bg-gray-50 border rounded text-xs overflow-auto"><code>{% apply escape %}<script async src="https://{{ app.request.host }}/webchat/widget.js"
-        data-site-key="{{ site.siteKey }}"></script>{% endapply %}</code></pre>
+        data-site-key="{{ site.siteKey }}"
+        data-api-base="https://{{ app.request.host }}"></script>{% endapply %}</code></pre>
                         </div>
                     </div>
                     <div class="flex flex-col items-end space-y-2">
