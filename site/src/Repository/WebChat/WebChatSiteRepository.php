@@ -12,4 +12,15 @@ class WebChatSiteRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, WebChatSite::class);
     }
+
+    public function siteKeyExists(string $siteKey): bool
+    {
+        return (bool) $this->createQueryBuilder('site')
+            ->select('1')
+            ->andWhere('site.siteKey = :key')
+            ->setParameter('key', $siteKey)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }
