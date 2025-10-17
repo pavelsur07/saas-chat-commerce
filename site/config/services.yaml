@@ -12,6 +12,10 @@ services:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
 
+    _instanceof:
+        App\Service\Messaging\Port\ChannelAdapterInterface:
+            tags: ['app.messaging.channel_adapter']
+
     session.redis_connection:
         class: Predis\ClientInterface
         factory: ['Symfony\Component\Cache\Adapter\RedisAdapter', 'createConnection']
@@ -102,11 +106,11 @@ services:
 
     App\Service\Messaging\MessageEgressService:
         arguments:
-            $adapters:
-                - '@App\Service\Messaging\Channel\TelegramChannelAdapter'
+            $adapters: !tagged_iterator 'app.messaging.channel_adapter'
 
     # Telegram adapter
     App\Service\Messaging\Channel\TelegramChannelAdapter: ~
+    App\Service\Messaging\Channel\WebChannelAdapter: ~
 
     # Suggestion
     App\AI\ConversationContextProvider: ~
