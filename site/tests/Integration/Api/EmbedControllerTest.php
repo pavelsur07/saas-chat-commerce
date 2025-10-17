@@ -200,4 +200,100 @@ final class EmbedControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
+
+    public function testInitPreflightAllowsAllowedOrigin(): void
+    {
+        $browser = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $owner = CompanyUserBuild::make()
+            ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('cmp_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $site = new WebChatSite(
+            Uuid::uuid4()->toString(),
+            $company,
+            'Preflight Site',
+            'site_'.bin2hex(random_bytes(4)),
+            ['https://chat.example.com']
+        );
+        $em->persist($site);
+        $em->flush();
+
+        $browser->request(
+            'OPTIONS',
+            '/api/embed/init?site_key='.$site->getSiteKey(),
+            server: [
+                'HTTP_ORIGIN' => 'https://chat.example.com',
+                'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+                'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'content-type',
+            ],
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NO_CONTENT);
+        $response = $browser->getResponse();
+        self::assertSame('https://chat.example.com', $response->headers->get('Access-Control-Allow-Origin'));
+        self::assertSame('true', $response->headers->get('Access-Control-Allow-Credentials'));
+        self::assertSame('POST, OPTIONS', $response->headers->get('Access-Control-Allow-Methods'));
+        self::assertSame('content-type', strtolower((string) $response->headers->get('Access-Control-Allow-Headers')));
+    }
+
+    public function testMessagePreflightAllowsAllowedOrigin(): void
+    {
+        $browser = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $owner = CompanyUserBuild::make()
+            ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('cmp_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $site = new WebChatSite(
+            Uuid::uuid4()->toString(),
+            $company,
+            'Preflight Message Site',
+            'site_'.bin2hex(random_bytes(4)),
+            ['https://chat.example.com']
+        );
+        $em->persist($site);
+        $em->flush();
+
+        $browser->request(
+            'OPTIONS',
+            '/api/embed/message?site_key='.$site->getSiteKey(),
+            server: [
+                'HTTP_ORIGIN' => 'https://chat.example.com',
+                'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+                'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'content-type',
+            ],
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NO_CONTENT);
+        $response = $browser->getResponse();
+        self::assertSame('https://chat.example.com', $response->headers->get('Access-Control-Allow-Origin'));
+        self::assertSame('true', $response->headers->get('Access-Control-Allow-Credentials'));
+        self::assertSame('POST, OPTIONS', $response->headers->get('Access-Control-Allow-Methods'));
+        self::assertSame('content-type', strtolower((string) $response->headers->get('Access-Control-Allow-Headers')));
+    }
 }
