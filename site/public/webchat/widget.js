@@ -35,20 +35,45 @@
     console.warn("[WebChat] data-site-key is missing on <script> tag.");
   }
 
-  const apiBase = (() => {
+  const resolveUrl = (value, purpose) => {
+    if (!value) return null;
+    try {
+      return new URL(value, window.location.href);
+    } catch (e) {
+      if (purpose) {
+        console.warn(`[WebChat] invalid ${purpose} URL:`, value, e);
+      } else {
+        console.warn("[WebChat] failed to resolve URL", value, e);
+      }
+      return null;
+    }
+  };
+
+  const explicitApiBase =
+    (scriptTag.dataset && scriptTag.dataset.apiBase) ||
+    (typeof scriptTag.getAttribute === "function"
+      ? scriptTag.getAttribute("data-api-base")
+      : null);
+
+  const apiBaseUrl = (() => {
+    const explicit = resolveUrl(explicitApiBase, "data-api-base");
+    if (explicit) {
+      return explicit;
+    }
+
     const src =
       scriptTag && typeof scriptTag.getAttribute === "function"
         ? scriptTag.getAttribute("src") || ""
         : "";
-    if (src) {
-      try {
-        return new URL(src, window.location.href).origin;
-      } catch (e) {
-        console.warn("[WebChat] failed to resolve widget origin", e);
-      }
+    const fromSrc = resolveUrl(src, "widget src");
+    if (fromSrc) {
+      return fromSrc;
     }
-    return window.location.origin;
+
+    return new URL(window.location.href);
   })();
+
+  const apiBase = apiBaseUrl.toString();
 
   const buildApiUrl = (path, params = {}) => {
     const url = new URL(path, apiBase);
