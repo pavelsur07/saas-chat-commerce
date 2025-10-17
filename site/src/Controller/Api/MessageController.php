@@ -139,10 +139,6 @@ class MessageController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
         }
 
-        if (Channel::TELEGRAM !== $client->getChannel()) {
-            return new JsonResponse(['error' => 'Client is not from telegram'], Response::HTTP_BAD_REQUEST);
-        }
-
         $data = json_decode($request->getContent(), true);
 
         if (!is_array($data)) {
@@ -154,6 +150,34 @@ class MessageController extends AbstractController
         $errors = $validator->validate($text, [new Assert\NotBlank(), new Assert\Length(max: 1000)]);
         if (count($errors) > 0) {
             return new JsonResponse(['error' => 'Invalid text'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($client->getChannel()->value === Channel::WEB->value) {
+            $message = Message::messageOut(Uuid::uuid4()->toString(), $client, null, $text);
+            $em->persist($message);
+            $em->flush();
+
+            $egress->send(new OutboundMessage('web', $client->getId(), $text));
+
+            $redis = new RedisClient([
+                'scheme' => 'tcp',
+                'host' => 'redis-realtime',
+                'port' => 6379,
+            ]);
+
+            $redis->publish("chat.client.{$client->getId()}", json_encode([
+                'id' => $message->getId(),
+                'clientId' => $client->getId(),
+                'text' => $message->getText(),
+                'direction' => 'out',
+                'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
+            ]));
+
+            return new JsonResponse(['ok' => true]);
+        }
+
+        if (Channel::TELEGRAM !== $client->getChannel()) {
+            return new JsonResponse(['error' => 'Client is not from telegram'], Response::HTTP_BAD_REQUEST);
         }
 
         $lastMessage = $messages->findLastInboundByClient($client);
