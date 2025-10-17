@@ -7,12 +7,14 @@ use App\Entity\Messaging\Client;
 use App\Repository\WebChat\WebChatSiteRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 
 class EmbedController extends AbstractController
 {
@@ -130,17 +132,19 @@ class EmbedController extends AbstractController
      * Error responses:
      *  - 400 for invalid session or message text violations.
      *  - 403 when the site key is invalid or the request origin is not allow-listed.
-     *  - 429 when a visitor exceeds 20 messages within a 10 second window (rate limit).
+     *  - 429 when a visitor exceeds 50 messages per minute (rate limit).
      *  - 500 when downstream message processing fails.
      *
-     * CORS behaviour mirrors /api/embed/init. Rate limiting is enforced per session and site in
-     * Redis where available; failures to connect to Redis do not block message processing.
+     * CORS behaviour mirrors /api/embed/init. Rate limiting is enforced per session via the
+     * Symfony RateLimiter component; cache failures do not block message processing.
      */
     #[Route('/api/embed/message', name: 'api.embed.message', methods: ['POST'])]
     public function send(
         Request $request,
         WebChatSiteRepository $sites,
-        MessageIngressService $ingress
+        MessageIngressService $ingress,
+        #[Autowire(service: 'limiter.webchat_messages')]
+        RateLimiterFactory $webchatMessagesLimiter
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
         if (!is_array($data)) {
@@ -186,23 +190,21 @@ class EmbedController extends AbstractController
 
         $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins());
 
-        $redis = $this->createRedisClient();
+        $rateLimiter = $webchatMessagesLimiter->create($sessionId);
+        $limit = $rateLimiter->consume(1);
 
-        if ($redis !== null) {
-            try {
-                $rateLimitKey = sprintf('rl:embed:%s:%s', $webChatSite->getId(), $sessionId);
-                $requestCount = $redis->incr($rateLimitKey);
-                if ($requestCount === 1) {
-                    $redis->expire($rateLimitKey, 10);
-                }
+        if (!$limit->isAccepted()) {
+            $response = new JsonResponse(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
 
-                if ($requestCount > 20) {
-                    return $this->applyCors(new JsonResponse(['error' => 'rate limited'], Response::HTTP_TOO_MANY_REQUESTS), $request, $allowedOrigin);
-                }
-            } catch (\Throwable) {
-                // ignore rate limit failures
+            $retryAfter = $limit->getRetryAfter();
+            if ($retryAfter instanceof \DateTimeInterface) {
+                $response->headers->set('Retry-After', $retryAfter->format('U'));
             }
+
+            return $this->applyCors($response, $request, $allowedOrigin);
         }
+
+        $redis = null;
 
         $referrer = isset($data['referrer']) ? (string) $data['referrer'] : null;
         $utm = [];
