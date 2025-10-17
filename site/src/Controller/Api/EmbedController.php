@@ -48,6 +48,8 @@ class EmbedController extends AbstractController
             return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
         }
 
+        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins());
+
         $sessionId = $request->cookies->get('web_session_id');
         if (!is_string($sessionId) || $sessionId === '') {
             $sessionId = bin2hex(random_bytes(16));
@@ -72,7 +74,7 @@ class EmbedController extends AbstractController
 
         $response->headers->setCookie($cookie);
 
-        return $response;
+        return $this->applyCors($response, $request, $allowedOrigin);
     }
 
     #[Route('/api/embed/message', name: 'api.embed.message', methods: ['POST'])]
@@ -123,6 +125,26 @@ class EmbedController extends AbstractController
             return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
         }
 
+        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins());
+
+        $redis = $this->createRedisClient();
+
+        if ($redis !== null) {
+            try {
+                $rateLimitKey = sprintf('rl:embed:%s:%s', $webChatSite->getId(), $sessionId);
+                $requestCount = $redis->incr($rateLimitKey);
+                if ($requestCount === 1) {
+                    $redis->expire($rateLimitKey, 10);
+                }
+
+                if ($requestCount > 20) {
+                    return $this->applyCors(new JsonResponse(['error' => 'rate limited'], Response::HTTP_TOO_MANY_REQUESTS), $request, $allowedOrigin);
+                }
+            } catch (\Throwable) {
+                // ignore rate limit failures
+            }
+        }
+
         $referrer = isset($data['referrer']) ? (string) $data['referrer'] : null;
         $utm = [];
         foreach ($data as $key => $value) {
@@ -161,31 +183,89 @@ class EmbedController extends AbstractController
         $persistedMessageId = $inbound->meta['_persisted_message_id'] ?? null;
 
         if ($client instanceof Client && null !== $persistedMessageId) {
-            try {
-                $redis = new \Predis\Client([
-                    'scheme' => 'tcp',
-                    'host' => $_ENV['REDIS_REALTIME_HOST'] ?? 'redis-realtime',
-                    'port' => (int) ($_ENV['REDIS_REALTIME_PORT'] ?? 6379),
-                ]);
-                $redis->publish("chat.client.{$client->getId()}", json_encode([
-                    'id' => $persistedMessageId,
-                    'clientId' => $client->getId(),
-                    'text' => $inbound->text,
-                    'direction' => 'in',
-                    'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
-                ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-            } catch (\Throwable) {
-                // ignore publishing failures
+            if ($redis === null) {
+                $redis = $this->createRedisClient();
             }
 
-            return new JsonResponse([
+            if ($redis !== null) {
+                try {
+                    $redis->publish("chat.client.{$client->getId()}", json_encode([
+                        'id' => $persistedMessageId,
+                        'clientId' => $client->getId(),
+                        'text' => $inbound->text,
+                        'direction' => 'in',
+                        'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
+                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+                } catch (\Throwable) {
+                    // ignore publishing failures
+                }
+            }
+
+            return $this->applyCors(new JsonResponse([
                 'ok' => true,
                 'clientId' => $client->getId(),
                 'room' => 'client-' . $client->getId(),
-            ]);
+            ]), $request, $allowedOrigin);
         }
 
-        return new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        return $this->applyCors(new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+    }
+
+    private function createRedisClient(): ?\Predis\Client
+    {
+        try {
+            return new \Predis\Client([
+                'scheme' => 'tcp',
+                'host' => $_ENV['REDIS_REALTIME_HOST'] ?? 'redis-realtime',
+                'port' => (int) ($_ENV['REDIS_REALTIME_PORT'] ?? 6379),
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveAllowedOrigin(?string $originHeader, array $allowedOrigins): ?string
+    {
+        if ($originHeader === null || $originHeader === '') {
+            return null;
+        }
+
+        $normalizedOrigin = trim($originHeader);
+
+        if ($normalizedOrigin === '') {
+            return null;
+        }
+
+        $host = $this->extractHost($normalizedOrigin);
+        if ($host === null) {
+            return null;
+        }
+
+        if (!$this->isHostAllowed($host, $allowedOrigins)) {
+            return null;
+        }
+
+        return $normalizedOrigin;
+    }
+
+    private function applyCors(Response $response, Request $request, ?string $allowedOrigin): Response
+    {
+        if ($allowedOrigin !== null && $allowedOrigin !== '') {
+            $response->headers->set('Access-Control-Allow-Origin', $allowedOrigin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Vary', 'Origin');
+        }
+
+        $requestedHeaders = $request->headers->get('Access-Control-Request-Headers');
+        if ($requestedHeaders !== null && $requestedHeaders !== '') {
+            $response->headers->set('Access-Control-Allow-Headers', $requestedHeaders);
+        } else {
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type');
+        }
+
+        $response->headers->set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
+        return $response;
     }
 
     /**
