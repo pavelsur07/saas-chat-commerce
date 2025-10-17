@@ -82,6 +82,8 @@ final class EmbedControllerTest extends WebTestCase
         self::assertNotSame('', $responseData['clientId']);
         self::assertArrayHasKey('room', $responseData);
         self::assertSame('client-'.$responseData['clientId'], $responseData['room']);
+        self::assertArrayHasKey('socket_path', $responseData);
+        self::assertSame('/socket.io', $responseData['socket_path']);
 
         /** @var ClientRepository $clients */
         $clients = $container->get(ClientRepository::class);

@@ -183,6 +183,7 @@ class EmbedController extends AbstractController
         $persistedMessageId = $inbound->meta['_persisted_message_id'] ?? null;
 
         if ($client instanceof Client && null !== $persistedMessageId) {
+            $socketPath = $_ENV['SOCKET_PATH'] ?? '/socket.io';
             if ($redis === null) {
                 $redis = $this->createRedisClient();
             }
@@ -205,6 +206,7 @@ class EmbedController extends AbstractController
                 'ok' => true,
                 'clientId' => $client->getId(),
                 'room' => 'client-' . $client->getId(),
+                'socket_path' => $socketPath,
             ]), $request, $allowedOrigin);
         }
 
