@@ -77,7 +77,7 @@ class Message
         return new self($id, $client, 'out', $text, $payload, $telegramBot);
     }
 
-    public static function messageIn(string $id, Client $client, TelegramBot $telegramBot, ?string $text = null, ?array $payload = null): self
+    public static function messageIn(string $id, Client $client, ?TelegramBot $telegramBot = null, ?string $text = null, ?array $payload = null): self
     {
         return new self($id, $client, 'in', $text, $payload, $telegramBot);
     }
