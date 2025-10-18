@@ -434,7 +434,7 @@
         referrer: document.referrer || "",
       };
       const res = await postJson(
-        buildApiUrl("/api/embed/message", { site_key: SITE_KEY }),
+        buildApiUrl("/api/embed/message", { site_key: SITE_KEY, page_url: location.href }),
         payload,
         { allowGetOn405: false }
       );

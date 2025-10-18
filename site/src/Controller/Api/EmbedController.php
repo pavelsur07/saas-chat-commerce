@@ -89,7 +89,7 @@ class EmbedController extends AbstractController
             return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
         }
 
-        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins());
+        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins(), $pageUrl);
 
         $sessionId = $request->cookies->get('web_session_id');
         if (!is_string($sessionId) || $sessionId === '') {
@@ -196,7 +196,7 @@ class EmbedController extends AbstractController
             return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
         }
 
-        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins());
+        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins(), $pageUrl);
 
         $text = isset($data['text']) ? (string) $data['text'] : '';
         $text = trim($text);
@@ -337,12 +337,22 @@ class EmbedController extends AbstractController
         }
 
         $originHeader = $request->headers->get('Origin');
-        $host = $this->extractHost($originHeader);
+        $pageUrl = $request->query->get('page_url');
+        if (is_string($pageUrl)) {
+            $pageUrl = trim($pageUrl);
+            if ($pageUrl === '') {
+                $pageUrl = null;
+            }
+        } else {
+            $pageUrl = null;
+        }
+
+        $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
         if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
             return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
         }
 
-        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins());
+        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins(), $pageUrl);
 
         $response = new Response('', Response::HTTP_NO_CONTENT);
 
@@ -362,19 +372,49 @@ class EmbedController extends AbstractController
         }
     }
 
-    private function resolveAllowedOrigin(?string $originHeader, array $allowedOrigins): ?string
+    private function resolveAllowedOrigin(?string $originHeader, array $allowedOrigins, ?string $pageUrl = null): ?string
     {
         if ($originHeader === null || $originHeader === '') {
-            return null;
+            return $this->resolveAllowedOriginFromPageUrl($pageUrl, $allowedOrigins);
         }
 
         $normalizedOrigin = trim($originHeader);
 
         if ($normalizedOrigin === '') {
-            return null;
+            return $this->resolveAllowedOriginFromPageUrl($pageUrl, $allowedOrigins);
         }
 
         $host = $this->extractHost($normalizedOrigin);
+        if ($host === null) {
+            return $this->resolveAllowedOriginFromPageUrl($pageUrl, $allowedOrigins);
+        }
+
+        if (!$this->isHostAllowed($host, $allowedOrigins)) {
+            return $this->resolveAllowedOriginFromPageUrl($pageUrl, $allowedOrigins);
+        }
+
+        return $normalizedOrigin;
+    }
+
+    private function resolveAllowedOriginFromPageUrl(?string $pageUrl, array $allowedOrigins): ?string
+    {
+        if ($pageUrl === null || $pageUrl === '') {
+            return null;
+        }
+
+        $normalizedPageUrl = trim($pageUrl);
+
+        if ($normalizedPageUrl === '') {
+            return null;
+        }
+
+        $origin = $this->extractOrigin($normalizedPageUrl);
+
+        if ($origin === null) {
+            return null;
+        }
+
+        $host = $this->extractHost($origin);
         if ($host === null) {
             return null;
         }
@@ -383,7 +423,7 @@ class EmbedController extends AbstractController
             return null;
         }
 
-        return $normalizedOrigin;
+        return $origin;
     }
 
     private function applyCors(Response $response, Request $request, ?string $allowedOrigin): Response
@@ -464,5 +504,54 @@ class EmbedController extends AbstractController
         }
 
         return null;
+    }
+
+    private function extractOrigin(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $normalized = $value;
+
+        if (!str_contains($normalized, '://')) {
+            $normalized = 'https://' . ltrim($normalized, '/');
+        }
+
+        $parts = parse_url($normalized);
+
+        if (!is_array($parts)) {
+            return null;
+        }
+
+        $scheme = $parts['scheme'] ?? null;
+        $host = $parts['host'] ?? null;
+
+        if (!is_string($scheme) || !is_string($host) || $scheme === '' || $host === '') {
+            return null;
+        }
+
+        $origin = strtolower($scheme).'://'.strtolower($host);
+
+        if (isset($parts['port']) && is_int($parts['port'])) {
+            $defaultPort = null;
+            if ($scheme === 'http') {
+                $defaultPort = 80;
+            } elseif ($scheme === 'https') {
+                $defaultPort = 443;
+            }
+
+            if ($defaultPort === null || $parts['port'] !== $defaultPort) {
+                $origin .= ':' . $parts['port'];
+            }
+        }
+
+        return $origin;
     }
 }
