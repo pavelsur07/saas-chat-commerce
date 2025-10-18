@@ -99,6 +99,69 @@ final class EmbedControllerTest extends WebTestCase
         self::assertSame('Hello from embed', $storedMessages[0]->getText());
     }
 
+    public function testSendSucceedsWhenAiEnrichmentFails(): void
+    {
+        $browser = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $owner = CompanyUserBuild::make()
+            ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('cmp_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $site = new WebChatSite(
+            Uuid::uuid4()->toString(),
+            $company,
+            'AI Failure Site',
+            'site_'.bin2hex(random_bytes(4)),
+            ['https://chat.example.com']
+        );
+        $em->persist($site);
+        $em->flush();
+
+        $container->set(LlmClient::class, new class implements LlmClient {
+            public function chat(array $params): array
+            {
+                throw new \RuntimeException('LLM unavailable');
+            }
+        });
+
+        $payload = [
+            'site_key' => $site->getSiteKey(),
+            'text' => 'Hi even if AI fails',
+            'session_id' => 'sess_'.bin2hex(random_bytes(8)),
+            'page_url' => 'https://chat.example.com/welcome',
+        ];
+
+        $browser->request(
+            'POST',
+            '/api/embed/message',
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_ORIGIN' => 'https://chat.example.com',
+            ],
+            content: json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
+        );
+
+        self::assertResponseIsSuccessful();
+
+        $responseData = json_decode($browser->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertTrue($responseData['ok'] ?? false);
+        self::assertArrayHasKey('clientId', $responseData);
+        self::assertArrayHasKey('room', $responseData);
+    }
+
     public function testInitReturnsForbiddenWhenSiteIsDisabled(): void
     {
         $browser = static::createClient();

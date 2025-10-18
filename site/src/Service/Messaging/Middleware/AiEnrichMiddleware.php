@@ -13,6 +13,7 @@ use App\Service\AI\LlmClient;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\Pipeline\MessageMiddlewareInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 final class AiEnrichMiddleware implements MessageMiddlewareInterface
 {
@@ -20,6 +21,7 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
         private readonly LlmClient $llm,
         private readonly MessageRepository $messages,
         private readonly EntityManagerInterface $em,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -31,14 +33,28 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
             return;
         }
 
+        try {
+            $this->enrichWithAi($m);
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to enrich inbound message using LLM', [
+                'exception' => $e,
+                'channel' => $m->channel,
+                'client_id' => $m->clientId,
+                'message_id' => $m->meta['_persisted_message_id'] ?? null,
+            ]);
+        }
+
+        $next($m);
+    }
+
+    private function enrichWithAi(InboundMessage $m): void
+    {
         $company = $m->meta['company'] ?? null;
         if (!$company instanceof Company && ($m->meta['_client'] ?? null) instanceof DbClient) {
             $company = $m->meta['_client']->getCompany();
         }
 
         if (!$company instanceof Company) {
-            $next($m);
-
             return;
         }
 
@@ -77,7 +93,5 @@ final class AiEnrichMiddleware implements MessageMiddlewareInterface
             'company' => $company,
             'metadata' => ['message_direction' => 'in'],
         ]);
-
-        $next($m);
     }
 }
