@@ -183,19 +183,9 @@ class EmbedController extends AbstractController
             return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
         }
 
-        $text = isset($data['text']) ? (string) $data['text'] : '';
-        $text = trim($text);
-        if ($text === '' || mb_strlen($text) > 2000) {
-            return new JsonResponse(['error' => 'Invalid message text'], Response::HTTP_BAD_REQUEST);
-        }
-
         $sessionId = $request->cookies->get('web_session_id');
         if (!is_string($sessionId) || $sessionId === '') {
             $sessionId = isset($data['session_id']) ? trim((string) $data['session_id']) : '';
-        }
-
-        if ($sessionId === '') {
-            return new JsonResponse(['error' => 'Invalid session'], Response::HTTP_BAD_REQUEST);
         }
 
         $originHeader = $request->headers->get('Origin');
@@ -208,17 +198,27 @@ class EmbedController extends AbstractController
 
         $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins());
 
+        $text = isset($data['text']) ? (string) $data['text'] : '';
+        $text = trim($text);
+        if ($text === '' || mb_strlen($text) > 2000) {
+            return $this->jsonWithCors($request, $allowedOrigin, ['error' => 'Invalid message text'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($sessionId === '') {
+            return $this->jsonWithCors($request, $allowedOrigin, ['error' => 'Invalid session'], Response::HTTP_BAD_REQUEST);
+        }
+
         $limit = $messageRateLimiter->consume($sessionId);
 
         if (!$limit->isAccepted()) {
-            $response = new JsonResponse(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+            $response = $this->jsonWithCors($request, $allowedOrigin, ['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
 
             $retryAfter = $limit->getRetryAfter();
             if ($retryAfter instanceof \DateTimeInterface) {
                 $response->headers->set('Retry-After', $retryAfter->format('U'));
             }
 
-            return $this->applyCors($response, $request, $allowedOrigin);
+            return $response;
         }
 
         $redis = null;
@@ -255,7 +255,16 @@ class EmbedController extends AbstractController
             ]
         );
 
-        $ingress->accept($inbound);
+        try {
+            $ingress->accept($inbound);
+        } catch (\Throwable) {
+            return $this->jsonWithCors(
+                $request,
+                $allowedOrigin,
+                ['error' => 'Message processing failed'],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
 
         $client = $inbound->meta['_client'] ?? null;
         $persistedMessageId = $inbound->meta['_persisted_message_id'] ?? null;
@@ -283,15 +292,28 @@ class EmbedController extends AbstractController
                 }
             }
 
-            return $this->applyCors(new JsonResponse([
+            return $this->jsonWithCors($request, $allowedOrigin, [
                 'ok' => true,
                 'clientId' => $client->getId(),
                 'room' => $room,
                 'socket_path' => $socketPath,
-            ]), $request, $allowedOrigin);
+            ]);
         }
 
-        return $this->applyCors(new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+        return $this->jsonWithCors(
+            $request,
+            $allowedOrigin,
+            ['error' => 'Message processing failed'],
+            Response::HTTP_INTERNAL_SERVER_ERROR
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function jsonWithCors(Request $request, ?string $allowedOrigin, array $payload, int $status = Response::HTTP_OK): Response
+    {
+        return $this->applyCors(new JsonResponse($payload, $status), $request, $allowedOrigin);
     }
 
     private function handlePreflight(Request $request, WebChatSiteRepository $sites): ?Response
