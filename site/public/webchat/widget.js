@@ -315,13 +315,17 @@
   // ---------- API ----------
   const postJson = async (url, payload) => {
     const body = JSON.stringify(payload);
-    const makeRequest = (targetUrl) =>
-      fetch(targetUrl, {
-        method: "POST",
+    const makeRequest = (targetUrl, method = "POST") => {
+      const options = {
+        method,
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
+      };
+      if (method === "POST") {
+        options.headers = { "Content-Type": "application/json" };
+        options.body = body;
+      }
+      return fetch(targetUrl, options);
+    };
 
     let response = await makeRequest(url);
 
@@ -333,6 +337,21 @@
     ) {
       try {
         response = await makeRequest(response.url);
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    if (response.status === 405) {
+      try {
+        const getUrl = new URL(response.url || url);
+        Object.entries(payload || {}).forEach(([key, value]) => {
+          if (value == null) return;
+          const stringValue = String(value).trim();
+          if (stringValue === "") return;
+          getUrl.searchParams.set(key, stringValue);
+        });
+        response = await makeRequest(getUrl.toString(), "GET");
       } catch (error) {
         throw error;
       }

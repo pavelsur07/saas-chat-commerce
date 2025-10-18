@@ -149,6 +149,74 @@ final class EmbedControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+    public function testInitAcceptsGetRequests(): void
+    {
+        $browser = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $owner = CompanyUserBuild::make()
+            ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
+            ->withPassword('Passw0rd!')
+            ->build();
+        $em->persist($owner);
+
+        $company = CompanyBuild::make()
+            ->withOwner($owner)
+            ->withSlug('cmp_'.bin2hex(random_bytes(4)))
+            ->build();
+        $em->persist($company);
+
+        $site = new WebChatSite(
+            Uuid::uuid4()->toString(),
+            $company,
+            'Init GET Site',
+            'site_'.bin2hex(random_bytes(4)),
+            ['https://chat.example.com']
+        );
+        $em->persist($site);
+        $em->flush();
+
+        $query = http_build_query([
+            'site_key' => $site->getSiteKey(),
+            'page_url' => 'https://chat.example.com/catalog',
+        ]);
+
+        $browser->request(
+            'GET',
+            '/api/embed/init?'.$query,
+            server: [
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_ORIGIN' => 'https://chat.example.com',
+            ],
+        );
+
+        self::assertResponseIsSuccessful();
+
+        $response = $browser->getResponse();
+        $responseData = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertArrayHasKey('session_id', $responseData);
+        self::assertIsString($responseData['session_id']);
+        self::assertNotSame('', $responseData['session_id']);
+        self::assertArrayHasKey('socket_path', $responseData);
+        self::assertSame('/socket.io', $responseData['socket_path']);
+
+        $cookies = $response->headers->getCookies();
+        $sessionCookie = null;
+        foreach ($cookies as $cookie) {
+            if ($cookie->getName() === 'web_session_id') {
+                $sessionCookie = $cookie;
+                break;
+            }
+        }
+
+        self::assertNotNull($sessionCookie, 'Cookie web_session_id должна быть установлена.');
+        self::assertNotSame('', $sessionCookie?->getValue());
+    }
+
     public function testSendReturnsForbiddenWhenSiteIsDisabled(): void
     {
         $browser = static::createClient();
