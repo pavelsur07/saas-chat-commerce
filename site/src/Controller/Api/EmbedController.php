@@ -7,14 +7,13 @@ use App\Entity\Messaging\Client;
 use App\Repository\WebChat\WebChatSiteRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use App\Service\RateLimiter\VisitorMessageRateLimiter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\RateLimiter\RateLimiterFactory;
 
 class EmbedController extends AbstractController
 {
@@ -142,14 +141,15 @@ class EmbedController extends AbstractController
      *  - 429 when a visitor exceeds 50 messages per minute (rate limit).
      *  - 500 when downstream message processing fails.
      *
-     * CORS behaviour mirrors /api/embed/init. Rate limiting is enforced per session via the
-     * Symfony RateLimiter component; cache failures do not block message processing.
+     * CORS behaviour mirrors /api/embed/init. Rate limiting is enforced per session via a
+     * lightweight cache-backed limiter service; cache failures do not block message processing.
      */
     #[Route('/api/embed/message', name: 'api.embed.message', methods: ['POST', 'OPTIONS'])]
     public function send(
         Request $request,
         WebChatSiteRepository $sites,
-        MessageIngressService $ingress
+        MessageIngressService $ingress,
+        VisitorMessageRateLimiter $messageRateLimiter
     ): Response {
         if ($response = $this->handlePreflight($request, $sites)) {
             return $response;
@@ -199,8 +199,7 @@ class EmbedController extends AbstractController
 
         $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins());
 
-        $rateLimiter = $webchatMessagesLimiter->create($sessionId);
-        $limit = $rateLimiter->consume(1);
+        $limit = $messageRateLimiter->consume($sessionId);
 
         if (!$limit->isAccepted()) {
             $response = new JsonResponse(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);

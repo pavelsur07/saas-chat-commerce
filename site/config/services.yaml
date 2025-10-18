@@ -124,6 +124,12 @@ services:
             $cache: '@cache.app'
             $ttlSeconds: '%ai.suggestions.rate_limit_seconds%'
 
+    App\Service\RateLimiter\VisitorMessageRateLimiter:
+        arguments:
+            $limit: 50
+            $intervalSeconds: 60
+            $cacheNamespace: 'webchat_messages'
+
     App\AI\SuggestionService:
         arguments:
             $model: '%ai.suggestions.model%'
