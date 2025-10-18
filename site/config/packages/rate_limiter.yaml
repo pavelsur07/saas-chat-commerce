@@ -1,8 +1,0 @@
-framework:
-    rate_limiter:
-        webchat_messages:
-            policy: 'sliding_window'
-            limit: 50
-            interval: '1 minute'
-            cache_pool: 'cache.rate_limiter'
-            lock_factory: 'lock.factory'
