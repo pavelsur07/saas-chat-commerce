@@ -18,12 +18,28 @@ final class WebChannelAdapter implements ChannelAdapterInterface
     {
         $clientId = (string) $msg->recipientRef;
 
+        $createdAt = $msg->meta['createdAt'] ?? null;
+        if ($createdAt instanceof \DateTimeInterface) {
+            $createdAt = $createdAt->format(DATE_ATOM);
+        } elseif (is_string($createdAt)) {
+            $createdAt = trim($createdAt);
+            if ($createdAt === '') {
+                $createdAt = null;
+            }
+        } else {
+            $createdAt = null;
+        }
+
         $payload = [
             'clientId' => $clientId,
             'text' => $msg->text,
             'direction' => 'out',
-            'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
+            'createdAt' => $createdAt ?? (new \DateTimeImmutable())->format(DATE_ATOM),
         ];
+
+        if (isset($msg->meta['messageId'])) {
+            $payload['id'] = (string) $msg->meta['messageId'];
+        }
 
         try {
             $redis = new \Predis\Client([

@@ -157,21 +157,15 @@ class MessageController extends AbstractController
             $em->persist($message);
             $em->flush();
 
-            $egress->send(new OutboundMessage('web', $client->getId(), $text));
-
-            $redis = new RedisClient([
-                'scheme' => 'tcp',
-                'host' => 'redis-realtime',
-                'port' => 6379,
-            ]);
-
-            $redis->publish("chat.client.{$client->getId()}", json_encode([
-                'id' => $message->getId(),
-                'clientId' => $client->getId(),
-                'text' => $message->getText(),
-                'direction' => 'out',
-                'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
-            ]));
+            $egress->send(new OutboundMessage(
+                'web',
+                $client->getId(),
+                $text,
+                [
+                    'messageId' => $message->getId(),
+                    'createdAt' => $message->getCreatedAt()->format(DATE_ATOM),
+                ],
+            ));
 
             return new JsonResponse(['ok' => true]);
         }
