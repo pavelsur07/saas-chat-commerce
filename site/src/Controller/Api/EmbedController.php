@@ -41,7 +41,7 @@ class EmbedController extends AbstractController
      * mirrors the Origin value in Access-Control-Allow-Origin and enables credentials so that
      * the session cookie can be persisted by the browser.
      */
-    #[Route('/api/embed/init', name: 'api.embed.init', methods: ['POST', 'OPTIONS'])]
+    #[Route('/api/embed/init', name: 'api.embed.init', methods: ['GET', 'POST', 'OPTIONS'])]
     public function init(Request $request, WebChatSiteRepository $sites): Response
     {
         if ($response = $this->handlePreflight($request, $sites)) {
@@ -74,6 +74,15 @@ class EmbedController extends AbstractController
 
         $originHeader = $request->headers->get('Origin');
         $pageUrl = isset($data['page_url']) ? (string) $data['page_url'] : null;
+        if ($pageUrl === null) {
+            $pageUrlQuery = $request->query->get('page_url');
+            if (is_string($pageUrlQuery)) {
+                $pageUrlQuery = trim($pageUrlQuery);
+                if ($pageUrlQuery !== '') {
+                    $pageUrl = $pageUrlQuery;
+                }
+            }
+        }
         $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
 
         if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
