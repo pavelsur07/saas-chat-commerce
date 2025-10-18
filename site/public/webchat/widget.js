@@ -76,10 +76,10 @@
     const explicit = resolveUrl(explicitApiBase, "data-api-base");
     if (explicit) return explicit;
 
-    if (widgetSrcUrl) return widgetSrcUrl;
-
     const fallback = resolveUrl(DEFAULT_API_BASE, "default api base");
     if (fallback) return fallback;
+
+    if (widgetSrcUrl) return widgetSrcUrl;
 
     return new URL(window.location.href);
   })();
@@ -90,6 +90,9 @@
     const explicit = resolveUrl(explicitSocketBase, "data-socket-base");
     if (explicit) return explicit;
 
+    const fallback = resolveUrl(DEFAULT_SOCKET_BASE, "default socket base");
+    if (fallback) return fallback;
+
     if (apiBaseUrl) {
       try {
         return new URL(apiBaseUrl.origin);
@@ -97,9 +100,6 @@
         console.warn("[WebChat] failed to derive socket base from API base", e);
       }
     }
-
-    const fallback = resolveUrl(DEFAULT_SOCKET_BASE, "default socket base");
-    if (fallback) return fallback;
 
     return new URL(window.location.href);
   })();
