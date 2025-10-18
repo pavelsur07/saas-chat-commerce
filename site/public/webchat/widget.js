@@ -502,14 +502,16 @@
           const { text, direction, createdAt } = payload || {};
           if (!text) return;
 
-          // WebChat renders outbound (operator) messages when they arrive via socket.
-          // Inbound messages (sent from this widget) are optimistically rendered,
-          // so skip them to avoid showing duplicates when the server echoes them
-          // back with direction === 'in'.
-          if (direction === "in") return;
+          // WebChat renders only outbound (operator) messages coming from the socket.
+          // Inbound messages sent from this widget are rendered optimistically, so we
+          // need to ignore everything that isn't explicitly marked as an outbound
+          // operator message to avoid duplicates (some backends may return "in",
+          // "incoming", etc.).
+          const normalizedDir =
+            typeof direction === "string" ? direction.trim().toLowerCase() : null;
+          if (normalizedDir !== "out") return;
 
-          const who = direction === "out" ? "them" : "me";
-          renderMessage(String(text), who, createdAt || nowISO());
+          renderMessage(String(text), "them", createdAt || nowISO());
         } catch (e) {
           console.warn("[WebChat] invalid payload:", payload);
         }
