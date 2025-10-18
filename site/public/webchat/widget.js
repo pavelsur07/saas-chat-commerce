@@ -497,11 +497,17 @@
         setOnline(false);
       });
       socket.on("new_message", (payload) => {
-        // Expected: { clientId, text, direction: 'out', createdAt }
+        // Expected: { clientId, text, direction: 'out' | 'in', createdAt }
         try {
           const { text, direction, createdAt } = payload || {};
           if (!text) return;
-          // Direction 'out' => message from operator; render as 'them'
+
+          // WebChat renders outbound (operator) messages when they arrive via socket.
+          // Inbound messages (sent from this widget) are optimistically rendered,
+          // so skip them to avoid showing duplicates when the server echoes them
+          // back with direction === 'in'.
+          if (direction === "in") return;
+
           const who = direction === "out" ? "them" : "me";
           renderMessage(String(text), who, createdAt || nowISO());
         } catch (e) {
