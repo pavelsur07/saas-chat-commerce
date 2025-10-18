@@ -313,22 +313,45 @@
   };
 
   // ---------- API ----------
+  const postJson = async (url, payload) => {
+    const body = JSON.stringify(payload);
+    const makeRequest = (targetUrl) =>
+      fetch(targetUrl, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+    let response = await makeRequest(url);
+
+    if (
+      response.status === 405 &&
+      response.redirected &&
+      response.url &&
+      response.url !== url
+    ) {
+      try {
+        response = await makeRequest(response.url);
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    return response;
+  };
+
   const API = {
     init: async () => {
       try {
-        const res = await fetch(
+        const res = await postJson(
           buildApiUrl("/api/embed/init", {
             site_key: SITE_KEY,
             page_url: location.href,
           }),
           {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              site_key: SITE_KEY,
-              page_url: location.href,
-            }),
+            site_key: SITE_KEY,
+            page_url: location.href,
           }
         );
         if (!res.ok) throw new Error("init failed " + res.status);
@@ -352,14 +375,9 @@
         page_url: location.href,
         referrer: document.referrer || "",
       };
-      const res = await fetch(
+      const res = await postJson(
         buildApiUrl("/api/embed/message", { site_key: SITE_KEY }),
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
+        payload
       );
       if (!res.ok) throw new Error("message failed " + res.status);
       return res.json(); // expects { clientId, room, socket_path }
