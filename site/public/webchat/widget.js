@@ -49,31 +49,71 @@
     }
   };
 
-  const explicitApiBase =
-    (scriptTag.dataset && scriptTag.dataset.apiBase) ||
-    (typeof scriptTag.getAttribute === "function"
-      ? scriptTag.getAttribute("data-api-base")
-      : null);
+  const DEFAULT_API_BASE = "https://chat.2bstock.ru";
+  const DEFAULT_SOCKET_BASE = "https://chat.2bstock.ru";
+
+  const getDataAttr = (name) => {
+    if (!scriptTag) return null;
+    if (scriptTag.dataset && Object.prototype.hasOwnProperty.call(scriptTag.dataset, name)) {
+      return scriptTag.dataset[name];
+    }
+    if (typeof scriptTag.getAttribute === "function") {
+      return scriptTag.getAttribute(`data-${name.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`);
+    }
+    return null;
+  };
+
+  const explicitApiBase = getDataAttr("apiBase");
+  const explicitSocketBase = getDataAttr("socketBase");
+
+  const widgetSrcUrl = (() => {
+    if (!scriptTag || typeof scriptTag.getAttribute !== "function") return null;
+    const src = scriptTag.getAttribute("src") || "";
+    return resolveUrl(src, "widget src");
+  })();
 
   const apiBaseUrl = (() => {
     const explicit = resolveUrl(explicitApiBase, "data-api-base");
-    if (explicit) {
-      return explicit;
-    }
+    if (explicit) return explicit;
 
-    const src =
-      scriptTag && typeof scriptTag.getAttribute === "function"
-        ? scriptTag.getAttribute("src") || ""
-        : "";
-    const fromSrc = resolveUrl(src, "widget src");
-    if (fromSrc) {
-      return fromSrc;
-    }
+    if (widgetSrcUrl) return widgetSrcUrl;
+
+    const fallback = resolveUrl(DEFAULT_API_BASE, "default api base");
+    if (fallback) return fallback;
 
     return new URL(window.location.href);
   })();
 
   const apiBase = apiBaseUrl.toString();
+
+  const socketBaseUrl = (() => {
+    const explicit = resolveUrl(explicitSocketBase, "data-socket-base");
+    if (explicit) return explicit;
+
+    if (apiBaseUrl) {
+      try {
+        return new URL(apiBaseUrl.origin);
+      } catch (e) {
+        console.warn("[WebChat] failed to derive socket base from API base", e);
+      }
+    }
+
+    const fallback = resolveUrl(DEFAULT_SOCKET_BASE, "default socket base");
+    if (fallback) return fallback;
+
+    return new URL(window.location.href);
+  })();
+
+  const normalizeSocketBase = (url) => {
+    if (!url) return "";
+    const path = (url.pathname || "").replace(/\/$/, "");
+    if (path && path !== "/") {
+      return `${url.origin}${path}`;
+    }
+    return url.origin;
+  };
+
+  const socketBase = normalizeSocketBase(socketBaseUrl);
 
   const buildApiUrl = (path, params = {}) => {
     const url = new URL(path, apiBase);
@@ -313,11 +353,13 @@
   };
 
   // ---------- API ----------
-  const postJson = async (url, payload) => {
+  const postJson = async (url, payload, options = {}) => {
+    const { allowGetOn405 = false } = options;
     const body = JSON.stringify(payload);
     const makeRequest = (targetUrl, method = "POST") => {
       const options = {
         method,
+        mode: "cors",
         credentials: "include",
       };
       if (method === "POST") {
@@ -327,33 +369,29 @@
       return fetch(targetUrl, options);
     };
 
-    let response = await makeRequest(url);
-
-    if (
-      response.status === 405 &&
-      response.redirected &&
-      response.url &&
-      response.url !== url
-    ) {
-      try {
-        response = await makeRequest(response.url);
-      } catch (error) {
-        throw error;
-      }
-    }
+    let response = await makeRequest(url, "POST");
 
     if (response.status === 405) {
-      try {
-        const getUrl = new URL(response.url || url);
-        Object.entries(payload || {}).forEach(([key, value]) => {
-          if (value == null) return;
-          const stringValue = String(value).trim();
-          if (stringValue === "") return;
-          getUrl.searchParams.set(key, stringValue);
-        });
-        response = await makeRequest(getUrl.toString(), "GET");
-      } catch (error) {
-        throw error;
+      const redirectedUrl =
+        response.redirected && response.url && response.url !== url ? response.url : null;
+      if (redirectedUrl) {
+        response = await makeRequest(redirectedUrl, "POST");
+      }
+
+      if (response.status === 405 && allowGetOn405) {
+        const buildGetUrl = (baseUrl) => {
+          const getUrl = new URL(baseUrl);
+          Object.entries(payload || {}).forEach(([key, value]) => {
+            if (value == null) return;
+            const stringValue = String(value).trim();
+            if (stringValue === "") return;
+            getUrl.searchParams.set(key, stringValue);
+          });
+          return getUrl.toString();
+        };
+
+        const targetUrl = redirectedUrl || url;
+        response = await makeRequest(buildGetUrl(targetUrl), "GET");
       }
     }
 
@@ -371,7 +409,8 @@
           {
             site_key: SITE_KEY,
             page_url: location.href,
-          }
+          },
+          { allowGetOn405: true }
         );
         if (!res.ok) throw new Error("init failed " + res.status);
         const data = await res.json();
@@ -396,7 +435,8 @@
       };
       const res = await postJson(
         buildApiUrl("/api/embed/message", { site_key: SITE_KEY }),
-        payload
+        payload,
+        { allowGetOn405: false }
       );
       if (!res.ok) throw new Error("message failed " + res.status);
       return res.json(); // expects { clientId, room, socket_path }
@@ -418,8 +458,25 @@
   const connectSocket = async (path, joinRoom) => {
     await ensureSocketLib();
     try {
-      socket = window.io("", {
-        path: path || "/socket.io",
+      let base = socketBase;
+      let socketPath = path || "/socket.io";
+
+      if (path && /^https?:\/\//i.test(path)) {
+        try {
+          const parsed = new URL(path);
+          base = normalizeSocketBase(parsed);
+          socketPath = parsed.pathname || "/socket.io";
+        } catch (e) {
+          console.warn("[WebChat] invalid socket path URL:", path, e);
+        }
+      }
+
+      if (!socketPath.startsWith("/")) {
+        socketPath = `/${socketPath}`;
+      }
+
+      socket = window.io(base || "", {
+        path: socketPath,
         transports: ["websocket", "polling"],
         withCredentials: true,
       });
