@@ -63,7 +63,7 @@ class Message
         $this->telegramBot = $telegramBot;
         $this->createdAt = new \DateTimeImmutable();
 
-        if ($telegramBot) {
+        if ($telegramBot !== null) {
             Assert::eq(
                 $telegramBot->getCompany()->getId(),
                 $this->company->getId(),
@@ -72,7 +72,7 @@ class Message
         }
     }
 
-    public static function messageOut(string $id, Client $client, TelegramBot $telegramBot, ?string $text = null, ?array $payload = null): self
+    public static function messageOut(string $id, Client $client, ?TelegramBot $telegramBot = null, ?string $text = null, ?array $payload = null): self
     {
         return new self($id, $client, 'out', $text, $payload, $telegramBot);
     }
@@ -80,6 +80,19 @@ class Message
     public static function messageIn(string $id, Client $client, ?TelegramBot $telegramBot = null, ?string $text = null, ?array $payload = null): self
     {
         return new self($id, $client, 'in', $text, $payload, $telegramBot);
+    }
+
+    /**
+     * Удобные обёртки для каналов без Telegram-бота (web/instagram/whatsapp/avito и др.).
+     */
+    public static function messageOutGeneric(string $id, Client $client, ?string $text = null, ?array $payload = null): self
+    {
+        return new self($id, $client, 'out', $text, $payload, null);
+    }
+
+    public static function messageInGeneric(string $id, Client $client, ?string $text = null, ?array $payload = null): self
+    {
+        return new self($id, $client, 'in', $text, $payload, null);
     }
 
     public function getId(): ?string
@@ -198,7 +211,7 @@ class Message
         $this->createdAt = $createdAt;
     }
 
-    public function directionList(): array
+    public static function directionList(): array
     {
         return [
             self::IN,

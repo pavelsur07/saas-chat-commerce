@@ -153,7 +153,7 @@ class MessageController extends AbstractController
         }
 
         if ($client->getChannel()->value === Channel::WEB->value) {
-            $message = Message::messageOut(Uuid::uuid4()->toString(), $client, null, $text);
+            $message = Message::messageOutGeneric(Uuid::uuid4()->toString(), $client, $text);
             $em->persist($message);
             $em->flush();
 
