@@ -297,9 +297,8 @@
       page_url: payload.page_url,
     }), {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload,
       includeAuth: false,
-      json: false,
     });
     if (!res.ok) {
       throw new Error(`Handshake failed (${res.status})`);
