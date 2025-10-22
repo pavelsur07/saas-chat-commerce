@@ -316,49 +316,6 @@ class EmbedController extends AbstractController
         return $this->applyCors(new JsonResponse($payload, $status), $request, $allowedOrigin);
     }
 
-    private function handlePreflight(Request $request, WebChatSiteRepository $sites): ?Response
-    {
-        if (!$request->isMethod('OPTIONS')) {
-            return null;
-        }
-
-        $siteKey = trim((string) $request->query->get('site_key', ''));
-        if ($siteKey === '') {
-            return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
-        }
-
-        if (!$sites->isStorageReady()) {
-            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
-        }
-
-        $site = $sites->findActiveBySiteKey($siteKey);
-        if (!$site) {
-            return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
-        }
-
-        $originHeader = $request->headers->get('Origin');
-        $pageUrl = $request->query->get('page_url');
-        if (is_string($pageUrl)) {
-            $pageUrl = trim($pageUrl);
-            if ($pageUrl === '') {
-                $pageUrl = null;
-            }
-        } else {
-            $pageUrl = null;
-        }
-
-        $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
-        if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
-            return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
-        }
-
-        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins(), $pageUrl);
-
-        $response = new Response('', Response::HTTP_NO_CONTENT);
-
-        return $this->applyCors($response, $request, $allowedOrigin);
-    }
-
     private function createRedisClient(): ?\Predis\Client
     {
         try {

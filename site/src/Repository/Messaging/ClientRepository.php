@@ -4,6 +4,7 @@ namespace App\Repository\Messaging;
 
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\TelegramBot;
+use App\Entity\WebChat\WebChatSite;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Query\Parameter;
@@ -51,5 +52,17 @@ class ClientRepository extends ServiceEntityRepository
             ->setParameter('coid', $companyId)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    public function findOneByWebChatSiteAndVisitor(WebChatSite $site, string $visitorId): ?Client
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.webChatSite = :site')
+            ->andWhere('c.externalId = :visitor')
+            ->setParameter('site', $site)
+            ->setParameter('visitor', $visitorId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }
