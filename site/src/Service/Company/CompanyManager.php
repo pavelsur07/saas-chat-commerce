@@ -8,6 +8,8 @@ use App\Entity\Company\Company;
 use App\Entity\Company\User;
 use App\Entity\Company\UserCompany;
 use App\Event\CompanyCreatedEvent;
+use App\Repository\Company\UserCompanyRepository;
+use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -18,6 +20,8 @@ class CompanyManager
     public function __construct(
         private EntityManagerInterface $em,
         private EventDispatcherInterface $dispatcher,
+        private UserCompanyRepository $userCompanies,
+        private CompanyContextService $companyContext,
     ) {
     }
 
@@ -40,9 +44,13 @@ class CompanyManager
         // Связываем владельца
         $userCompany = new UserCompany(Uuid::uuid4()->toString(), $owner, $company);
         $userCompany->setRole(UserCompany::ROLE_OWNER);
+        $userCompany->setStatus(UserCompany::STATUS_ACTIVE);
+        $this->userCompanies->setDefault($userCompany);
         $this->em->persist($userCompany);
 
         $this->em->flush();
+
+        $this->companyContext->setCompany($company);
 
         // Диспатчим событие
         $this->dispatcher->dispatch(new CompanyCreatedEvent($company));

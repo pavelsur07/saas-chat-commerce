@@ -35,7 +35,7 @@ class CompanyCrudController extends AbstractController
             $data = $form->getData();
 
             try {
-                $companyManager->createCompany(
+                $company = $companyManager->createCompany(
                     $data['name'],
                     $data['slug'],
                     $this->getUser()
@@ -46,7 +46,16 @@ class CompanyCrudController extends AbstractController
                 return $this->redirectToRoute('company_create');
             }
 
-            return $this->redirectToRoute('company_index');
+            $this->addFlash(
+                'success',
+                sprintf(
+                    'Компания «%s» создана. Вы — владелец. Управляйте операторами → <a class="underline font-semibold" href="%s">Открыть раздел</a>',
+                    $company->getName(),
+                    $this->generateUrl('company_operators_index')
+                )
+            );
+
+            return $this->redirectToRoute('company_operators_index');
         }
 
         return $this->render('company_crud/form.html.twig', [

@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Нужны права владельца{% endblock %}
+
+{% block body %}
+    <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-xl p-8 space-y-6">
+        <header>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Нужны права владельца</h1>
+            <p class="text-gray-600">Для раздела «Операторы» требуется активная компания, где у вас есть права владельца.</p>
+            {% if showContactOwner %}
+                <p class="text-sm text-gray-500 mt-2">Если это ошибка, попросите владельца компании восстановить для вас доступ или используйте кнопку «Исправить» ниже, если вы создавали компанию.</p>
+            {% endif %}
+        </header>
+
+        {% if issues %}
+            <div class="space-y-4">
+                {% for issue in issues %}
+                    <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900">{{ issue.company.name }}</div>
+                                <p class="text-sm text-gray-700 mt-1">{{ issue.message }}</p>
+                            </div>
+                            {% if issue.canFix %}
+                                <form method="post" action="{{ path('company_operators_fix_owner') }}" class="shrink-0">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('fix_owner_link_' ~ issue.company.id) }}">
+                                    <input type="hidden" name="company_id" value="{{ issue.company.id }}">
+                                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                                        Исправить
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                        {% if not issue.canFix %}
+                            <p class="text-xs text-gray-500 mt-3">Свяжитесь с владельцем компании, чтобы он активировал вашу роль владельца.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="border border-blue-200 bg-blue-50 rounded-lg p-4 text-sm text-blue-700">
+                <p>У вас пока нет компаний, где вы являетесь владельцем. Создайте новую компанию или попросите владельца выдать вам права.</p>
+            </div>
+        {% endif %}
+
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ path('company_switch.list') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Выбрать компанию</a>
+            <a href="{{ path('company_create') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Создать компанию</a>
+            <a href="{{ path('dashboard') }}" class="text-sm text-gray-500 hover:text-gray-700">На главную</a>
+        </div>
+
+        {% if hasFixable is defined and hasFixable == false %}
+            <div class="text-xs text-gray-500">
+                Если доступа нет, обратитесь к владельцу компании или повторно примите приглашение.
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
