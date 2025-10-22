@@ -234,20 +234,46 @@
 
   const generateId = () => (window.crypto?.randomUUID?.() || Math.random().toString(16).slice(2));
 
+  const toHeaderObject = (value) => {
+    if (!value) return {};
+    if (typeof Headers !== 'undefined' && value instanceof Headers) {
+      const result = {};
+      value.forEach((headerValue, headerName) => {
+        result[headerName] = headerValue;
+      });
+      return result;
+    }
+    return { ...value };
+  };
+
+  const hasHeader = (headers, name) => Object.keys(headers).some((key) => key.toLowerCase() === name.toLowerCase());
+
   const apiFetch = async (url, options = {}) => {
-    const headers = options.headers || {};
-    if (state.token) {
+    const headers = toHeaderObject(options.headers);
+    if (state.token && options.includeAuth !== false && !hasHeader(headers, 'Authorization')) {
       headers['Authorization'] = `Bearer ${state.token}`;
     }
-    return fetch(url, {
+
+    const fetchOptions = {
       method: options.method || 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
+      credentials: options.credentials || 'include',
+      headers,
+    };
+
+    let body = options.body;
+    const shouldHandleJson = options.json !== false && body !== undefined && !(body instanceof FormData);
+    if (shouldHandleJson) {
+      body = JSON.stringify(body);
+      if (!hasHeader(headers, 'Content-Type')) {
+        headers['Content-Type'] = 'application/json';
+      }
+    }
+
+    if (body !== undefined) {
+      fetchOptions.body = body;
+    }
+
+    return fetch(url, fetchOptions);
   };
 
   const ensureTokenFresh = async () => {
@@ -266,14 +292,14 @@
     if (state.sessionId) {
       payload.session_id = state.sessionId;
     }
-    const res = await fetch(buildApiUrl('/api/webchat/handshake', {
+    const res = await apiFetch(buildApiUrl('/api/webchat/handshake', {
       site_key: payload.site_key,
       page_url: payload.page_url,
     }), {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      includeAuth: false,
+      json: false,
     });
     if (!res.ok) {
       throw new Error(`Handshake failed (${res.status})`);
