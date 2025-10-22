@@ -1,7 +1,6 @@
-(()=>{
-  "use strict";
+(()=> {
+  'use strict';
 
-  // ---------- Helpers ----------
   const by = (sel, root = document) => root.querySelector(sel);
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -10,134 +9,369 @@
     return n;
   };
   const nowISO = () => new Date().toISOString();
-  const fmtTime = (d) =>
-    new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const fmtTime = (d) => new Date(d).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
   const getScriptEl = () => {
-    // robust: find the <script> that loaded this file (async-safe)
-    // Prefer currentScript; fallback to last <script src*="/webchat/widget.js">
     const cs = document.currentScript;
     if (cs && cs.dataset) return cs;
     const scripts = Array.from(document.scripts);
     for (let i = scripts.length - 1; i >= 0; i--) {
       const s = scripts[i];
-      const src = s.getAttribute("src") || "";
-      if (src.includes("/webchat/widget.js")) return s;
+      const src = s.getAttribute('src') || '';
+      if (src.includes('/webchat/widget.js')) return s;
     }
-    // As a last resort, return an empty element-like object.
     return { dataset: {} };
   };
 
-  // ---------- State ----------
   const scriptTag = getScriptEl();
-  const SITE_KEY = scriptTag.dataset.siteKey || scriptTag.getAttribute("data-site-key") || "";
+  const SITE_KEY = scriptTag.dataset.siteKey || scriptTag.getAttribute('data-site-key') || '';
   if (!SITE_KEY) {
-    console.warn("[WebChat] data-site-key is missing on <script> tag.");
+    console.warn('[WebChat] data-site-key is missing on <script> tag.');
   }
 
-  const resolveUrl = (value, purpose) => {
-    if (!value) return null;
-    try {
-      return new URL(value, window.location.href);
-    } catch (e) {
-      if (purpose) {
-        console.warn(`[WebChat] invalid ${purpose} URL:`, value, e);
-      } else {
-        console.warn("[WebChat] failed to resolve URL", value, e);
-      }
-      return null;
-    }
-  };
-
-  const DEFAULT_API_BASE = "https://chat.2bstock.ru";
-  const DEFAULT_SOCKET_BASE = "https://chat.2bstock.ru";
+  const DEFAULT_API_BASE = 'https://chat.2bstock.ru';
+  const DEFAULT_SOCKET_BASE = 'https://chat.2bstock.ru';
 
   const getDataAttr = (name) => {
     if (!scriptTag) return null;
     if (scriptTag.dataset && Object.prototype.hasOwnProperty.call(scriptTag.dataset, name)) {
       return scriptTag.dataset[name];
     }
-    if (typeof scriptTag.getAttribute === "function") {
+    if (typeof scriptTag.getAttribute === 'function') {
       return scriptTag.getAttribute(`data-${name.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`);
     }
     return null;
   };
 
-  const explicitApiBase = getDataAttr("apiBase");
-  const explicitSocketBase = getDataAttr("socketBase");
-
-  const widgetSrcUrl = (() => {
-    if (!scriptTag || typeof scriptTag.getAttribute !== "function") return null;
-    const src = scriptTag.getAttribute("src") || "";
-    return resolveUrl(src, "widget src");
-  })();
-
-  const apiBaseUrl = (() => {
-    const explicit = resolveUrl(explicitApiBase, "data-api-base");
-    if (explicit) return explicit;
-
-    const fallback = resolveUrl(DEFAULT_API_BASE, "default api base");
-    if (fallback) return fallback;
-
-    if (widgetSrcUrl) return widgetSrcUrl;
-
-    return new URL(window.location.href);
-  })();
-
-  const apiBase = apiBaseUrl.toString();
-
-  const socketBaseUrl = (() => {
-    const explicit = resolveUrl(explicitSocketBase, "data-socket-base");
-    if (explicit) return explicit;
-
-    const fallback = resolveUrl(DEFAULT_SOCKET_BASE, "default socket base");
-    if (fallback) return fallback;
-
-    if (apiBaseUrl) {
-      try {
-        return new URL(apiBaseUrl.origin);
-      } catch (e) {
-        console.warn("[WebChat] failed to derive socket base from API base", e);
-      }
+  const resolveUrl = (value, purpose) => {
+    if (!value) return null;
+    try {
+      return new URL(value, window.location.href);
+    } catch (e) {
+      console.warn(`[WebChat] invalid ${purpose || 'URL'}:`, value, e);
+      return null;
     }
-
-    return new URL(window.location.href);
-  })();
-
-  const normalizeSocketBase = (url) => {
-    if (!url) return "";
-    const path = (url.pathname || "").replace(/\/$/, "");
-    if (path && path !== "/") {
-      return `${url.origin}${path}`;
-    }
-    return url.origin;
   };
 
-  const socketBase = normalizeSocketBase(socketBaseUrl);
+  const explicitApiBase = getDataAttr('apiBase');
+  const explicitSocketBase = getDataAttr('socketBase');
+
+  const apiBaseUrl = resolveUrl(explicitApiBase, 'data-api-base')
+    || resolveUrl(DEFAULT_API_BASE, 'default api base')
+    || resolveUrl(scriptTag?.getAttribute?.('src') || window.location.href, 'widget src');
+  const socketBaseUrl = resolveUrl(explicitSocketBase, 'data-socket-base')
+    || resolveUrl(DEFAULT_SOCKET_BASE, 'default socket base')
+    || resolveUrl(apiBaseUrl?.origin || window.location.href, 'socket origin');
+
+  const apiBase = apiBaseUrl?.toString() || window.location.origin;
+  const socketBase = (() => {
+    if (!socketBaseUrl) return window.location.origin;
+    const path = (socketBaseUrl.pathname || '').replace(/\/$/, '');
+    if (path && path !== '/') {
+      return `${socketBaseUrl.origin}${path}`;
+    }
+    return socketBaseUrl.origin;
+  })();
 
   const buildApiUrl = (path, params = {}) => {
     const url = new URL(path, apiBase);
     Object.entries(params).forEach(([key, value]) => {
       if (value == null) return;
       const stringValue = String(value);
-      if (stringValue === "") return;
+      if (stringValue.trim() === '') return;
       url.searchParams.set(key, stringValue);
     });
     return url.toString();
   };
 
-  let sessionId = null;       // from /api/embed/init
-  let clientId = null;        // from /api/embed/message (first send)
-  let room = null;            // "client-{id}"
-  let socket = null;          // window.io(...) client
-  let socketPath = "/socket.io";
-  let connected = false;
-  let firstMessageSent = false;
+  const DB_NAME = `webchat_${SITE_KEY || 'default'}`;
+  const DB_VERSION = 2;
+  let dbPromise = null;
 
-  // queue outbound messages until socket joins the room (after first send)
-  const outboxQueue = [];
+  const openDb = () => {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onerror = () => reject(req.error);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('messages')) {
+          const store = db.createObjectStore('messages', { keyPath: 'id' });
+          store.createIndex('thread_created', ['threadId', 'createdAt']);
+        }
+        if (!db.objectStoreNames.contains('client')) {
+          db.createObjectStore('client', { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains('sync')) {
+          db.createObjectStore('sync', { keyPath: 'threadId' });
+        }
+        if (!db.objectStoreNames.contains('outbox')) {
+          db.createObjectStore('outbox', { keyPath: 'tmpId' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+    });
+    return dbPromise;
+  };
 
-  // ---------- DOM: inject styles ----------
+  const withStore = async (storeName, mode, fn) => {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, mode);
+      const store = tx.objectStore(storeName);
+      const result = fn(store, tx);
+      tx.oncomplete = () => resolve(result);
+      tx.onerror = () => reject(tx.error);
+    });
+  };
+
+  const getClientRecord = async (key) => withStore('client', 'readonly', (store) => store.get(key));
+  const putClientRecord = async (record) => withStore('client', 'readwrite', (store) => store.put(record));
+
+  const listMessages = async (threadId, limit = 50) => withStore('messages', 'readonly', (store) => {
+    const index = store.index('thread_created');
+    const range = IDBKeyRange.bound([threadId, '0000'], [threadId, '\uffff']);
+    const req = index.openCursor(range, 'prev');
+    const items = [];
+    return new Promise((resolve) => {
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor || items.length >= limit) {
+          resolve(items.reverse());
+          return;
+        }
+        items.push(cursor.value);
+        cursor.continue();
+      };
+      req.onerror = () => resolve(items.reverse());
+    });
+  });
+
+  const saveMessages = async (messages) => withStore('messages', 'readwrite', (store) => {
+    [].concat(messages).forEach((m) => store.put(m));
+  });
+
+  const deleteMessagesByThread = async (threadId) => withStore('messages', 'readwrite', (store) => {
+    const index = store.index('thread_created');
+    const range = IDBKeyRange.bound([threadId, '0000'], [threadId, '\uffff']);
+    const req = index.openCursor(range);
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (!cursor) return;
+      store.delete(cursor.primaryKey);
+      cursor.continue();
+    };
+  });
+
+  const getSyncState = async (threadId) => withStore('sync', 'readonly', (store) => store.get(threadId));
+  const putSyncState = async (threadId, state) => withStore('sync', 'readwrite', (store) => store.put({ threadId, ...state }));
+  const deleteSyncState = async (threadId) => withStore('sync', 'readwrite', (store) => store.delete(threadId));
+
+  const enqueueOutbox = async (entry) => withStore('outbox', 'readwrite', (store) => store.put(entry));
+  const removeOutbox = async (tmpId) => withStore('outbox', 'readwrite', (store) => store.delete(tmpId));
+  const listOutbox = async () => withStore('outbox', 'readonly', (store) => {
+    return new Promise((resolve) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  });
+
+  const cookie = {
+    set(name, value, { days = 365, sameSite = 'Lax' } = {}) {
+      const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=${sameSite}`;
+    },
+    get(name) {
+      return document.cookie
+        .split(';')
+        .map((s) => s.trim())
+        .find((item) => item.startsWith(`${name}=`))?.split('=')[1] || null;
+    },
+  };
+
+  const state = {
+    visitorId: null,
+    sessionId: null,
+    threadId: null,
+    token: null,
+    tokenExpiresAt: 0,
+    socket: null,
+    socketPath: '/socket.io',
+    messages: [],
+    outboxProcessing: false,
+    isOnline: navigator.onLine,
+    hydrateComplete: false,
+  };
+
+  const setVisitorId = async (visitorId) => {
+    state.visitorId = visitorId;
+    cookie.set('wc_vid', visitorId, { days: 365 });
+    await putClientRecord({ key: 'visitor', value: visitorId });
+  };
+
+  const loadStoredVisitor = async () => {
+    const fromCookie = cookie.get('wc_vid');
+    if (fromCookie) return fromCookie;
+    const record = await getClientRecord('visitor');
+    if (record && typeof record.value === 'string') {
+      return record.value;
+    }
+    return null;
+  };
+
+  const loadStoredThread = async () => {
+    const record = await getClientRecord('thread');
+    if (record && typeof record.value === 'string') {
+      return record.value;
+    }
+    return null;
+  };
+
+  const saveThread = async (threadId) => {
+    await putClientRecord({ key: 'thread', value: threadId });
+  };
+
+  const generateId = () => (window.crypto?.randomUUID?.() || Math.random().toString(16).slice(2));
+
+  const apiFetch = async (url, options = {}) => {
+    const headers = options.headers || {};
+    if (state.token) {
+      headers['Authorization'] = `Bearer ${state.token}`;
+    }
+    return fetch(url, {
+      method: options.method || 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  };
+
+  const ensureTokenFresh = async () => {
+    const now = Date.now();
+    if (!state.token || now + 120000 > state.tokenExpiresAt) {
+      await handshake();
+    }
+  };
+
+  const handshake = async () => {
+    const payload = {
+      site_key: SITE_KEY,
+      visitor_id: state.visitorId,
+      page_url: window.location.href,
+    };
+    if (state.sessionId) {
+      payload.session_id = state.sessionId;
+    }
+    const res = await fetch(buildApiUrl('/api/webchat/handshake'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(`Handshake failed (${res.status})`);
+    }
+    const data = await res.json();
+    if (data.visitor_id && data.visitor_id !== state.visitorId) {
+      await setVisitorId(data.visitor_id);
+    }
+    state.sessionId = data.session_id || state.sessionId || generateId();
+    state.threadId = data.thread_id;
+    state.token = data.token;
+    state.tokenExpiresAt = Date.now() + (Number(data.expires_in || 0) * 1000);
+    state.socketPath = data.socket_path || state.socketPath;
+    await saveThread(state.threadId);
+    return data;
+  };
+
+  const loadLocalMessages = async () => {
+    if (!state.threadId) return [];
+    state.messages = await listMessages(state.threadId, 200);
+    return state.messages;
+  };
+
+  const syncWithServer = async () => {
+    if (!state.threadId) return;
+    await ensureTokenFresh();
+
+    const syncState = await getSyncState(state.threadId);
+    const params = { site_key: SITE_KEY, thread_id: state.threadId };
+    if (syncState?.lastSyncedAt) {
+      params.since = syncState.lastSyncedAt;
+    }
+    const res = await apiFetch(buildApiUrl('/api/webchat/messages', params));
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!Array.isArray(data.messages)) return;
+
+    const newMessages = [];
+    for (const msg of data.messages) {
+      if (!msg || !msg.id) continue;
+      const stored = {
+        id: msg.id,
+        threadId: state.threadId,
+        direction: msg.direction,
+        text: msg.text ?? '',
+        payload: msg.payload ?? null,
+        createdAt: msg.created_at ?? nowISO(),
+        deliveredAt: msg.delivered_at || null,
+        readAt: msg.read_at || null,
+        tmpId: null,
+        status: msg.direction === 'out' && !msg.read_at ? 'delivered' : 'read',
+      };
+      newMessages.push(stored);
+      upsertMessage(stored);
+    }
+
+    if (newMessages.length > 0) {
+      await saveMessages(newMessages);
+      state.messages = await listMessages(state.threadId, 200);
+      renderAllMessages();
+    }
+
+    const last = data.messages[data.messages.length - 1];
+    if (last?.created_at) {
+      await putSyncState(state.threadId, { lastSyncedAt: last.created_at });
+    }
+  };
+
+  const postMessage = async (text, tmpId) => {
+    await ensureTokenFresh();
+    const payload = {
+      site_key: SITE_KEY,
+      thread_id: state.threadId,
+      text,
+      tmp_id: tmpId,
+    };
+    const res = await apiFetch(buildApiUrl('/api/webchat/messages'), { method: 'POST', body: payload });
+    if (!res.ok) throw new Error(`Send failed (${res.status})`);
+    return res.json();
+  };
+
+  const sendAck = async ({ delivered = [], read = [] }) => {
+    if (!state.threadId || (!delivered.length && !read.length)) return;
+    try {
+      await ensureTokenFresh();
+      await apiFetch(buildApiUrl('/api/webchat/ack'), {
+        method: 'POST',
+        body: {
+          site_key: SITE_KEY,
+          thread_id: state.threadId,
+          delivered,
+          read,
+        },
+      });
+    } catch (err) {
+      console.warn('[WebChat] ack failed', err);
+    }
+  };
+
+  let fabBtn, panel, dot, msgBox, inputArea, ta, sendBtn, emptyHint;
+
   const injectStyles = () => {
     const css = `
 :root {
@@ -158,7 +392,7 @@
   background: var(--wc-accent);
   color: white;
   display: grid; place-items: center;
-  font: 600 20px/1 system-ui, -apple-system, Segoe UI, Roboto, "Inter", sans-serif;
+  font: 600 20px/1 system-ui, -apple-system, Segoe UI, Roboto, 'Inter', sans-serif;
   box-shadow: var(--wc-shadow);
   cursor: pointer;
   z-index: 2147483000;
@@ -185,7 +419,7 @@
 }
 .wc-brand {
   display:flex; align-items:center; gap:10px;
-  font: 600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, "Inter", sans-serif;
+  font: 600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, 'Inter', sans-serif;
 }
 .wc-dot {
   width:10px; height:10px; border-radius:50%;
@@ -220,11 +454,16 @@
   border-top-left-radius: 4px;
 }
 .wc-time {
-  display:block;
+  display:flex; justify-content:flex-end; align-items:center;
   margin-top:4px;
+  gap: 6px;
   font-size: 11px; color: var(--wc-muted);
-  text-align: right;
 }
+.wc-status {
+  font-size: 11px;
+  color: var(--wc-muted);
+}
+.wc-status.error { color: var(--wc-danger); }
 .wc-input {
   padding: 10px; background: var(--wc-bg);
   border-top: 1px solid rgba(255,255,255,0.06);
@@ -237,7 +476,7 @@
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
   padding: 10px;
-  font: 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, "Inter", sans-serif;
+  font: 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, 'Inter', sans-serif;
   outline: none;
 }
 .wc-send {
@@ -263,66 +502,64 @@
 .wc-loader span:nth-child(3){ animation-delay: .2s }
 @keyframes wc-b { 0%, 80%, 100% { transform: translateY(0) } 40% { transform: translateY(-5px) } }
 `;
-    const style = document.createElement("style");
+    const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
   };
 
-  // ---------- DOM: build UI ----------
-  let fabBtn, panel, dot, msgBox, inputArea, ta, sendBtn, emptyHint;
-
   const buildUI = () => {
-    fabBtn = el("button", "wc-fab", "💬");
+    fabBtn = el('button', 'wc-fab', '💬');
 
-    panel = el("div", "wc-panel");
-    const header = el("div", "wc-header");
-    const brand = el("div", "wc-brand");
-    dot = el("span", "wc-dot");
-    const title = el("span", null, "Чат с поддержкой");
+    panel = el('div', 'wc-panel');
+    const header = el('div', 'wc-header');
+    const brand = el('div', 'wc-brand');
+    dot = el('span', 'wc-dot');
+    const title = el('span', null, 'Чат с поддержкой');
     brand.append(dot, title);
 
-    const closeBtn = el("button", "wc-close", "✕");
-    closeBtn.addEventListener("click", () => {
-      panel.style.display = "none";
+    const closeBtn = el('button', 'wc-close', '✕');
+    closeBtn.addEventListener('click', () => {
+      panel.style.display = 'none';
     });
     header.append(brand, closeBtn);
 
-    msgBox = el("div", "wc-messages");
-    emptyHint = el("div", "wc-empty", "Напишите нам — мы ответим здесь.");
+    msgBox = el('div', 'wc-messages');
+    emptyHint = el('div', 'wc-empty', 'Напишите нам — мы ответим здесь.');
     msgBox.appendChild(emptyHint);
 
-    inputArea = el("div", "wc-input");
-    ta = el("textarea", "wc-textarea");
-    ta.setAttribute("rows", "1");
-    ta.setAttribute("placeholder", "Ваше сообщение…");
-    sendBtn = el("button", "wc-send", "Отправить");
+    inputArea = el('div', 'wc-input');
+    ta = el('textarea', 'wc-textarea');
+    ta.setAttribute('rows', '1');
+    ta.setAttribute('placeholder', 'Ваше сообщение…');
+    sendBtn = el('button', 'wc-send', 'Отправить');
     sendBtn.disabled = false;
     inputArea.append(ta, sendBtn);
 
     panel.append(header, msgBox, inputArea);
 
-    fabBtn.addEventListener("click", () => {
-      panel.style.display = panel.style.display === "grid" ? "none" : "grid";
-      if (panel.style.display === "grid") {
+    fabBtn.addEventListener('click', () => {
+      panel.style.display = panel.style.display === 'grid' ? 'none' : 'grid';
+      if (panel.style.display === 'grid') {
         ta.focus();
         scrollToBottom();
       }
     });
 
-    ta.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        doSend();
+        void doSend();
       }
     });
-    sendBtn.addEventListener("click", doSend);
+    sendBtn.addEventListener('click', () => void doSend());
 
     document.body.append(fabBtn, panel);
   };
 
   const setOnline = (isOnline) => {
+    state.isOnline = isOnline;
     if (!dot) return;
-    dot.classList.toggle("off", !isOnline);
+    dot.classList.toggle('off', !isOnline);
   };
 
   const scrollToBottom = () => {
@@ -330,242 +567,325 @@
     msgBox.scrollTop = msgBox.scrollHeight + 999;
   };
 
-  const renderMessage = (text, direction, tsISO) => {
-    if (emptyHint && emptyHint.parentNode) emptyHint.remove();
-    const bubble = el("div", `wc-msg ${direction === "me" ? "me" : "them"}`);
-    const content = el("div");
-    content.textContent = text; // XSS-safe
-    const time = el("span", "wc-time", fmtTime(tsISO || nowISO()));
-    bubble.append(content, time);
-    msgBox.appendChild(bubble);
+  const messageDomId = (id) => `wc-msg-${id}`;
+
+  const renderAllMessages = () => {
+    if (!msgBox) return;
+    msgBox.innerHTML = '';
+    if (!state.messages.length) {
+      msgBox.appendChild(emptyHint);
+      return;
+    }
+    for (const message of state.messages) {
+      msgBox.appendChild(renderMessageBubble(message));
+    }
     scrollToBottom();
   };
 
-  const renderTyping = () => {
-    const wrap = el("div", "wc-msg them");
-    const loader = el("div", "wc-loader");
-    loader.append(el("span"), el("span"), el("span"));
-    wrap.append(loader);
-    msgBox.appendChild(wrap);
-    scrollToBottom();
-    // remove after a short delay unless replaced by a real message
-    setTimeout(() => wrap.remove(), 1500);
+  const renderMessageBubble = (message) => {
+    const bubble = el('div', `wc-msg ${message.direction === 'in' ? 'them' : 'me'}`);
+    bubble.dataset.id = message.id;
+    bubble.id = messageDomId(message.id);
+    const content = el('div');
+    content.textContent = message.text;
+    const metaWrap = el('div', 'wc-time');
+    const timeLabel = el('span', null, fmtTime(message.createdAt || nowISO()));
+    metaWrap.appendChild(timeLabel);
+    if (message.direction === 'out') {
+      const status = el('span', 'wc-status');
+      updateStatusLabel(status, message);
+      metaWrap.appendChild(status);
+    }
+    bubble.append(content, metaWrap);
+    return bubble;
   };
 
-  // ---------- API ----------
-  const postJson = async (url, payload, options = {}) => {
-    const { allowGetOn405 = false } = options;
-    const body = JSON.stringify(payload);
-    const makeRequest = (targetUrl, method = "POST") => {
-      const options = {
-        method,
-        mode: "cors",
-        credentials: "include",
-      };
-      if (method === "POST") {
-        options.headers = { "Content-Type": "application/json" };
-        options.body = body;
-      }
-      return fetch(targetUrl, options);
-    };
+  const updateStatusLabel = (node, message) => {
+    if (!node) return;
+    node.classList.remove('error');
+    if (message.status === 'error') {
+      node.textContent = 'ошибка';
+      node.classList.add('error');
+    } else if (message.status === 'sending') {
+      node.textContent = 'отправка…';
+    } else if (message.status === 'delivered') {
+      node.textContent = 'доставлено';
+    } else if (message.status === 'read') {
+      node.textContent = 'прочитано';
+    } else {
+      node.textContent = '';
+    }
+  };
 
-    let response = await makeRequest(url, "POST");
-
-    if (response.status === 405) {
-      const redirectedUrl =
-        response.redirected && response.url && response.url !== url ? response.url : null;
-      if (redirectedUrl) {
-        response = await makeRequest(redirectedUrl, "POST");
-      }
-
-      if (response.status === 405 && allowGetOn405) {
-        const buildGetUrl = (baseUrl) => {
-          const getUrl = new URL(baseUrl);
-          Object.entries(payload || {}).forEach(([key, value]) => {
-            if (value == null) return;
-            const stringValue = String(value).trim();
-            if (stringValue === "") return;
-            getUrl.searchParams.set(key, stringValue);
-          });
-          return getUrl.toString();
-        };
-
-        const targetUrl = redirectedUrl || url;
-        response = await makeRequest(buildGetUrl(targetUrl), "GET");
-      }
+  const upsertMessage = (incoming) => {
+    const idx = state.messages.findIndex((m) => m.id === incoming.id);
+    if (idx >= 0) {
+      state.messages[idx] = { ...state.messages[idx], ...incoming };
+    } else {
+      state.messages.push(incoming);
+      state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     }
 
-    return response;
-  };
-
-  const API = {
-    init: async () => {
-      try {
-        const res = await postJson(
-          buildApiUrl("/api/embed/init", {
-            site_key: SITE_KEY,
-            page_url: location.href,
-          }),
-          {
-            site_key: SITE_KEY,
-            page_url: location.href,
-          },
-          { allowGetOn405: true }
-        );
-        if (!res.ok) throw new Error("init failed " + res.status);
-        const data = await res.json();
-        sessionId = data.session_id || null;
-        // socket_path may be provided; store as default before /message
-        if (data.socket_path) socketPath = data.socket_path;
-        setOnline(true);
-      } catch (e) {
-        console.warn("[WebChat] init error:", e);
-        setOnline(false);
+    const bubble = by(`#${messageDomId(incoming.id)}`);
+    if (bubble) {
+      bubble.className = `wc-msg ${incoming.direction === 'in' ? 'them' : 'me'}`;
+      bubble.querySelector('div')?.replaceWith(el('div', null, incoming.text));
+      const metaWrap = bubble.querySelector('.wc-time');
+      if (metaWrap) {
+        metaWrap.innerHTML = '';
+        metaWrap.appendChild(el('span', null, fmtTime(incoming.createdAt || nowISO())));
+        if (incoming.direction === 'out') {
+          const status = el('span', 'wc-status');
+          updateStatusLabel(status, incoming);
+          metaWrap.appendChild(status);
+        }
       }
-    },
-
-    sendMessage: async (text) => {
-      if (!text || !text.trim()) return;
-      const payload = {
-        site_key: SITE_KEY,
-        session_id: sessionId,
-        text: text.trim(),
-        page_url: location.href,
-        referrer: document.referrer || "",
-      };
-      const res = await postJson(
-        buildApiUrl("/api/embed/message", { site_key: SITE_KEY, page_url: location.href }),
-        payload,
-        { allowGetOn405: false }
-      );
-      if (!res.ok) throw new Error("message failed " + res.status);
-      return res.json(); // expects { clientId, room, socket_path }
-    },
+    } else if (msgBox) {
+      msgBox.appendChild(renderMessageBubble(incoming));
+    }
+    scrollToBottom();
   };
 
-  // ---------- Socket ----------
-  const ensureSocketLib = () =>
-    new Promise((resolve, reject) => {
-      if (window.io && typeof window.io === "function") return resolve();
-      const s = document.createElement("script");
-      s.src = "https://cdn.socket.io/4.7.5/socket.io.min.js";
-      s.defer = true;
-      s.onload = () => resolve();
-      s.onerror = (e) => reject(e);
-      document.head.appendChild(s);
+  const attachSocket = async () => {
+    if (!state.threadId || !state.token) return;
+    await ensureSocketLib();
+    if (state.socket) {
+      state.socket.disconnect();
+    }
+    state.socket = window.io(socketBase, {
+      path: state.socketPath,
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      auth: { token: state.token },
     });
 
-  const connectSocket = async (path, joinRoom) => {
-    await ensureSocketLib();
-    try {
-      let base = socketBase;
-      let socketPath = path || "/socket.io";
+    state.socket.on('connect', () => {
+      setOnline(true);
+      state.socket.emit('join', { room: `thread-${state.threadId}` });
+    });
+    state.socket.on('disconnect', () => setOnline(false));
+    state.socket.on('connect_error', () => setOnline(false));
 
-      if (path && /^https?:\/\//i.test(path)) {
-        try {
-          const parsed = new URL(path);
-          base = normalizeSocketBase(parsed);
-          socketPath = parsed.pathname || "/socket.io";
-        } catch (e) {
-          console.warn("[WebChat] invalid socket path URL:", path, e);
+    state.socket.on('message:new', (payload) => {
+      if (!payload || !payload.message) return;
+      const msg = payload.message;
+      const stored = {
+        id: msg.id,
+        threadId: state.threadId,
+        direction: msg.direction || 'out',
+        text: msg.text || '',
+        payload: msg.payload || null,
+        createdAt: msg.createdAt || nowISO(),
+        deliveredAt: msg.deliveredAt || null,
+        readAt: msg.readAt || null,
+        tmpId: null,
+        status: msg.direction === 'out' && !msg.readAt ? 'delivered' : 'read',
+      };
+      saveMessages([stored]);
+      upsertMessage(stored);
+
+      if (stored.direction === 'out') {
+        sendAck({ delivered: [stored.id] });
+        if (panel?.style.display === 'grid' && !document.hidden) {
+          stored.status = 'read';
+          stored.readAt = nowISO();
+          sendAck({ read: [stored.id] });
+          saveMessages([stored]);
+          const bubble = by(`#${messageDomId(stored.id)}`);
+          updateStatusLabel(bubble?.querySelector('.wc-status'), stored);
         }
       }
+    });
 
-      if (!socketPath.startsWith("/")) {
-        socketPath = `/${socketPath}`;
-      }
-
-      socket = window.io(base || "", {
-        path: socketPath,
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-      });
-      socket.on("connect", () => {
-        connected = true;
-        setOnline(true);
-        // Ask server to join the specific client room
-        socket.emit("join", { room: joinRoom });
-        // Flush any queued outbound echoes (we render immediately anyway)
-        while (outboxQueue.length) outboxQueue.shift();
-      });
-      socket.on("disconnect", () => {
-        connected = false;
-        setOnline(false);
-      });
-      socket.on("connect_error", () => {
-        connected = false;
-        setOnline(false);
-      });
-      socket.on("new_message", (payload) => {
-        // Expected: { clientId, text, direction: 'out' | 'in', createdAt }
-        try {
-          const { text, direction, createdAt } = payload || {};
-          if (!text) return;
-
-          // WebChat renders only outbound (operator) messages coming from the socket.
-          // Inbound messages sent from this widget are rendered optimistically, so we
-          // need to ignore everything that isn't explicitly marked as an outbound
-          // operator message to avoid duplicates (some backends may return "in",
-          // "incoming", etc.).
-          const normalizedDir =
-            typeof direction === "string" ? direction.trim().toLowerCase() : null;
-          if (normalizedDir !== "out") return;
-
-          renderMessage(String(text), "them", createdAt || nowISO());
-        } catch (e) {
-          console.warn("[WebChat] invalid payload:", payload);
+    state.socket.on('message:status', (payload) => {
+      if (!payload || !Array.isArray(payload.messages)) return;
+      const status = payload.status === 'read' ? 'read' : 'delivered';
+      for (const id of payload.messages) {
+        const existing = state.messages.find((m) => m.id === id);
+        if (!existing) continue;
+        existing.status = status;
+        if (status === 'delivered') {
+          existing.deliveredAt = payload.timestamp || nowISO();
+        } else {
+          existing.readAt = payload.timestamp || nowISO();
         }
-      });
-    } catch (e) {
-      console.warn("[WebChat] socket error:", e);
-      setOnline(false);
-    }
+        const bubble = by(`#${messageDomId(id)}`);
+        updateStatusLabel(bubble?.querySelector('.wc-status'), existing);
+      }
+    });
   };
 
-  // ---------- Actions ----------
+  const ensureSocketLib = () => new Promise((resolve, reject) => {
+    if (window.io && typeof window.io === 'function') {
+      resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+    s.defer = true;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(e);
+    document.head.appendChild(s);
+  });
+
   const doSend = async () => {
     if (!ta || !sendBtn) return;
-    const txt = ta.value;
-    if (!txt.trim()) return;
+    const txt = ta.value.trim();
+    if (!txt) return;
+    if (!state.threadId) {
+      await handshake();
+    }
 
-    // UI optimistic render
-    renderMessage(txt.trim(), "me", nowISO());
-    renderTyping();
-    ta.value = "";
+    const tmpId = generateId();
+    const message = {
+      id: `tmp-${tmpId}`,
+      threadId: state.threadId,
+      direction: 'out',
+      text: txt,
+      payload: null,
+      createdAt: nowISO(),
+      deliveredAt: null,
+      readAt: null,
+      tmpId,
+      status: 'sending',
+    };
+    state.messages.push(message);
+    await saveMessages([message]);
+    renderAllMessages();
+
+    ta.value = '';
     sendBtn.disabled = true;
 
+    if (!navigator.onLine) {
+      await enqueueOutbox({ tmpId, text: txt, createdAt: message.createdAt });
+      message.status = 'error';
+      await saveMessages([{ ...message }]);
+      renderAllMessages();
+      sendBtn.disabled = false;
+      return;
+    }
+
     try {
-      // First message boots the session & returns socket info
-      const resp = await API.sendMessage(txt);
-      if (!firstMessageSent) {
-        firstMessageSent = true;
-        clientId = resp.clientId || resp.client_id || null;
-        room = resp.room;
-        socketPath = resp.socket_path || socketPath;
-        // Connect socket and join the room
-        await connectSocket(socketPath, room);
+      await ensureTokenFresh();
+      const response = await postMessage(txt, tmpId);
+      if (response && response.message_id) {
+        const persisted = {
+          id: response.message_id,
+          threadId: state.threadId,
+          direction: 'out',
+          text: txt,
+          payload: null,
+          createdAt: response.created_at || message.createdAt,
+          deliveredAt: response.created_at || message.createdAt,
+          readAt: null,
+          tmpId: null,
+          status: 'delivered',
+        };
+        state.messages = state.messages.filter((m) => m.id !== message.id);
+        state.messages.push(persisted);
+        state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        await saveMessages([persisted]);
+        renderAllMessages();
+        await removeOutbox(tmpId);
+        await putSyncState(state.threadId, { lastSyncedAt: persisted.createdAt });
       }
-    } catch (e) {
-      console.warn("[WebChat] send error:", e);
-      // show a small error bubble
-      renderMessage("Не удалось отправить. Повторите попытку.", "them", nowISO());
+    } catch (err) {
+      console.warn('[WebChat] send error:', err);
+      message.status = 'error';
+      await saveMessages([{ ...message }]);
+      await enqueueOutbox({ tmpId, text: txt, createdAt: message.createdAt });
+      renderAllMessages();
     } finally {
       sendBtn.disabled = false;
       ta.focus();
     }
   };
 
-  // ---------- Boot ----------
-  const boot = async () => {
-    injectStyles();
-    buildUI();
-    await API.init();
+  const flushOutbox = async () => {
+    if (state.outboxProcessing || !state.threadId) return;
+    state.outboxProcessing = true;
+    try {
+      const pending = await listOutbox();
+      for (const item of pending) {
+        try {
+          await ensureTokenFresh();
+          const resp = await postMessage(item.text, item.tmpId);
+          if (resp?.message_id) {
+            await removeOutbox(item.tmpId);
+            const stored = state.messages.find((m) => m.tmpId === item.tmpId || m.id === `tmp-${item.tmpId}`);
+            if (stored) {
+              stored.id = resp.message_id;
+              stored.tmpId = null;
+              stored.status = 'delivered';
+              stored.createdAt = resp.created_at || stored.createdAt;
+              stored.deliveredAt = stored.createdAt;
+              await saveMessages([stored]);
+              renderAllMessages();
+            }
+          }
+        } catch (err) {
+          console.warn('[WebChat] failed to flush outbox item', item.tmpId, err);
+        }
+      }
+    } finally {
+      state.outboxProcessing = false;
+    }
   };
 
-  // DOM ready-ish: run immediately or on DOMContentLoaded
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot, { once: true });
-  } else {
-    boot();
-  }
+  const hydrate = async () => {
+    let visitor = await loadStoredVisitor();
+    if (!visitor) {
+      visitor = generateId();
+      await setVisitorId(visitor);
+    } else {
+      state.visitorId = visitor;
+    }
+
+    state.sessionId = cookie.get('wc_sid') || generateId();
+
+    state.threadId = await loadStoredThread();
+
+    if (state.threadId) {
+      state.messages = await listMessages(state.threadId, 200);
+      renderAllMessages();
+      const syncState = await getSyncState(state.threadId);
+      if (syncState?.lastSyncedAt) {
+        await putSyncState(state.threadId, syncState);
+      }
+    }
+
+    try {
+      const data = await handshake();
+      if (state.threadId && state.threadId !== data.thread_id) {
+        await deleteMessagesByThread(state.threadId);
+        await deleteSyncState(state.threadId);
+        state.threadId = data.thread_id;
+        state.messages = [];
+        renderAllMessages();
+      }
+      state.threadId = data.thread_id;
+      await saveThread(state.threadId);
+      state.messages = await listMessages(state.threadId, 200);
+      renderAllMessages();
+      await syncWithServer();
+      await attachSocket();
+      await flushOutbox();
+    } catch (err) {
+      console.warn('[WebChat] handshake error', err);
+      setOnline(false);
+    }
+
+    state.hydrateComplete = true;
+  };
+
+  window.addEventListener('online', () => {
+    setOnline(true);
+    flushOutbox();
+    syncWithServer();
+  });
+  window.addEventListener('offline', () => setOnline(false));
+
+  injectStyles();
+  buildUI();
+  hydrate();
 })();

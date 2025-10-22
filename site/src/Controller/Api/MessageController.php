@@ -13,6 +13,8 @@ use App\Repository\Messaging\MessageRepository;
 use App\Service\Messaging\Dto\OutboundMessage;
 use App\Service\Messaging\MessageEgressService;
 use App\Service\Messaging\TelegramService;
+use App\Service\WebChat\WebChatMessageService;
+use App\Service\WebChat\WebChatThreadManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Predis\Client as RedisClient;
 use Ramsey\Uuid\Nonstandard\Uuid;
@@ -122,6 +124,8 @@ class MessageController extends AbstractController
         TelegramService $telegramService,
         ValidatorInterface $validator,
         MessageEgressService $egress,
+        WebChatThreadManager $threadManager,
+        WebChatMessageService $webChatMessages,
     ): JsonResponse {
         $activeCompanyId = $request->getSession()->get('active_company_id');
 
@@ -153,21 +157,23 @@ class MessageController extends AbstractController
         }
 
         if ($client->getChannel()->value === Channel::WEB->value) {
-            $message = Message::messageOutGeneric(Uuid::uuid4()->toString(), $client, $text);
-            $em->persist($message);
+            $site = $client->getWebChatSite();
+            if (null === $site) {
+                return new JsonResponse(['error' => 'Client has no web chat site'], Response::HTTP_BAD_REQUEST);
+            }
+
+            $thread = $threadManager->ensureActiveThread($client, $site);
+            $message = $webChatMessages->createOutbound($thread, $text);
             $em->flush();
 
-            $egress->send(new OutboundMessage(
-                'web',
-                $client->getId(),
-                $text,
-                [
-                    'messageId' => $message->getId(),
-                    'createdAt' => $message->getCreatedAt()->format(DATE_ATOM),
+            return new JsonResponse([
+                'ok' => true,
+                'message' => [
+                    'id' => $message->getId(),
+                    'thread_id' => $thread->getId(),
+                    'created_at' => $message->getCreatedAt()->format(DATE_ATOM),
                 ],
-            ));
-
-            return new JsonResponse(['ok' => true]);
+            ]);
         }
 
         if (Channel::TELEGRAM !== $client->getChannel()) {
