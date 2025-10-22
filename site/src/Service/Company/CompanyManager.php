@@ -39,6 +39,7 @@ class CompanyManager
 
         // Связываем владельца
         $userCompany = new UserCompany(Uuid::uuid4()->toString(), $owner, $company);
+        $userCompany->setRole(UserCompany::ROLE_OWNER);
         $this->em->persist($userCompany);
 
         $this->em->flush();

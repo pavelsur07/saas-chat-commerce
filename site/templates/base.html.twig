@@ -82,6 +82,10 @@
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
                         🏢 Мои компании
                     </a>
+                    <a href="{{ path('company_operators_index') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_operators_' ? 'bg-gray-800' : '' }}">
+                        👥 Операторы
+                    </a>
                 </div>
 
                 {#  {% if is_granted('ROLE_ADMIN') %}#}

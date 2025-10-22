@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Entity\Company\Company;
+use App\Entity\Company\User;
+use App\Entity\Company\UserCompany;
 use App\Repository\Company\UserCompanyRepository;
 use App\Service\Company\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,7 +18,8 @@ class CompanySwitchController extends AbstractController
     #[Route('/companies', name: 'company_switch.list')]
     public function index(UserCompanyRepository $repo)
     {
-        $companies = $repo->findBy(['user' => $this->getUser()]);
+        $user = $this->requireUser();
+        $companies = $repo->findActiveByUser($user);
 
         return $this->render('company_switch/index.html.twig', ['companies' => $companies]);
     }
@@ -28,10 +31,8 @@ class CompanySwitchController extends AbstractController
         UserCompanyRepository $repo,
         RequestStack $requestStack,
     ): RedirectResponse {
-        $userCompany = $repo->findOneBy([
-            'user' => $this->getUser(),
-            'company' => $company,
-        ]);
+        $user = $this->requireUser();
+        $userCompany = $repo->findOneActiveByUserAndCompanyId($user, $company->getId());
 
         if (!$userCompany) {
             throw $this->createAccessDeniedException();
@@ -50,11 +51,23 @@ class CompanySwitchController extends AbstractController
 
     public function widget(UserCompanyRepository $repo, CompanyContextService $context): Response
     {
-        $companies = $repo->findBy(['user' => $this->getUser()]);
+        $user = $this->requireUser();
+        $companies = $repo->findActiveByUser($user);
 
         return $this->render('company_switch/widget.html.twig', [
             'companies' => $companies,
             'activeCompany' => $context->getCompany(),
         ]);
+    }
+
+    private function requireUser(): User
+    {
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return $user;
     }
 }
