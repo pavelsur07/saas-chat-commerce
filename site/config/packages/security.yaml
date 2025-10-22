@@ -47,6 +47,7 @@ security:
         - { path: ^/log-js-error$, roles: PUBLIC_ACCESS }
         - { path: ^/webhook/telegram/bot/, roles: PUBLIC_ACCESS }
         - { path: ^/api/embed/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/webchat, roles: PUBLIC_ACCESS }
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
