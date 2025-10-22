@@ -266,7 +266,10 @@
     if (state.sessionId) {
       payload.session_id = state.sessionId;
     }
-    const res = await fetch(buildApiUrl('/api/webchat/handshake'), {
+    const res = await fetch(buildApiUrl('/api/webchat/handshake', {
+      site_key: payload.site_key,
+      page_url: payload.page_url,
+    }), {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
