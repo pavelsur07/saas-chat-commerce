@@ -38,6 +38,9 @@ class UserCompany
     #[ORM\Column(type: 'guid', nullable: true)]
     private ?string $invitedBy = null;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $isDefault = false;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -111,6 +114,16 @@ class UserCompany
         }
 
         $this->invitedBy = $invitedBy;
+    }
+
+    public function isDefault(): bool
+    {
+        return $this->isDefault;
+    }
+
+    public function setIsDefault(bool $isDefault): void
+    {
+        $this->isDefault = $isDefault;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

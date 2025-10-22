@@ -36,50 +36,30 @@ class CompanyContextService
             return null;
         }
 
-        if (is_string($companyId)) {
-            $userCompany = $this->userCompanyRepository->findOneActiveByUserAndCompanyId($user, $companyId);
-            if ($userCompany instanceof UserCompany && $userCompany->getStatus() !== UserCompany::STATUS_ACTIVE) {
-                $userCompany = null;
+        if (is_string($companyId) && $companyId !== '') {
+            $link = $this->userCompanyRepository->findOneByUserAndCompanyId($user, $companyId);
+            if ($link instanceof UserCompany && $link->getStatus() === UserCompany::STATUS_ACTIVE) {
+                return $this->currentCompany = $link->getCompany();
             }
 
-            if (!$userCompany instanceof UserCompany) {
-                $userCompany = $this->userCompanyRepository->findOneBy([
-                    'user' => $user,
-                    'company' => $companyId,
-                ]);
-            }
-
-            if ($userCompany instanceof UserCompany && $userCompany->getStatus() !== UserCompany::STATUS_ACTIVE) {
-                $userCompany = null;
-            }
-
-            if ($userCompany instanceof UserCompany) {
-                return $this->currentCompany = $userCompany->getCompany();
-            }
+            $session?->remove('active_company_id');
         }
 
-        $userCompany = $this->userCompanyRepository->findOneActiveByUser($user);
-        if ($userCompany instanceof UserCompany && $userCompany->getStatus() !== UserCompany::STATUS_ACTIVE) {
-            $userCompany = null;
+        $ownerLink = $this->pickOwnerLink($user);
+        if ($ownerLink instanceof UserCompany) {
+            $this->setCompany($ownerLink->getCompany());
+
+            return $this->currentCompany;
         }
 
-        if (!$userCompany instanceof UserCompany) {
-            $userCompany = $this->userCompanyRepository->findOneBy([
-                'user' => $user,
-            ]);
+        $membership = $this->pickGeneralLink($user);
+        if ($membership instanceof UserCompany) {
+            $this->setCompany($membership->getCompany());
+
+            return $this->currentCompany;
         }
 
-        if ($userCompany instanceof UserCompany && $userCompany->getStatus() !== UserCompany::STATUS_ACTIVE) {
-            return null;
-        }
-
-        if (!$userCompany instanceof UserCompany) {
-            return null;
-        }
-
-        $this->setCompany($userCompany->getCompany());
-
-        return $this->currentCompany;
+        return null;
     }
 
     public function getCurrentCompany(): ?Company
@@ -107,5 +87,35 @@ class CompanyContextService
     public function getCurrentCompanyIdOrThrow(): string
     {
         return $this->getCurrentCompanyOrThrow()->getId();
+    }
+
+    private function pickOwnerLink(User $user): ?UserCompany
+    {
+        $links = $this->userCompanyRepository->findActiveOwnerLinksByUser($user);
+        if (count($links) === 1) {
+            return $links[0];
+        }
+
+        $default = array_values(array_filter($links, static fn (UserCompany $link): bool => $link->isDefault()));
+        if (count($default) === 1) {
+            return $default[0];
+        }
+
+        return null;
+    }
+
+    private function pickGeneralLink(User $user): ?UserCompany
+    {
+        $links = $this->userCompanyRepository->findActiveByUser($user);
+        if (count($links) === 1) {
+            return $links[0];
+        }
+
+        $default = array_values(array_filter($links, static fn (UserCompany $link): bool => $link->isDefault()));
+        if (count($default) === 1) {
+            return $default[0];
+        }
+
+        return null;
     }
 }

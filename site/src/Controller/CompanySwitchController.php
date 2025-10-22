@@ -7,6 +7,7 @@ use App\Entity\Company\User;
 use App\Entity\Company\UserCompany;
 use App\Repository\Company\UserCompanyRepository;
 use App\Service\Company\CompanyContextService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -30,6 +31,7 @@ class CompanySwitchController extends AbstractController
         CompanyContextService $context,
         UserCompanyRepository $repo,
         RequestStack $requestStack,
+        EntityManagerInterface $entityManager,
     ): RedirectResponse {
         $user = $this->requireUser();
         $userCompany = $repo->findOneActiveByUserAndCompanyId($user, $company->getId());
@@ -37,6 +39,9 @@ class CompanySwitchController extends AbstractController
         if (!$userCompany) {
             throw $this->createAccessDeniedException();
         }
+
+        $repo->setDefault($userCompany);
+        $entityManager->flush();
 
         $context->setCompany($company);
 

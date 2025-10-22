@@ -1,9 +1,14 @@
 {% set activeId = activeCompany ? activeCompany.id : null %}
-<div class="text-sm">
-    <label for="company-switcher" class="mr-2">Компания:</label>
+<div class="text-sm flex items-center gap-2">
+    <label for="company-switcher" class="mr-1">Компания:</label>
     <select id="company-switcher" class="border rounded px-2 py-1 bg-white" onchange="if(this.value) window.location.href=this.value;">
-        {% for uc in companies %}
-            <option value="{{ path('company.switch', {id: uc.company.id}) }}" {% if activeId == uc.company.id %}selected{% endif %}>{{ uc.company.name }}</option>
-        {% endfor %}
+        {% if companies is empty %}
+            <option disabled selected>не выбрана</option>
+        {% else %}
+            {% for uc in companies %}
+                <option value="{{ path('company.switch', {id: uc.company.id}) }}" {% if activeId == uc.company.id %}selected{% endif %}>{{ uc.company.name }}</option>
+            {% endfor %}
+        {% endif %}
     </select>
+    <a href="{{ path('company_switch.list') }}" class="text-blue-100 hover:text-white underline-offset-2 hover:underline">Сменить</a>
 </div>
