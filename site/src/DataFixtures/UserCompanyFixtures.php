@@ -23,22 +23,22 @@ class UserCompanyFixtures extends Fixture implements DependentFixtureInterface
 
         // === User 1: Admin в Company 1 ===
         $userCompany1 = new UserCompany(Uuid::uuid4()->toString(), $user1, $company1);
-        $userCompany1->setRole('admin');
+        $userCompany1->setRole(UserCompany::ROLE_OWNER);
         $manager->persist($userCompany1);
 
         // === User 1: Admin в Company 2 ===
         $userCompany1 = new UserCompany(Uuid::uuid4()->toString(), $user1, $company2);
-        $userCompany1->setRole('admin');
+        $userCompany1->setRole(UserCompany::ROLE_OWNER);
         $manager->persist($userCompany1);
 
         // === User 2: Operator в Company 1 ===
         $userCompany2 = new UserCompany(Uuid::uuid4()->toString(), $user2, $company1);
-        $userCompany2->setRole('operator');
+        $userCompany2->setRole(UserCompany::ROLE_OPERATOR);
         $manager->persist($userCompany2);
 
         // === User 3: User в Company 2 ===
         $userCompany3 = new UserCompany(Uuid::uuid4()->toString(), $user3, $company2);
-        $userCompany3->setRole('operator');
+        $userCompany3->setRole(UserCompany::ROLE_OPERATOR);
         $manager->persist($userCompany3);
 
         $manager->flush();
