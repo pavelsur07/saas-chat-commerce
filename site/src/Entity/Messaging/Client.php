@@ -4,7 +4,9 @@ namespace App\Entity\Messaging;
 
 use App\Entity\Company\Company;
 use App\Entity\Messaging\Channel\Channel;
+use App\Entity\WebChat\WebChatSite;
 use App\Repository\Messaging\ClientRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 
@@ -35,8 +37,12 @@ class Client
     #[ORM\Column(length: 150, nullable: true)]
     private ?string $lastName = null;
 
-    #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $rawData = null;
+    #[ORM\ManyToOne(targetEntity: WebChatSite::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?WebChatSite $webChatSite = null;
+
+    #[ORM\Column(name: 'raw_data', type: 'json', nullable: true)]
+    private ?array $meta = null;
 
     #[ORM\ManyToOne]
     private Company $company;
@@ -47,6 +53,9 @@ class Client
     #[ORM\ManyToOne(targetEntity: TelegramBot::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?TelegramBot $telegramBot = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $lastSeenAt = null;
 
     public function __construct(string $id, Channel|string $channel, string $externalId, Company $company)
     {
@@ -140,14 +149,39 @@ class Client
         $this->lastName = $lastName;
     }
 
+    public function getWebChatSite(): ?WebChatSite
+    {
+        return $this->webChatSite;
+    }
+
+    public function setWebChatSite(?WebChatSite $site): void
+    {
+        $this->webChatSite = $site;
+    }
+
+    public function getMeta(): ?array
+    {
+        return $this->meta;
+    }
+
+    public function setMeta(?array $meta): void
+    {
+        $this->meta = $meta;
+    }
+
+    public function mergeMeta(array $extra): void
+    {
+        $this->meta = array_merge($this->meta ?? [], $extra);
+    }
+
     public function getRawData(): ?array
     {
-        return $this->rawData;
+        return $this->meta;
     }
 
     public function setRawData(?array $rawData): void
     {
-        $this->rawData = $rawData;
+        $this->meta = $rawData;
     }
 
     public function getCompany(): Company
@@ -168,6 +202,16 @@ class Client
     public function setTelegramId(?int $telegramId): void
     {
         $this->telegramId = $telegramId;
+    }
+
+    public function getLastSeenAt(): ?DateTimeImmutable
+    {
+        return $this->lastSeenAt;
+    }
+
+    public function touchLastSeen(?DateTimeImmutable $moment = null): void
+    {
+        $this->lastSeenAt = $moment ?? new DateTimeImmutable();
     }
 
     public static function channelList(): array

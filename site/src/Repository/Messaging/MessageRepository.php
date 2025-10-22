@@ -5,6 +5,8 @@ namespace App\Repository\Messaging;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Entity\Messaging\TelegramBot;
+use App\Entity\WebChat\WebChatThread;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -125,6 +127,79 @@ class MessageRepository extends ServiceEntityRepository
             ->setParameter('client', $client)
             ->setParameter('moment', $moment)
             ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * @return Message[]
+     */
+    public function findLatestForThread(WebChatThread $thread, int $limit = 50): array
+    {
+        $items = $this->createQueryBuilder('m')
+            ->andWhere('m.thread = :thread')
+            ->setParameter('thread', $thread)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return array_reverse($items);
+    }
+
+    /**
+     * @return Message[]
+     */
+    public function findThreadBefore(WebChatThread $thread, Message $before, int $limit = 50): array
+    {
+        $items = $this->createQueryBuilder('m')
+            ->andWhere('m.thread = :thread')
+            ->andWhere('m.createdAt < :before')
+            ->setParameter('thread', $thread)
+            ->setParameter('before', $before->getCreatedAt())
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return array_reverse($items);
+    }
+
+    /**
+     * @return Message[]
+     */
+    public function findThreadSince(WebChatThread $thread, DateTimeImmutable $since): array
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.thread = :thread')
+            ->andWhere('m.createdAt > :since')
+            ->setParameter('thread', $thread)
+            ->setParameter('since', $since)
+            ->orderBy('m.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findOneInThread(WebChatThread $thread, string $messageId): ?Message
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.thread = :thread')
+            ->andWhere('m.id = :id')
+            ->setParameter('thread', $thread)
+            ->setParameter('id', $messageId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOneByThreadAndDedupe(WebChatThread $thread, string $dedupeKey): ?Message
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.thread = :thread')
+            ->andWhere('m.dedupeKey = :dedupe')
+            ->setParameter('thread', $thread)
+            ->setParameter('dedupe', $dedupeKey)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

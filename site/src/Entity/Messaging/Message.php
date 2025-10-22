@@ -4,7 +4,9 @@ namespace App\Entity\Messaging;
 
 use App\Entity\Company\Company;
 use App\Entity\Messaging\Channel\Channel;
+use App\Entity\WebChat\WebChatThread;
 use App\Repository\Messaging\MessageRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 
@@ -44,10 +46,26 @@ class Message
     private ?TelegramBot $telegramBot = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
+    private DateTimeImmutable $createdAt;
 
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $meta = null;
+
+    #[ORM\ManyToOne(targetEntity: WebChatThread::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?WebChatThread $thread = null;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $sourceId = null;
+
+    #[ORM\Column(length: 128, nullable: true)]
+    private ?string $dedupeKey = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $deliveredAt = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $readAt = null;
 
     public function __construct(string $id, Client $client, string $direction, ?string $text = null, ?array $payload = null, ?TelegramBot $telegramBot = null)
     {
@@ -61,7 +79,7 @@ class Message
         $this->text = $text;
         $this->payload = $payload;
         $this->telegramBot = $telegramBot;
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
 
         if ($telegramBot !== null) {
             Assert::eq(
@@ -123,6 +141,19 @@ class Message
     public function setClient(Client $client): void
     {
         $this->client = $client;
+    }
+
+    public function getThread(): ?WebChatThread
+    {
+        return $this->thread;
+    }
+
+    public function setThread(?WebChatThread $thread): void
+    {
+        $this->thread = $thread;
+        if ($thread !== null) {
+            $thread->registerMessage($this->createdAt);
+        }
     }
 
     public function getCompany(): Company
@@ -191,6 +222,46 @@ class Message
         $this->payload = $payload;
     }
 
+    public function getSourceId(): ?string
+    {
+        return $this->sourceId;
+    }
+
+    public function setSourceId(?string $sourceId): void
+    {
+        $this->sourceId = $sourceId;
+    }
+
+    public function getDedupeKey(): ?string
+    {
+        return $this->dedupeKey;
+    }
+
+    public function setDedupeKey(?string $dedupeKey): void
+    {
+        $this->dedupeKey = $dedupeKey;
+    }
+
+    public function getDeliveredAt(): ?DateTimeImmutable
+    {
+        return $this->deliveredAt;
+    }
+
+    public function markDelivered(?DateTimeImmutable $moment = null): void
+    {
+        $this->deliveredAt = $moment ?? new DateTimeImmutable();
+    }
+
+    public function getReadAt(): ?DateTimeImmutable
+    {
+        return $this->readAt;
+    }
+
+    public function markRead(?DateTimeImmutable $moment = null): void
+    {
+        $this->readAt = $moment ?? new DateTimeImmutable();
+    }
+
     public function getTelegramBot(): ?TelegramBot
     {
         return $this->telegramBot;
@@ -201,12 +272,12 @@ class Message
         $this->telegramBot = $telegramBot;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): void
+    public function setCreatedAt(DateTimeImmutable $createdAt): void
     {
         $this->createdAt = $createdAt;
     }
