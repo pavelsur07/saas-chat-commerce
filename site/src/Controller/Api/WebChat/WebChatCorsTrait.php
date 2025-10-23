@@ -17,21 +17,6 @@ trait WebChatCorsTrait
             return null;
         }
 
-        $siteKey = trim((string) $request->query->get('site_key', ''));
-        if ($siteKey === '') {
-            return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
-        }
-
-        if (!$sites->isStorageReady()) {
-            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
-        }
-
-        $site = $sites->findActiveBySiteKey($siteKey);
-        if (!$site) {
-            return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
-        }
-
-        $originHeader = $request->headers->get('Origin');
         $pageUrl = $request->query->get('page_url');
         if (is_string($pageUrl)) {
             $pageUrl = trim($pageUrl);
@@ -42,12 +27,26 @@ trait WebChatCorsTrait
             $pageUrl = null;
         }
 
-        $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
-        if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
-            return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
+        $fallbackOrigin = $this->guessRequestOrigin($request, $pageUrl);
+
+        $siteKey = trim((string) $request->query->get('site_key', ''));
+        if ($siteKey === '') {
+            return $this->applyCors(new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
-        $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins(), $pageUrl);
+        if (!$sites->isStorageReady()) {
+            return $this->applyCors(new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE), $request, $fallbackOrigin);
+        }
+
+        $site = $sites->findActiveBySiteKey($siteKey);
+        if (!$site) {
+            return $this->applyCors(new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
+        }
+
+        $allowedOrigin = $this->resolveAllowedOrigin($request->headers->get('Origin'), $site->getAllowedOrigins(), $pageUrl);
+        if ($allowedOrigin === null) {
+            return $this->applyCors(new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
+        }
 
         $response = new Response('', Response::HTTP_NO_CONTENT);
 
@@ -197,6 +196,39 @@ trait WebChatCorsTrait
         }
 
         return false;
+    }
+
+    private function guessRequestOrigin(Request $request, ?string $pageUrl = null): ?string
+    {
+        $originHeader = $request->headers->get('Origin');
+        if (is_string($originHeader)) {
+            $originHeader = trim($originHeader);
+            if ($originHeader !== '') {
+                $origin = $this->extractOrigin($originHeader);
+                if ($origin !== null) {
+                    return $origin;
+                }
+            }
+        }
+
+        if ($pageUrl === null || $pageUrl === '') {
+            $pageFromQuery = $request->query->get('page_url');
+            if (is_string($pageFromQuery)) {
+                $pageFromQuery = trim($pageFromQuery);
+                if ($pageFromQuery !== '') {
+                    $pageUrl = $pageFromQuery;
+                }
+            }
+        }
+
+        if (is_string($pageUrl) && $pageUrl !== '') {
+            $origin = $this->extractOrigin($pageUrl);
+            if ($origin !== null) {
+                return $origin;
+            }
+        }
+
+        return null;
     }
 
     private function extractHost(?string $value): ?string
