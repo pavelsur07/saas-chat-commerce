@@ -144,18 +144,56 @@ trait WebChatCorsTrait
         }
 
         foreach ($allowedOrigins as $origin) {
-            $allowedHost = $this->extractHost($origin) ?? strtolower((string) $origin);
+            $rawAllowed = trim((string) $origin);
+            if ($rawAllowed === '') {
+                continue;
+            }
+
+            if ($rawAllowed === '*') {
+                return true;
+            }
+
+            $allowedHost = $this->extractHost($rawAllowed) ?? strtolower($rawAllowed);
             if ($allowedHost === '') {
                 continue;
             }
 
-            if ($host === $allowedHost) {
+            if ($this->hostMatchesAllowed($host, $allowedHost)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hostMatchesAllowed(string $host, string $allowedHost): bool
+    {
+        if ($allowedHost === '*' || $host === $allowedHost) {
+            return true;
+        }
+
+        if (str_starts_with($allowedHost, '*.')) {
+            $suffix = substr($allowedHost, 2);
+            if ($suffix === '') {
                 return true;
             }
 
-            if (str_ends_with($host, '.' . $allowedHost)) {
+            if ($host === $suffix || str_ends_with($host, '.' . $suffix)) {
                 return true;
             }
+
+            return false;
+        }
+
+        if (str_contains($allowedHost, '*')) {
+            $pattern = '/^' . str_replace('\\*', '.*', preg_quote($allowedHost, '/')) . '$/';
+            if (preg_match($pattern, $host) === 1) {
+                return true;
+            }
+        }
+
+        if (str_ends_with($host, '.' . $allowedHost)) {
+            return true;
         }
 
         return false;
