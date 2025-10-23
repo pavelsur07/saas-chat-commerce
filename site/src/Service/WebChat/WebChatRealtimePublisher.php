@@ -20,7 +20,7 @@ final class WebChatRealtimePublisher
 
     public function publishMessage(WebChatThread $thread, Message $message): void
     {
-        $payload = [
+        $threadPayload = [
             'event' => 'message.new',
             'threadId' => $thread->getId(),
             'message' => [
@@ -34,7 +34,20 @@ final class WebChatRealtimePublisher
             ],
         ];
 
-        $this->publish($thread->getId(), $payload);
+        $this->publishThread($thread->getId(), $threadPayload);
+
+        $clientId = $message->getClient()->getId();
+        if ($clientId !== null) {
+            $clientPayload = [
+                'id' => $message->getId(),
+                'clientId' => $clientId,
+                'text' => $message->getText(),
+                'direction' => $message->getDirection(),
+                'createdAt' => $message->getCreatedAt()->format(DATE_ATOM),
+            ];
+
+            $this->publishClient($clientId, $clientPayload);
+        }
     }
 
     public function publishStatus(WebChatThread $thread, array $messageIds, string $status, ?\DateTimeImmutable $at = null): void
@@ -51,10 +64,20 @@ final class WebChatRealtimePublisher
             'timestamp' => ($at ?? new \DateTimeImmutable())->format(DATE_ATOM),
         ];
 
-        $this->publish($thread->getId(), $payload);
+        $this->publishThread($thread->getId(), $payload);
     }
 
-    private function publish(string $threadId, array $payload): void
+    private function publishThread(string $threadId, array $payload): void
+    {
+        $this->publishChannel(sprintf('chat.thread.%s', $threadId), $payload);
+    }
+
+    private function publishClient(string $clientId, array $payload): void
+    {
+        $this->publishChannel(sprintf('chat.client.%s', $clientId), $payload);
+    }
+
+    private function publishChannel(string $channel, array $payload): void
     {
         try {
             $redis = $this->redis ??= new RedisClient([
@@ -64,7 +87,7 @@ final class WebChatRealtimePublisher
             ]);
 
             $redis->publish(
-                sprintf('chat.thread.%s', $threadId),
+                $channel,
                 json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)
             );
         } catch (\Throwable) {
