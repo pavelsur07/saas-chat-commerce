@@ -375,7 +375,14 @@
       text,
       tmp_id: tmpId,
     };
-    const res = await apiFetch(buildApiUrl('/api/webchat/messages'), { method: 'POST', body: payload });
+    const res = await apiFetch(
+      buildApiUrl('/api/webchat/messages', {
+        site_key: SITE_KEY,
+        thread_id: state.threadId,
+        page_url: window.location.href,
+      }),
+      { method: 'POST', body: payload }
+    );
     if (!res.ok) throw new Error(`Send failed (${res.status})`);
     return res.json();
   };
@@ -384,15 +391,22 @@
     if (!state.threadId || (!delivered.length && !read.length)) return;
     try {
       await ensureTokenFresh();
-      await apiFetch(buildApiUrl('/api/webchat/ack'), {
-        method: 'POST',
-        body: {
+      await apiFetch(
+        buildApiUrl('/api/webchat/ack', {
           site_key: SITE_KEY,
           thread_id: state.threadId,
-          delivered,
-          read,
-        },
-      });
+          page_url: window.location.href,
+        }),
+        {
+          method: 'POST',
+          body: {
+            site_key: SITE_KEY,
+            thread_id: state.threadId,
+            delivered,
+            read,
+          },
+        }
+      );
     } catch (err) {
       console.warn('[WebChat] ack failed', err);
     }
