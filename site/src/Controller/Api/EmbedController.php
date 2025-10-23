@@ -55,27 +55,13 @@ class EmbedController extends AbstractController
             $data = [];
         }
 
-        $siteKey = (string) $request->query->get('site_key', '');
-        if ($siteKey === '' && isset($data['site_key'])) {
-            $siteKey = (string) $data['site_key'];
+        $pageUrl = null;
+        if (isset($data['page_url'])) {
+            $pageUrlCandidate = trim((string) $data['page_url']);
+            if ($pageUrlCandidate !== '') {
+                $pageUrl = $pageUrlCandidate;
+            }
         }
-        $siteKey = trim($siteKey);
-        if ($siteKey === '') {
-            return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
-        }
-
-        if (!$sites->isStorageReady()) {
-            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
-        }
-
-        $site = $sites->findActiveBySiteKey($siteKey);
-
-        if (!$site) {
-            return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
-        }
-
-        $originHeader = $request->headers->get('Origin');
-        $pageUrl = isset($data['page_url']) ? (string) $data['page_url'] : null;
         if ($pageUrl === null) {
             $pageUrlQuery = $request->query->get('page_url');
             if (is_string($pageUrlQuery)) {
@@ -85,13 +71,34 @@ class EmbedController extends AbstractController
                 }
             }
         }
-        $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
 
-        if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
-            return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
+        $fallbackOrigin = $this->guessRequestOrigin($request, $pageUrl);
+
+        $siteKey = (string) $request->query->get('site_key', '');
+        if ($siteKey === '' && isset($data['site_key'])) {
+            $siteKey = (string) $data['site_key'];
+        }
+        $siteKey = trim($siteKey);
+        if ($siteKey === '') {
+            return $this->applyCors(new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
+        if (!$sites->isStorageReady()) {
+            return $this->applyCors(new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE), $request, $fallbackOrigin);
+        }
+
+        $site = $sites->findActiveBySiteKey($siteKey);
+
+        if (!$site) {
+            return $this->applyCors(new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
+        }
+
+        $originHeader = $request->headers->get('Origin');
+
         $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins(), $pageUrl);
+        if ($allowedOrigin === null) {
+            return $this->applyCors(new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
+        }
 
         $sessionId = $request->cookies->get('web_session_id');
         if (!is_string($sessionId) || $sessionId === '') {
@@ -171,18 +178,28 @@ class EmbedController extends AbstractController
             $data = [];
         }
 
+        $pageUrl = isset($data['page_url']) ? (string) $data['page_url'] : null;
+        if (is_string($pageUrl)) {
+            $pageUrl = trim($pageUrl);
+            if ($pageUrl === '') {
+                $pageUrl = null;
+            }
+        }
+
+        $fallbackOrigin = $this->guessRequestOrigin($request, $pageUrl);
+
         $siteKey = isset($data['site_key']) ? trim((string) $data['site_key']) : '';
         if ($siteKey === '') {
-            return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
+            return $this->applyCors(new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
         if (!$sites->isStorageReady()) {
-            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
+            return $this->applyCors(new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE), $request, $fallbackOrigin);
         }
 
         $webChatSite = $sites->findActiveBySiteKey($siteKey);
         if (!$webChatSite) {
-            return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
+            return $this->applyCors(new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
         $sessionId = $request->cookies->get('web_session_id');
@@ -191,14 +208,11 @@ class EmbedController extends AbstractController
         }
 
         $originHeader = $request->headers->get('Origin');
-        $pageUrl = isset($data['page_url']) ? (string) $data['page_url'] : null;
-        $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
-
-        if (!$this->isHostAllowed($host, $webChatSite->getAllowedOrigins())) {
-            return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
-        }
 
         $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $webChatSite->getAllowedOrigins(), $pageUrl);
+        if ($allowedOrigin === null) {
+            return $this->applyCors(new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
+        }
 
         $text = isset($data['text']) ? (string) $data['text'] : '';
         $text = trim($text);

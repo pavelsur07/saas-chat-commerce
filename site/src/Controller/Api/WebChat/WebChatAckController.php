@@ -44,28 +44,35 @@ final class WebChatAckController extends AbstractController
             $data = [];
         }
 
+        $pageUrl = isset($data['page_url']) ? (string) $data['page_url'] : null;
+        if (is_string($pageUrl)) {
+            $pageUrl = trim($pageUrl);
+            if ($pageUrl === '') {
+                $pageUrl = null;
+            }
+        }
+
+        $fallbackOrigin = $this->guessRequestOrigin($request, $pageUrl);
+
         $siteKey = isset($data['site_key']) ? trim((string) $data['site_key']) : '';
         if ($siteKey === '') {
-            return new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN);
+            return $this->applyCors(new JsonResponse(['error' => 'Invalid site key'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
         if (!$sites->isStorageReady()) {
-            return new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE);
+            return $this->applyCors(new JsonResponse(['error' => 'Web chat is not ready'], Response::HTTP_SERVICE_UNAVAILABLE), $request, $fallbackOrigin);
         }
 
         $site = $sites->findActiveBySiteKey($siteKey);
         if (!$site) {
-            return new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN);
+            return $this->applyCors(new JsonResponse(['error' => 'Site not found'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
         $originHeader = $request->headers->get('Origin');
-        $pageUrl = isset($data['page_url']) ? (string) $data['page_url'] : null;
-        $host = $this->extractHost($originHeader) ?? $this->extractHost($pageUrl);
-        if (!$this->isHostAllowed($host, $site->getAllowedOrigins())) {
-            return new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN);
-        }
-
         $allowedOrigin = $this->resolveAllowedOrigin($originHeader, $site->getAllowedOrigins(), $pageUrl);
+        if ($allowedOrigin === null) {
+            return $this->applyCors(new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
+        }
 
         try {
             $token = $this->requireToken($request, $tokens);
