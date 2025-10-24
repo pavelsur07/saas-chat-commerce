@@ -2,7 +2,6 @@
 
 namespace App\Controller\Webhook;
 
-use App\Entity\Messaging\Client;
 use App\Repository\Messaging\TelegramBotRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
@@ -40,28 +39,6 @@ class TelegramWebhookController extends AbstractController
         }
 
         $ingress->accept($inbound);
-
-        $client = $inbound->meta['_client'] ?? null;
-        $persistedMessageId = $inbound->meta['_persisted_message_id'] ?? null;
-
-        if ($client instanceof Client && null !== $persistedMessageId) {
-            try {
-                $redis = new \Predis\Client([
-                    'scheme' => 'tcp',
-                    'host' => $_ENV['REDIS_REALTIME_HOST'] ?? 'redis-realtime',
-                    'port' => (int) ($_ENV['REDIS_REALTIME_PORT'] ?? 6379),
-                ]);
-                $redis->publish("chat.client.{$client->getId()}", json_encode([
-                    'id' => $persistedMessageId,
-                    'clientId' => $client->getId(),
-                    'text' => $inbound->text,
-                    'direction' => 'in',
-                    'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
-                ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-            } catch (\Throwable) {
-                // не роняем webhook
-            }
-        }
 
         return new JsonResponse(['ok' => true]);
     }
