@@ -34,6 +34,7 @@ services:
         arguments: ['%env(REDIS_DSN)%']
 
     Predis\Client: '@realtime.redis'
+    Predis\ClientInterface: '@realtime.redis'
 
     App\Service\Realtime\RealtimePublisher: '@App\Service\Realtime\PredisRealtimePublisher'
 
