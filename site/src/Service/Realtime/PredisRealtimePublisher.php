@@ -8,6 +8,8 @@ use Psr\Log\LoggerInterface;
 use function array_diff_key;
 use function array_replace;
 use function is_array;
+use function json_encode;
+use function json_last_error_msg;
 
 final class PredisRealtimePublisher implements RealtimePublisher
 {
@@ -40,8 +42,19 @@ final class PredisRealtimePublisher implements RealtimePublisher
 
         $envelope = array_replace($data, $metadata);
 
+        $encoded = json_encode($envelope, JSON_UNESCAPED_UNICODE);
+        if (false === $encoded) {
+            $this->logger->error('Failed to encode realtime payload', [
+                'channel' => $channel,
+                'error' => json_last_error_msg(),
+                'payload' => $payload,
+            ]);
+
+            return;
+        }
+
         try {
-            $this->redis->publish($channel, json_encode($envelope, JSON_UNESCAPED_UNICODE));
+            $this->redis->publish($channel, $encoded);
         } catch (\Throwable $e) {
             $this->logger->error('Redis publish failed', [
                 'channel' => $channel,
