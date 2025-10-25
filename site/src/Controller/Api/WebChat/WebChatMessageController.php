@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\WebChat;
 
+use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Message;
 use App\Repository\Messaging\MessageRepository;
 use App\Repository\WebChat\WebChatSiteRepository;
 use App\Repository\WebChat\WebChatThreadRepository;
-use App\Service\WebChat\WebChatMessageService;
+use App\Service\Messaging\Dto\InboundMessage;
+use App\Service\Messaging\MessageIngressService;
 use App\Service\WebChat\WebChatToken;
 use App\Service\WebChat\WebChatTokenService;
+use App\Service\WebChat\WebChatRealtimePublisher;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -129,9 +132,11 @@ final class WebChatMessageController extends AbstractController
         Request $request,
         WebChatSiteRepository $sites,
         WebChatThreadRepository $threads,
-        WebChatMessageService $messageService,
+        MessageRepository $messages,
+        MessageIngressService $ingress,
         WebChatTokenService $tokens,
         EntityManagerInterface $em,
+        WebChatRealtimePublisher $publisher,
     ): Response {
         if ($response = $this->handlePreflight($request, $sites)) {
             return $response;
@@ -208,8 +213,67 @@ final class WebChatMessageController extends AbstractController
             $dedupeKey = hash('sha256', $threadId . ':' . $tmpId . ':' . $text);
         }
 
-        $message = $messageService->createInbound($thread, $text, $dedupeKey, $tmpId);
+        if ($dedupeKey !== null && $dedupeKey !== '') {
+            $existingMessage = $messages->findOneByThreadAndDedupe($thread, $dedupeKey);
+            if ($existingMessage instanceof Message) {
+                $response = new JsonResponse([
+                    'message_id' => $existingMessage->getId(),
+                    'created_at' => $existingMessage->getCreatedAt()->format(DATE_ATOM),
+                    'status' => 'delivered',
+                ]);
+
+                return $this->applyCors($response, $request, $allowedOrigin);
+            }
+        }
+
+        $client = $thread->getClient();
+        $inbound = new InboundMessage(
+            channel: Channel::WEB->value,
+            externalId: $client->getExternalId(),
+            text: $text,
+            meta: [
+                'company' => $client->getCompany(),
+                'source' => [
+                    'site_id' => $site->getId(),
+                    'thread_id' => $thread->getId(),
+                    'page_url' => $pageUrl,
+                    'ip' => $request->getClientIp(),
+                    'ua' => $request->headers->get('User-Agent'),
+                ],
+                'webchat' => [
+                    'thread_id' => $thread->getId(),
+                    'site_key' => $siteKey,
+                ],
+            ]
+        );
+        $inbound->clientId = $client->getId();
+
+        try {
+            $ingress->accept($inbound);
+        } catch (\Throwable) {
+            return $this->applyCors(new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+        }
+
+        $persistedId = $inbound->meta['_persisted_message_id'] ?? null;
+        if (!is_string($persistedId) || $persistedId === '') {
+            return $this->applyCors(new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+        }
+
+        $message = $messages->find($persistedId);
+        if (!$message instanceof Message) {
+            return $this->applyCors(new JsonResponse(['error' => 'Message processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+        }
+
+        $message->setThread($thread);
+        if ($dedupeKey !== null && $dedupeKey !== '') {
+            $message->setDedupeKey($dedupeKey);
+        }
+        if ($tmpId !== null && $tmpId !== '') {
+            $message->setSourceId($tmpId);
+        }
+
         $em->flush();
+        $publisher->publishMessage($thread, $message);
 
         $response = new JsonResponse([
             'message_id' => $message->getId(),
