@@ -3,11 +3,10 @@
 namespace App\Controller\Api;
 
 use App\Controller\Api\WebChat\WebChatCorsTrait;
-use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Repository\WebChat\WebChatSiteRepository;
-use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
+use App\Service\Messaging\WebChatInboundMessageFactory;
 use App\Service\RateLimiter\VisitorMessageRateLimiter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -167,6 +166,7 @@ class EmbedController extends AbstractController
         Request $request,
         WebChatSiteRepository $sites,
         MessageIngressService $ingress,
+        WebChatInboundMessageFactory $messageFactory,
         VisitorMessageRateLimiter $messageRateLimiter
     ): Response {
         if ($response = $this->handlePreflight($request, $sites)) {
@@ -239,36 +239,14 @@ class EmbedController extends AbstractController
 
         $redis = null;
 
-        $referrer = isset($data['referrer']) ? (string) $data['referrer'] : null;
-        $utm = [];
-        foreach ($data as $key => $value) {
-            if (!is_string($key) || !str_starts_with($key, 'utm_')) {
-                continue;
-            }
-
-            if (is_scalar($value)) {
-                $stringValue = trim((string) $value);
-                if ($stringValue !== '') {
-                    $utm[$key] = $stringValue;
-                }
-            }
-        }
-
-        $inbound = new InboundMessage(
-            Channel::WEB->value,
-            $sessionId,
-            $text,
-            meta: [
-                'company' => $webChatSite->getCompany(),
-                'source' => [
-                    'site_id' => $webChatSite->getId(),
-                    'page_url' => $pageUrl,
-                    'referrer' => $referrer,
-                    'utm' => $utm,
-                    'ip' => $request->getClientIp(),
-                    'ua' => $request->headers->get('User-Agent'),
-                ],
-            ]
+        $inbound = $messageFactory->createFromPayload(
+            site: $webChatSite,
+            payload: $data,
+            sessionId: $sessionId,
+            text: $text,
+            pageUrl: $pageUrl,
+            clientIp: $request->getClientIp(),
+            userAgent: $request->headers->get('User-Agent'),
         );
 
         try {
