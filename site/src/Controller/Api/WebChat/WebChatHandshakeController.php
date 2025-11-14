@@ -98,7 +98,7 @@ final class WebChatHandshakeController extends AbstractController
 
         $response = new JsonResponse($payload);
 
-        $visitorCookie = Cookie::create('wc_vid', $session->getClient()->getExternalId())
+        $visitorCookie = Cookie::create('wc_vid', $session->getVisitorId())
             ->withPath('/')
             ->withSecure($request->isSecure())
             ->withHttpOnly(false)

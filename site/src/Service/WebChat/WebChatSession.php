@@ -10,24 +10,25 @@ use App\Entity\WebChat\WebChatThread;
 final class WebChatSession
 {
     public function __construct(
-        private readonly Client $client,
-        private readonly WebChatThread $thread,
-        private readonly WebChatToken $token,
+        private readonly string $visitorId,
         private readonly string $sessionId,
+        private readonly ?Client $client = null,
+        private readonly ?WebChatThread $thread = null,
+        private readonly ?WebChatToken $token = null,
     ) {
     }
 
-    public function getClient(): Client
+    public function getClient(): ?Client
     {
         return $this->client;
     }
 
-    public function getThread(): WebChatThread
+    public function getThread(): ?WebChatThread
     {
         return $this->thread;
     }
 
-    public function getToken(): WebChatToken
+    public function getToken(): ?WebChatToken
     {
         return $this->token;
     }
@@ -37,13 +38,18 @@ final class WebChatSession
         return $this->sessionId;
     }
 
+    public function getVisitorId(): string
+    {
+        return $this->visitorId;
+    }
+
     public function toArray(): array
     {
         return [
-            'visitor_id' => $this->client->getExternalId(),
-            'thread_id' => $this->thread->getId(),
-            'token' => $this->token->getToken(),
-            'expires_in' => $this->token->getTtlSeconds(),
+            'visitor_id' => $this->visitorId,
+            'thread_id' => $this->thread?->getId(),
+            'token' => $this->token?->getToken(),
+            'expires_in' => $this->token?->getTtlSeconds() ?? 0,
             'session_id' => $this->sessionId,
         ];
     }

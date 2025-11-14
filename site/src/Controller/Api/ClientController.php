@@ -43,7 +43,7 @@ class ClientController extends AbstractController
             return new JsonResponse(['error' => 'Active company not found'], Response::HTTP_FORBIDDEN);
         }
 
-        $items = $clients->findBy(['company' => $company]);
+        $items = $clients->findByCompanyWithMessages($company);
 
         $data = array_map(function (Client $client) use ($messages, $readStates, $company, $user) {
             $lastMessage = $messages->findLastOneByClient($client->getId());

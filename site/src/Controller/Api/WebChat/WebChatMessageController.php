@@ -11,6 +11,7 @@ use App\Repository\WebChat\WebChatSiteRepository;
 use App\Repository\WebChat\WebChatThreadRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;
+use App\Service\WebChat\WebChatSessionService;
 use App\Service\WebChat\WebChatToken;
 use App\Service\WebChat\WebChatTokenService;
 use App\Service\WebChat\WebChatRealtimePublisher;
@@ -137,6 +138,7 @@ final class WebChatMessageController extends AbstractController
         WebChatTokenService $tokens,
         EntityManagerInterface $em,
         WebChatRealtimePublisher $publisher,
+        WebChatSessionService $sessions,
     ): Response {
         if ($response = $this->handlePreflight($request, $sites)) {
             return $response;
@@ -177,26 +179,34 @@ final class WebChatMessageController extends AbstractController
             return $this->applyCors(new JsonResponse(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN), $request, $fallbackOrigin);
         }
 
-        try {
-            $token = $this->requireToken($request, $tokens);
-        } catch (AccessDeniedHttpException $exception) {
-            return $this->applyCors(new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_FORBIDDEN), $request, $allowedOrigin);
-        }
-        if ($token->getSiteKey() !== $siteKey) {
-            return $this->applyCors(new JsonResponse(['error' => 'Invalid token audience'], Response::HTTP_FORBIDDEN), $request, $allowedOrigin);
-        }
+        $threadId = isset($data['thread_id']) ? trim((string) $data['thread_id']) : '';
+        $token = null;
+        $thread = null;
+        $session = null;
 
-        $threadId = isset($data['thread_id']) ? (string) $data['thread_id'] : '';
-        if ($threadId === '' || !Uuid::isValid($threadId)) {
-            return $this->applyCors(new JsonResponse(['error' => 'Invalid thread'], Response::HTTP_BAD_REQUEST), $request, $allowedOrigin);
-        }
-        if ($token->getThreadId() !== $threadId) {
-            return $this->applyCors(new JsonResponse(['error' => 'Token thread mismatch'], Response::HTTP_FORBIDDEN), $request, $allowedOrigin);
-        }
+        if ($threadId !== '') {
+            if (!Uuid::isValid($threadId)) {
+                return $this->applyCors(new JsonResponse(['error' => 'Invalid thread'], Response::HTTP_BAD_REQUEST), $request, $allowedOrigin);
+            }
 
-        $thread = $threads->find($threadId);
-        if (!$thread || $thread->getSite()->getId() !== $site->getId()) {
-            return $this->applyCors(new JsonResponse(['error' => 'Thread not found'], Response::HTTP_NOT_FOUND), $request, $allowedOrigin);
+            try {
+                $token = $this->requireToken($request, $tokens);
+            } catch (AccessDeniedHttpException $exception) {
+                return $this->applyCors(new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_FORBIDDEN), $request, $allowedOrigin);
+            }
+
+            if ($token->getSiteKey() !== $siteKey) {
+                return $this->applyCors(new JsonResponse(['error' => 'Invalid token audience'], Response::HTTP_FORBIDDEN), $request, $allowedOrigin);
+            }
+
+            if ($token->getThreadId() !== $threadId) {
+                return $this->applyCors(new JsonResponse(['error' => 'Token thread mismatch'], Response::HTTP_FORBIDDEN), $request, $allowedOrigin);
+            }
+
+            $thread = $threads->find($threadId);
+            if (!$thread || $thread->getSite()->getId() !== $site->getId()) {
+                return $this->applyCors(new JsonResponse(['error' => 'Thread not found'], Response::HTTP_NOT_FOUND), $request, $allowedOrigin);
+            }
         }
 
         $text = isset($data['text']) ? trim((string) $data['text']) : '';
@@ -224,6 +234,44 @@ final class WebChatMessageController extends AbstractController
 
                 return $this->applyCors($response, $request, $allowedOrigin);
             }
+        }
+
+        if (!$thread instanceof \App\Entity\WebChat\WebChatThread) {
+            $visitorId = isset($data['visitor_id']) ? trim((string) $data['visitor_id']) : '';
+            if ($visitorId === '' || !Uuid::isValid($visitorId)) {
+                $cookieVisitor = $request->cookies->get('wc_vid');
+                if (is_string($cookieVisitor) && Uuid::isValid($cookieVisitor)) {
+                    $visitorId = $cookieVisitor;
+                } else {
+                    $visitorId = Uuid::uuid4()->toString();
+                }
+            }
+
+            $sessionId = isset($data['session_id']) ? trim((string) $data['session_id']) : '';
+            if ($sessionId === '') {
+                $cookieSession = $request->cookies->get('wc_sid');
+                if (is_string($cookieSession) && $cookieSession !== '') {
+                    $sessionId = $cookieSession;
+                } else {
+                    $sessionId = Uuid::uuid4()->toString();
+                }
+            }
+
+            $sessionMeta = [
+                'ip' => $request->getClientIp(),
+                'ua' => $request->headers->get('User-Agent'),
+                'page' => $pageUrl,
+            ];
+
+            $session = $sessions->handshake($site, $visitorId, $sessionId, $sessionMeta, true);
+
+            $thread = $session->getThread();
+            if (!$thread instanceof \App\Entity\WebChat\WebChatThread) {
+                return $this->applyCors(new JsonResponse(['error' => 'Thread not found'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
+            }
+
+            $token = $session->getToken();
+            $threadId = $thread->getId();
         }
 
         $client = $thread->getClient();
@@ -275,11 +323,26 @@ final class WebChatMessageController extends AbstractController
         $em->flush();
         $publisher->publishMessage($thread, $message);
 
-        $response = new JsonResponse([
+        $responsePayload = [
             'message_id' => $message->getId(),
             'created_at' => $message->getCreatedAt()->format(DATE_ATOM),
             'status' => 'delivered',
-        ]);
+            'thread_id' => $thread->getId(),
+        ];
+
+        if ($session !== null) {
+            $issuedToken = $session->getToken();
+            if ($issuedToken !== null) {
+                $responsePayload['token'] = $issuedToken->getToken();
+                $responsePayload['expires_in'] = $issuedToken->getTtlSeconds();
+            }
+            $createdClient = $session->getClient();
+            if ($createdClient !== null) {
+                $responsePayload['client_id'] = $createdClient->getId();
+            }
+        }
+
+        $response = new JsonResponse($responsePayload);
 
         return $this->applyCors($response, $request, $allowedOrigin);
     }

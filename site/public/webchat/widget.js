@@ -229,6 +229,11 @@
   };
 
   const saveThread = async (threadId) => {
+    if (!threadId) {
+      await withStore('client', 'readwrite', (store) => store.delete('thread'));
+      return;
+    }
+
     await putClientRecord({ key: 'thread', value: threadId });
   };
 
@@ -308,8 +313,8 @@
       await setVisitorId(data.visitor_id);
     }
     state.sessionId = data.session_id || state.sessionId || generateId();
-    state.threadId = data.thread_id;
-    state.token = data.token;
+    state.threadId = data.thread_id || null;
+    state.token = data.token || null;
     state.tokenExpiresAt = Date.now() + (Number(data.expires_in || 0) * 1000);
     state.socketPath = data.socket_path || state.socketPath;
     await saveThread(state.threadId);
@@ -371,10 +376,18 @@
     await ensureTokenFresh();
     const payload = {
       site_key: SITE_KEY,
-      thread_id: state.threadId,
       text,
       tmp_id: tmpId,
     };
+    if (state.threadId) {
+      payload.thread_id = state.threadId;
+    }
+    if (state.sessionId) {
+      payload.session_id = state.sessionId;
+    }
+    if (state.visitorId) {
+      payload.visitor_id = state.visitorId;
+    }
     const res = await apiFetch(
       buildApiUrl('/api/webchat/messages', {
         site_key: SITE_KEY,
@@ -384,7 +397,23 @@
       { method: 'POST', body: payload }
     );
     if (!res.ok) throw new Error(`Send failed (${res.status})`);
-    return res.json();
+    const data = await res.json();
+
+    if (data.thread_id && data.thread_id !== state.threadId) {
+      state.threadId = data.thread_id;
+      await saveThread(state.threadId);
+    }
+
+    if (data.token) {
+      state.token = data.token;
+      state.tokenExpiresAt = Date.now() + (Number(data.expires_in || 0) * 1000);
+    }
+
+    if (data.client_id) {
+      await putClientRecord({ key: 'client_id', value: data.client_id });
+    }
+
+    return data;
   };
 
   const sendAck = async ({ delivered = [], read = [] }) => {
