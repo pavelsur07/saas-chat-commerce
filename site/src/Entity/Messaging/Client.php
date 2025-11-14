@@ -41,7 +41,7 @@ class Client
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?WebChatSite $webChatSite = null;
 
-    #[ORM\Column(name: 'raw_data', type: 'json', nullable: true)]
+    #[ORM\Column(name: 'raw_data', type: 'jsonb', nullable: true)]
     private ?array $meta = null;
 
     #[ORM\ManyToOne]
