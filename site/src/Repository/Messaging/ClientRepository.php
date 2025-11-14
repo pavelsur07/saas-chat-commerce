@@ -2,6 +2,7 @@
 
 namespace App\Repository\Messaging;
 
+use App\Entity\Company\Company;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\TelegramBot;
 use App\Entity\WebChat\WebChatSite;
@@ -64,5 +65,19 @@ class ClientRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * @return Client[]
+     */
+    public function findByCompanyWithMessages(Company $company): array
+    {
+        return $this->createQueryBuilder('c')
+            ->innerJoin('App\\Entity\\Messaging\\Message', 'm', 'WITH', 'm.client = c')
+            ->andWhere('c.company = :company')
+            ->setParameter('company', $company)
+            ->distinct()
+            ->getQuery()
+            ->getResult();
     }
 }

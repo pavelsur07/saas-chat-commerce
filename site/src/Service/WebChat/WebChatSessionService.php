@@ -22,18 +22,23 @@ final class WebChatSessionService
     ) {
     }
 
-    public function handshake(WebChatSite $site, string $visitorId, ?string $sessionId = null, array $meta = []): WebChatSession
-    {
+    public function handshake(
+        WebChatSite $site,
+        string $visitorId,
+        ?string $sessionId = null,
+        array $meta = [],
+        bool $createIfMissing = false,
+    ): WebChatSession {
+        $sessionId = $sessionId ?? Uuid::uuid4()->toString();
+
         $client = $this->clients->findOneByWebChatSiteAndVisitor($site, $visitorId);
 
         if (null === $client) {
-            $client = new Client(Uuid::uuid4()->toString(), Channel::WEB, $visitorId, $site->getCompany());
-            $client->setWebChatSite($site);
-            $client->setUsername(null);
-            $client->setFirstName(null);
-            $client->setLastName(null);
-            $client->setMeta([]);
-            $this->em->persist($client);
+            if (!$createIfMissing) {
+                return new WebChatSession($visitorId, $sessionId);
+            }
+
+            $client = $this->createClient($site, $visitorId, $meta);
         }
 
         $client->setWebChatSite($site);
@@ -48,7 +53,27 @@ final class WebChatSessionService
 
         $token = $this->tokens->issue($site->getSiteKey(), $visitorId, $thread->getId());
 
-        return new WebChatSession($client, $thread, $token, $sessionId ?? Uuid::uuid4()->toString());
+        return new WebChatSession($client->getExternalId(), $sessionId, $client, $thread, $token);
+    }
+
+    private function createClient(WebChatSite $site, string $visitorId, array $meta): Client
+    {
+        $client = new Client(Uuid::uuid4()->toString(), Channel::WEB, $visitorId, $site->getCompany());
+        $client->setWebChatSite($site);
+        $client->setUsername(null);
+        $client->setFirstName(null);
+        $client->setLastName(null);
+        $client->setMeta([]);
+
+        if ($meta !== []) {
+            $client->mergeMeta($meta);
+        }
+
+        $client->touchLastSeen();
+
+        $this->em->persist($client);
+
+        return $client;
     }
 
     public function rotateToken(WebChatSite $site, Client $client, WebChatThread $thread): WebChatToken
