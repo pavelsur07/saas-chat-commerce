@@ -46,15 +46,43 @@ class TelegramWebhookController extends AbstractController
         $company = $inbound->meta['company'] ?? null;
         if ($company instanceof Company && null !== $company->getId()) {
             $meta = $inbound->meta;
-            unset($meta['company']);
+            unset($meta['company'], $meta['_client']);
 
-            $realtimePublisher->toCompany($company->getId(), 'message.inbound', [
+            $payload = [
                 'channel' => $inbound->channel,
                 'externalId' => $inbound->externalId,
                 'text' => $inbound->text,
-                'clientId' => $inbound->clientId,
+                'direction' => 'in',
                 'meta' => $meta,
-            ]);
+            ];
+
+            if (null !== $inbound->clientId) {
+                $payload['clientId'] = $inbound->clientId;
+            }
+
+            if (isset($payload['meta']['_persisted_message_id'])) {
+                $payload['id'] = (string) $payload['meta']['_persisted_message_id'];
+                unset($payload['meta']['_persisted_message_id']);
+            }
+
+            $ingestTimestamp = $payload['meta']['ingest']['date'] ?? null;
+            if (is_numeric($ingestTimestamp)) {
+                try {
+                    $payload['timestamp'] = (new \DateTimeImmutable('@'.(int) $ingestTimestamp))
+                        ->setTimezone(new \DateTimeZone('UTC'))
+                        ->format(DATE_ATOM);
+                } catch (\Throwable) {
+                    // ignore invalid ingest timestamp, we'll fallback to "now"
+                }
+            }
+
+            $payload['timestamp'] ??= (new \DateTimeImmutable())->format(DATE_ATOM);
+
+            $realtimePublisher->toCompany($company->getId(), 'message.inbound', $payload);
+
+            if (null !== ($payload['clientId'] ?? null)) {
+                $realtimePublisher->toClient($payload['clientId'], 'message.inbound', $payload);
+            }
         }
 
         return new JsonResponse(['ok' => true]);
