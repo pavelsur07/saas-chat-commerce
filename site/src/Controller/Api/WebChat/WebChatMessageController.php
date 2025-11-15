@@ -6,6 +6,7 @@ namespace App\Controller\Api\WebChat;
 
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Message;
+use App\Entity\WebChat\WebChatThread;
 use App\Repository\Messaging\MessageRepository;
 use App\Repository\WebChat\WebChatSiteRepository;
 use App\Repository\WebChat\WebChatThreadRepository;
@@ -223,7 +224,7 @@ final class WebChatMessageController extends AbstractController
             $dedupeKey = hash('sha256', $threadId . ':' . $tmpId . ':' . $text);
         }
 
-        if ($dedupeKey !== null && $dedupeKey !== '') {
+        if ($dedupeKey !== null && $dedupeKey !== '' && $thread instanceof WebChatThread) {
             $existingMessage = $messages->findOneByThreadAndDedupe($thread, $dedupeKey);
             if ($existingMessage instanceof Message) {
                 $response = new JsonResponse([
@@ -236,7 +237,7 @@ final class WebChatMessageController extends AbstractController
             }
         }
 
-        if (!$thread instanceof \App\Entity\WebChat\WebChatThread) {
+        if (!$thread instanceof WebChatThread) {
             $visitorId = isset($data['visitor_id']) ? trim((string) $data['visitor_id']) : '';
             if ($visitorId === '' || !Uuid::isValid($visitorId)) {
                 $cookieVisitor = $request->cookies->get('wc_vid');
@@ -266,7 +267,7 @@ final class WebChatMessageController extends AbstractController
             $session = $sessions->handshake($site, $visitorId, $sessionId, $sessionMeta, true);
 
             $thread = $session->getThread();
-            if (!$thread instanceof \App\Entity\WebChat\WebChatThread) {
+            if (!$thread instanceof WebChatThread) {
                 return $this->applyCors(new JsonResponse(['error' => 'Thread not found'], Response::HTTP_INTERNAL_SERVER_ERROR), $request, $allowedOrigin);
             }
 
