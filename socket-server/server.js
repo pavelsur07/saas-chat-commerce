@@ -21,7 +21,8 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 const server = http.createServer(app);
 const io = new Server(server, {
     path: SOCKET_PATH,
-    transports: ['websocket'], // polling оставляем на время проверки
+    // Разрешаем fallback на polling, чтобы клиенты получали realtime, даже если websocket заблокирован
+    transports: ['websocket', 'polling'],
     //cors: { origin: ORIGIN, credentials: true },
     cors: { origin: ORIGIN === '*' ? true : ORIGIN, credentials: true },
 });
