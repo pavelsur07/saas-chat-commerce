@@ -321,6 +321,14 @@
     return data;
   };
 
+  const normalizeDirection = (direction) => {
+    const value = typeof direction === 'string' ? direction.toLowerCase() : '';
+    if (value === 'in' || value === 'out') return value;
+    if (value === 'inbound') return 'in';
+    if (value === 'outbound') return 'out';
+    return 'in';
+  };
+
   const loadLocalMessages = async () => {
     if (!state.threadId) return [];
     state.messages = await listMessages(state.threadId, 200);
@@ -347,7 +355,7 @@
       const stored = {
         id: msg.id,
         threadId: state.threadId,
-        direction: msg.direction,
+        direction: normalizeDirection(msg.direction),
         text: msg.text ?? '',
         payload: msg.payload ?? null,
         createdAt: msg.created_at ?? nowISO(),
@@ -743,7 +751,7 @@
       const stored = {
         id: msg.id,
         threadId: state.threadId,
-        direction: msg.direction || 'out',
+        direction: normalizeDirection(msg.direction),
         text: msg.text || '',
         payload: msg.payload || null,
         createdAt: msg.createdAt || nowISO(),
