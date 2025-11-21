@@ -90,7 +90,9 @@ final class WebChatHandshakeController extends AbstractController
             'page' => $pageUrl,
         ];
 
-        $session = $sessions->handshake($site, $visitorId, $sessionId, $meta);
+        // Создаём клиента/тред сразу при первом рукопожатии, чтобы webchat мгновенно
+        // получил JWT-токен и смог подписаться на сокет для realtime-сообщений.
+        $session = $sessions->handshake($site, $visitorId, $sessionId, $meta, true);
 
         $payload = $session->toArray();
         $payload['socket_path'] = $_ENV['SOCKET_PATH'] ?? '/socket.io';
