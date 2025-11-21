@@ -836,10 +836,15 @@
       return;
     }
 
+    const prevThreadId = state.threadId;
+
     try {
       await ensureTokenFresh();
       const response = await postMessage(txt, tmpId);
       if (response && response.message_id) {
+        const threadChanged = !!response.thread_id && response.thread_id !== prevThreadId;
+        const shouldAttachSocket = threadChanged || (!!response.token && (!state.socket || !state.socket.connected));
+
         const persisted = {
           id: response.message_id,
           threadId: state.threadId,
@@ -859,6 +864,10 @@
         renderAllMessages();
         await removeOutbox(tmpId);
         await putSyncState(state.threadId, { lastSyncedAt: persisted.createdAt });
+
+        if (shouldAttachSocket && state.threadId && state.token) {
+          await attachSocket();
+        }
       }
     } catch (err) {
       console.warn('[WebChat] send error:', err);
