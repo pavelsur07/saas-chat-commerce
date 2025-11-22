@@ -11,8 +11,22 @@ const PORT = process.env.PORT || 3001;
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis-realtime:6379';
 const SOCKET_PATH = process.env.SOCKET_PATH || '/socket.io';
 const isProd = process.env.NODE_ENV === 'prod';
-//const ORIGIN = process.env.SOCKET_ORIGIN || 'https://chat.2bstock.ru';
-const ORIGIN = process.env.SOCKET_ORIGIN || (isProd ? 'https://chat.2bstock.ru' : 'http://localhost:3001');
+const rawOrigin = process.env.SOCKET_ORIGIN;
+let ORIGIN;
+
+if (!rawOrigin || rawOrigin.trim() === '') {
+    ORIGIN = '*';
+} else if (rawOrigin === '*') {
+    ORIGIN = '*';
+} else if (rawOrigin.includes(',')) {
+    ORIGIN = rawOrigin
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+} else {
+    ORIGIN = rawOrigin.trim();
+}
+
 const WEBCHAT_JWT_SECRET = process.env.WEBCHAT_JWT_SECRET || process.env.APP_SECRET || 'insecure-webchat-secret';
 
 const app = express();
@@ -24,7 +38,7 @@ const io = new Server(server, {
     // Разрешаем fallback на polling, чтобы клиенты получали realtime, даже если websocket заблокирован
     transports: ['websocket', 'polling'],
     //cors: { origin: ORIGIN, credentials: true },
-    cors: { origin: ORIGIN === '*' ? true : ORIGIN, credentials: true },
+    cors: { origin: Array.isArray(ORIGIN) ? ORIGIN : ORIGIN === '*' ? true : ORIGIN, credentials: true },
 });
 
 const pub = createClient({ url: REDIS_URL });
