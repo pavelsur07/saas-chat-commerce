@@ -93,18 +93,18 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
   const sortedStages = useMemo(() => stages.slice().sort((a, b) => a.position - b.position), [stages]);
 
   return (
-    <div className="flex flex-col gap-3 pb-3">
+    <div className="flex flex-col gap-3 pb-3 h-full min-h-0">
       {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 h-full min-h-0 overflow-x-auto">
         {sortedStages.map((s) => (
           <div
             key={s.id}
-            className="flex flex-col rounded-2xl border bg-white min-w-[18rem] shrink-0"
+            className="flex flex-col rounded-2xl border bg-white min-w-[18rem] shrink-0 h-full max-h-full"
             onDragOver={onColDragOver}
             onDrop={onColDrop(s.id)}
           >
-            <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
-            <div className="p-3 space-y-2 min-h-24">
+            <div className="p-3 border-b shrink-0"><div className="font-semibold">{s.name}</div></div>
+            <div className="p-3 flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto">
               {(dealsByStage[s.id] || []).map((d) => {
                 const sla = isSlaOverdue(d, s);
                 return (
@@ -113,7 +113,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
                     onClick={() => onOpenDeal(d)}
                     draggable
                     onDragStart={onCardDragStart(d)}
-                    className={`relative rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
+                    className={`relative w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
                     title={sla ? 'SLA просрочен' : undefined}
                   >
                     {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}

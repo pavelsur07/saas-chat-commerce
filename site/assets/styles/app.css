@@ -6,6 +6,21 @@
 @import 'tailwindcss';
 
 @layer base {
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        min-height: 100vh;
+    }
+
+    #crm-root {
+        min-height: calc(100vh - 2rem);
+        display: flex;
+        flex-direction: column;
+    }
+
     input:not([type='checkbox']):not([type='radio']):not([type='hidden']),
     textarea,
     select {
