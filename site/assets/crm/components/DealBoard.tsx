@@ -104,7 +104,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
             onDrop={onColDrop(s.id)}
           >
             <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
-            <div className="p-3 space-y-2 min-h-24">
+            <div className="p-3 flex flex-col gap-2 min-h-24">
               {(dealsByStage[s.id] || []).map((d) => {
                 const sla = isSlaOverdue(d, s);
                 return (
@@ -113,7 +113,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
                     onClick={() => onOpenDeal(d)}
                     draggable
                     onDragStart={onCardDragStart(d)}
-                    className={`relative rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
+                    className={`relative block w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
                     title={sla ? 'SLA просрочен' : undefined}
                   >
                     {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
