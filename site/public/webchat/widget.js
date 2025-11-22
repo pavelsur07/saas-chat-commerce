@@ -661,6 +661,17 @@
   const renderAllMessages = () => {
     if (!msgBox) return;
     msgBox.innerHTML = '';
+    if (state.messages.length) {
+      const unique = [];
+      const seen = new Set();
+      for (const message of state.messages) {
+        if (!message || !message.id || seen.has(message.id)) continue;
+        seen.add(message.id);
+        unique.push(message);
+      }
+      state.messages = unique;
+    }
+
     if (!state.messages.length) {
       msgBox.appendChild(emptyHint);
       return;
@@ -707,30 +718,36 @@
   };
 
   const upsertMessage = (incoming) => {
-    const idx = state.messages.findIndex((m) => m.id === incoming.id);
-    if (idx >= 0) {
-      state.messages[idx] = { ...state.messages[idx], ...incoming };
-    } else {
-      state.messages.push(incoming);
-      state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const existing = state.messages.find((m) => m.id === incoming.id);
+    const merged = existing ? { ...existing, ...incoming } : incoming;
+    state.messages = state.messages.filter((m) => m?.id && m.id !== incoming.id);
+    state.messages.push(merged);
+    state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    const selector = `#${messageDomId(incoming.id)}`;
+    const duplicates = msgBox ? msgBox.querySelectorAll(selector) : [];
+    const bubble = duplicates?.[0] || by(selector);
+    if (duplicates?.length > 1) {
+      duplicates.forEach((node, index) => {
+        if (index > 0) node.remove();
+      });
     }
 
-    const bubble = by(`#${messageDomId(incoming.id)}`);
     if (bubble) {
-      bubble.className = `wc-msg ${incoming.direction === 'in' ? 'them' : 'me'}`;
-      bubble.querySelector('div')?.replaceWith(el('div', null, incoming.text));
+      bubble.className = `wc-msg ${merged.direction === 'in' ? 'them' : 'me'}`;
+      bubble.querySelector('div')?.replaceWith(el('div', null, merged.text));
       const metaWrap = bubble.querySelector('.wc-time');
       if (metaWrap) {
         metaWrap.innerHTML = '';
-        metaWrap.appendChild(el('span', null, fmtTime(incoming.createdAt || nowISO())));
-        if (incoming.direction === 'out') {
+        metaWrap.appendChild(el('span', null, fmtTime(merged.createdAt || nowISO())));
+        if (merged.direction === 'out') {
           const status = el('span', 'wc-status');
-          updateStatusLabel(status, incoming);
+          updateStatusLabel(status, merged);
           metaWrap.appendChild(status);
         }
       }
     } else if (msgBox) {
-      msgBox.appendChild(renderMessageBubble(incoming));
+      msgBox.appendChild(renderMessageBubble(merged));
     }
     scrollToBottom();
   };
