@@ -163,6 +163,10 @@
     };
   });
 
+  const deleteMessageById = async (id) => withStore('messages', 'readwrite', (store) => {
+    store.delete(id);
+  });
+
   const getSyncState = async (threadId) => withStore('sync', 'readonly', (store) => store.get(threadId));
   const putSyncState = async (threadId, state) => withStore('sync', 'readwrite', (store) => store.put({ threadId, ...state }));
   const deleteSyncState = async (threadId) => withStore('sync', 'readwrite', (store) => store.delete(threadId));
@@ -333,6 +337,30 @@
     if (!state.threadId) return [];
     state.messages = await listMessages(state.threadId, 200);
     return state.messages;
+  };
+
+  const cleanOrphanTmpMessages = async () => {
+    if (!state.threadId || !state.messages.length) return;
+    const outbox = await listOutbox();
+    const pendingTmpIds = new Set(outbox.map((item) => item.tmpId));
+
+    const nextMessages = [];
+    for (const message of state.messages) {
+      const isTemp = (typeof message.id === 'string' && message.id.startsWith('tmp-'))
+        || (typeof message.tmpId === 'string' && message.tmpId !== '');
+
+      if (isTemp && (!message.tmpId || !pendingTmpIds.has(message.tmpId))) {
+        await deleteMessageById(message.id);
+        continue;
+      }
+
+      nextMessages.push(message);
+    }
+
+    if (nextMessages.length !== state.messages.length) {
+      state.messages = nextMessages;
+      renderAllMessages();
+    }
   };
 
   const syncWithServer = async () => {
@@ -943,6 +971,7 @@
 
     if (state.threadId) {
       state.messages = await listMessages(state.threadId, 200);
+      await cleanOrphanTmpMessages();
       renderAllMessages();
       const syncState = await getSyncState(state.threadId);
       if (syncState?.lastSyncedAt) {
@@ -962,6 +991,7 @@
       state.threadId = data.thread_id;
       await saveThread(state.threadId);
       state.messages = await listMessages(state.threadId, 200);
+      await cleanOrphanTmpMessages();
       renderAllMessages();
       await syncWithServer();
       await attachSocket();
