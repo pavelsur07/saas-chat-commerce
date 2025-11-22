@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-type MessagePayload = {
+export type MessagePayload = {
     clientId: string;
     text: string;
     direction: 'in' | 'out';
@@ -13,7 +13,7 @@ type MessagePayload = {
 
 const DEV_URL  = 'http://localhost:3001';
 const PROD_URL = 'https://chat.2bstock.ru';
-const PATH = '/socket.io';
+export const PATH = '/socket.io';
 
 /*
 function getSocketUrl() {
@@ -23,7 +23,7 @@ function getSocketUrl() {
 }
 */
 
-function getSocketUrl() {
+export function getSocketUrl() {
     if (typeof window === 'undefined') return PROD_URL;
     const h = window.location.hostname;
     const isDev = h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost');
