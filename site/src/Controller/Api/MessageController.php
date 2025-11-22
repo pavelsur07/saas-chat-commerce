@@ -205,19 +205,32 @@ class MessageController extends AbstractController
         ));
 
         // после успешного сохранения исходящего
-        $redis = new RedisClient([
-            'scheme' => 'tcp',
-            'host' => 'redis-realtime',
-            'port' => 6379,
-        ]);
+        $redisHost = $_ENV['REDIS_REALTIME_HOST'] ?? 'redis-realtime';
+        $redisPort = (int) ($_ENV['REDIS_REALTIME_PORT'] ?? 6379);
 
-        $redis->publish("chat.client.{$client->getId()}", json_encode([
-            'id' => $message->getId(),
-            'clientId' => $client->getId(),
-            'text' => $message->getText(),
-            'direction' => 'out',
-            'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
-        ]));
+        try {
+            $redis = new RedisClient([
+                'scheme' => 'tcp',
+                'host' => $redisHost,
+                'port' => $redisPort,
+            ]);
+
+            $redis->publish("chat.client.{$client->getId()}", json_encode([
+                'id' => $message->getId(),
+                'clientId' => $client->getId(),
+                'text' => $message->getText(),
+                'direction' => 'out',
+                'createdAt' => (new \DateTimeImmutable())->format(DATE_ATOM),
+            ]));
+        } catch (\Throwable $e) {
+            if (function_exists('error_log')) {
+                error_log(sprintf(
+                    'Failed to publish realtime message for client "%s": %s',
+                    $client->getId(),
+                    $e->getMessage()
+                ));
+            }
+        }
 
         return new JsonResponse([
             'status' => 'success',
