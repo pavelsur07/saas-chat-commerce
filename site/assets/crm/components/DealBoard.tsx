@@ -15,6 +15,7 @@ type Deal = {
   title: string;
   stageId: string;
   stageEnteredAt?: string;
+  source?: string;
 };
 
 export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey = 0 }: Props) {
@@ -109,15 +110,18 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
                 return (
                   <button
                     key={d.id}
-                  onClick={() => onOpenDeal(d)}
-                  draggable
-                  onDragStart={onCardDragStart(d)}
-                  className={`relative rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
-                  title={sla ? 'SLA просрочен' : undefined}
-                >
-                  {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
-                  <div className="font-semibold">{d.title}</div>
-                </button>
+                    onClick={() => onOpenDeal(d)}
+                    draggable
+                    onDragStart={onCardDragStart(d)}
+                    className={`relative rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
+                    title={sla ? 'SLA просрочен' : undefined}
+                  >
+                    {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
+                    <div className="font-semibold">{d.title}</div>
+                    {d.source?.startsWith('web_form:') && (
+                      <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
+                    )}
+                  </button>
                 );
               })}
             </div>
