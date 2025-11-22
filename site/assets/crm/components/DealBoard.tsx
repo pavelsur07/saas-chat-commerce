@@ -16,6 +16,9 @@ type Deal = {
   stageId: string;
   stageEnteredAt?: string;
   source?: string;
+  client?: { name?: string | null } | null;
+  openedAt?: string;
+  createdAt?: string;
 };
 
 export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey = 0 }: Props) {
@@ -107,6 +110,13 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
             <div className="p-3 flex flex-col gap-2 min-h-24">
               {(dealsByStage[s.id] || []).map((d) => {
                 const sla = isSlaOverdue(d, s);
+                const clientName = d.client?.name || (d as any).clientName || '...';
+                const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
+                const openedDate = openedAt ? new Date(openedAt) : null;
+                const openedDateStr = openedDate && !isNaN(openedDate.getTime())
+                  ? openedDate.toLocaleDateString('ru-RU')
+                  : null;
+                const titleLine = openedDateStr ? `${clientName} · ${openedDateStr}` : clientName;
                 return (
                   <button
                     key={d.id}
@@ -117,7 +127,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
                     title={sla ? 'SLA просрочен' : undefined}
                   >
                     {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
-                    <div className="font-semibold">{d.title}</div>
+                    <div className="font-semibold">{titleLine}</div>
                     {d.source?.startsWith('web_form:') && (
                       <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
                     )}
