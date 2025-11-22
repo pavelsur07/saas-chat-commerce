@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Company\Company;
 use App\Entity\Crm\CrmPipeline;
 use App\Entity\Crm\CrmStage;
 use App\Entity\Crm\CrmWebForm;
@@ -73,7 +74,7 @@ class CrmWebFormController extends AbstractController
             $pipeline,
             $stage,
             '',
-            '',
+            $this->generateSlug($em, $company),
             $this->generatePublicKey($em),
         );
 
@@ -142,5 +143,16 @@ class CrmWebFormController extends AbstractController
         } while ($repository->findOneBy(['publicKey' => $key]));
 
         return $key;
+    }
+
+    private function generateSlug(EM $em, Company $company): string
+    {
+        $repository = $em->getRepository(CrmWebForm::class);
+
+        do {
+            $slug = 'form-'.rtrim(strtr(base64_encode(random_bytes(6)), '+/', '-_'), '=');
+        } while ($repository->findOneBy(['company' => $company, 'slug' => $slug]));
+
+        return $slug;
     }
 }
