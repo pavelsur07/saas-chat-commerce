@@ -329,6 +329,11 @@
     return 'in';
   };
 
+  const mapServerDirectionToClient = (direction) => {
+    const normalized = normalizeDirection(direction);
+    return normalized === 'in' ? 'out' : 'in';
+  };
+
   const loadLocalMessages = async () => {
     if (!state.threadId) return [];
     state.messages = await listMessages(state.threadId, 200);
@@ -352,17 +357,18 @@
     const newMessages = [];
     for (const msg of data.messages) {
       if (!msg || !msg.id) continue;
+      const direction = mapServerDirectionToClient(msg.direction);
       const stored = {
         id: msg.id,
         threadId: state.threadId,
-        direction: normalizeDirection(msg.direction),
+        direction,
         text: msg.text ?? '',
         payload: msg.payload ?? null,
         createdAt: msg.created_at ?? nowISO(),
         deliveredAt: msg.delivered_at || null,
         readAt: msg.read_at || null,
         tmpId: null,
-        status: msg.direction === 'out' && !msg.read_at ? 'delivered' : 'read',
+        status: direction === 'out' && !msg.read_at ? 'delivered' : 'read',
       };
       newMessages.push(stored);
       upsertMessage(stored);
@@ -748,13 +754,7 @@
     state.socket.on('message:new', (payload) => {
       if (!payload || !payload.message) return;
       const msg = payload.message;
-      const direction = normalizeDirection(msg.direction);
-
-      // Не дублируем сообщения, которые были отправлены самим webChat-клиентом:
-      // они уже добавлены в state.messages и IndexedDB через doSend().
-      if (direction === 'in') {
-        return;
-      }
+      const direction = mapServerDirectionToClient(msg.direction);
 
       const stored = {
         id: msg.id,
@@ -768,10 +768,11 @@
         tmpId: null,
         status: direction === 'out' && !msg.readAt ? 'delivered' : 'read',
       };
+
       saveMessages([stored]);
       upsertMessage(stored);
 
-      if (stored.direction === 'out') {
+      if (stored.direction === 'in') {
         sendAck({ delivered: [stored.id] });
         if (panel?.style.display === 'grid' && !document.hidden) {
           stored.status = 'read';
