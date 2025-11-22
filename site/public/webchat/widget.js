@@ -151,6 +151,10 @@
     [].concat(messages).forEach((m) => store.put(m));
   });
 
+  const deleteMessage = async (id) => withStore('messages', 'readwrite', (store) => {
+    store.delete(id);
+  });
+
   const deleteMessagesByThread = async (threadId) => withStore('messages', 'readwrite', (store) => {
     const index = store.index('thread_created');
     const range = IDBKeyRange.bound([threadId, '0000'], [threadId, '\uffff']);
@@ -877,6 +881,7 @@
         state.messages = state.messages.filter((m) => m.id !== message.id);
         state.messages.push(persisted);
         state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        await deleteMessage(message.id);
         await saveMessages([persisted]);
         renderAllMessages();
         await removeOutbox(tmpId);
@@ -911,11 +916,14 @@
             await removeOutbox(item.tmpId);
             const stored = state.messages.find((m) => m.tmpId === item.tmpId || m.id === `tmp-${item.tmpId}`);
             if (stored) {
+              const previousId = stored.id;
               stored.id = resp.message_id;
               stored.tmpId = null;
               stored.status = 'delivered';
               stored.createdAt = resp.created_at || stored.createdAt;
               stored.deliveredAt = stored.createdAt;
+              state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+              await deleteMessage(previousId);
               await saveMessages([stored]);
               renderAllMessages();
             }
