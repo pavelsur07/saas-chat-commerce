@@ -19,12 +19,59 @@
                         <div class="text-sm text-gray-600">Этап: {{ form.stage.name }}</div>
                         <div class="text-sm text-gray-600">Public key: <span class="font-mono">{{ form.publicKey }}</span></div>
 
-                        <div class="mt-2 text-sm">
+                        <div class="mt-2 text-sm space-y-4">
                             <div class="font-medium text-gray-700">Код для вставки</div>
                             <p class="mt-1 text-xs text-gray-500">Скопируйте и добавьте перед &lt;/body&gt; на странице формы.</p>
-                            <pre class="mt-2 p-3 bg-gray-50 border rounded text-xs overflow-auto"><code>{% apply escape %}<script async src="{{ widgetHost }}/crm/forms/widget.js"
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-700">Простой HTML-вариант (без CORS)</div>
+                                <pre class="mt-1 p-3 bg-gray-50 border rounded text-xs overflow-auto"><code>{% apply escape %}<form
+  action="https://{{ app.request.host }}/api/crm/web-forms/{{ form.publicKey }}/submit"
+  method="post"
+  class="vf-lead-form"
+>
+  <input type="hidden" name="page_url" value="">
+  <input type="hidden" name="utm_source" value="">
+  <input type="hidden" name="utm_medium" value="">
+  <input type="hidden" name="utm_campaign" value="">
+
+  <label>
+    Ваше имя*
+    <input type="text" name="name" required>
+  </label>
+
+  <label>
+    Телефон*
+    <input type="tel" name="phone" required>
+  </label>
+
+  <label>
+    Комментарий
+    <textarea name="comment"></textarea>
+  </label>
+
+  <button type="submit">Отправить</button>
+</form>
+<script>
+  (function () {
+    var f = document.querySelector('.vf-lead-form');
+    if (!f) return;
+    var params = new URLSearchParams(window.location.search);
+    f.querySelector('input[name="page_url"]').value = window.location.href;
+    ['utm_source','utm_medium','utm_campaign'].forEach(function (k) {
+      var v = params.get(k);
+      if (v) f.querySelector('input[name="'+k+'"]').value = v;
+    });
+  })();
+</script>{% endapply %}</code></pre>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="text-sm font-medium text-gray-700">Скрипт-виджет</div>
+                                <pre class="mt-1 p-3 bg-gray-50 border rounded text-xs overflow-auto"><code>{% apply escape %}<script async src="{{ widgetHost }}/crm/forms/widget.js"
         data-form-key="{{ form.publicKey }}"
         data-api-base="{{ widgetHost }}"></script>{% endapply %}</code></pre>
+                            </div>
                         </div>
                     </div>
                     <div class="flex flex-col items-end space-y-2">
