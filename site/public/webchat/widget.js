@@ -752,7 +752,7 @@
 
       // Не дублируем сообщения, которые были отправлены самим webChat-клиентом:
       // они уже добавлены в state.messages и IndexedDB через doSend().
-      if (direction === 'in') {
+      if (direction === 'out') {
         return;
       }
 
