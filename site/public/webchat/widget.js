@@ -748,17 +748,25 @@
     state.socket.on('message:new', (payload) => {
       if (!payload || !payload.message) return;
       const msg = payload.message;
+      const direction = normalizeDirection(msg.direction);
+
+      // Не дублируем сообщения, которые были отправлены самим webChat-клиентом:
+      // они уже добавлены в state.messages и IndexedDB через doSend().
+      if (direction === 'in') {
+        return;
+      }
+
       const stored = {
         id: msg.id,
         threadId: state.threadId,
-        direction: normalizeDirection(msg.direction),
+        direction,
         text: msg.text || '',
         payload: msg.payload || null,
         createdAt: msg.createdAt || nowISO(),
         deliveredAt: msg.deliveredAt || null,
         readAt: msg.readAt || null,
         tmpId: null,
-        status: msg.direction === 'out' && !msg.readAt ? 'delivered' : 'read',
+        status: direction === 'out' && !msg.readAt ? 'delivered' : 'read',
       };
       saveMessages([stored]);
       upsertMessage(stored);
