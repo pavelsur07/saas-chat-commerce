@@ -24,7 +24,8 @@ type Deal = {
   source?: string;
   client?: { name?: string | null } | null;
   openedAt?: string;
-  createdAt?: string;
+  createdAt?: string | number;
+  daysInStage?: number;
 };
 
 export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey = 0 }: Props) {
@@ -128,32 +129,56 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
             >
               <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
               <div className="p-3 flex flex-1 flex-col gap-2 min-h-24 overflow-y-auto">
-                {(dealsByStage[s.id] || []).map((d) => {
-                  const sla = isSlaOverdue(d, s);
-                  const clientName = d.client?.name || (d as any).clientName || '...';
-                  const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
-                  const openedDate = openedAt ? new Date(openedAt) : null;
-                  const openedDateStr = openedDate && !isNaN(openedDate.getTime())
-                    ? openedDate.toLocaleDateString('ru-RU')
-                    : null;
-                  const titleLine = openedDateStr ? `${clientName} · ${openedDateStr}` : clientName;
-                  return (
-                    <button
-                      key={d.id}
-                      onClick={() => onOpenDeal(d)}
-                      draggable
-                      onDragStart={onCardDragStart(d)}
-                      className={`relative block w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
-                      title={sla ? 'SLA просрочен' : undefined}
-                    >
-                      {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
-                      <div className="font-semibold">{titleLine}</div>
-                      {d.source?.startsWith('web_form:') && (
-                        <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
-                      )}
-                    </button>
-                  );
-                })}
+                {(() => {
+                  const stageDeals = dealsByStage[s.id] || [];
+
+                  const sortedStageDeals = stageDeals.slice().sort((a, b) => {
+                    const aCreated = a.createdAt ? new Date(a.createdAt as any).getTime() : 0;
+                    const bCreated = b.createdAt ? new Date(b.createdAt as any).getTime() : 0;
+                    return bCreated - aCreated;
+                  });
+
+                  return sortedStageDeals.map((d) => {
+                    const createdAtMs = d.createdAt ? new Date(d.createdAt as any).getTime() : 0;
+                    const now = Date.now();
+                    const isRecent = createdAtMs > 0 && (now - createdAtMs) <= 24 * 60 * 60 * 1000;
+                    const daysInStage = typeof d.daysInStage === 'number' ? d.daysInStage : null;
+                    const isNew = isRecent && (daysInStage === null || daysInStage === 0);
+                    const sla = isSlaOverdue(d, s);
+                    const clientName = d.client?.name || (d as any).clientName || '...';
+                    const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
+                    const openedDate = openedAt ? new Date(openedAt) : null;
+                    const openedDateStr = openedDate && !isNaN(openedDate.getTime())
+                      ? openedDate.toLocaleDateString('ru-RU')
+                      : null;
+                    const titleLine = openedDateStr ? `${clientName} · ${openedDateStr}` : clientName;
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => onOpenDeal(d)}
+                        draggable
+                        onDragStart={onCardDragStart(d)}
+                        className={`relative block w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
+                        title={sla ? 'SLA просрочен' : undefined}
+                      >
+                        {isNew && (
+                          <span className="absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                            Новая
+                          </span>
+                        )}
+                        {sla && (
+                          <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                            SLA
+                          </span>
+                        )}
+                        <div className="font-semibold">{titleLine}</div>
+                        {d.source?.startsWith('web_form:') && (
+                          <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </div>
           ))}
