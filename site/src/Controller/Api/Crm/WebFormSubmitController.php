@@ -41,6 +41,25 @@ final class WebFormSubmitController extends AbstractController
         }
 
         $payload = $this->getPayload($request);
+        // Honeypot-антиспам: если скрытое поле _hpt заполнено, считаем, что это бот.
+        // Не создаём сделку и клиента, но возвращаем "успех", чтобы бот "успокоился".
+        if (!empty($payload['_hpt'] ?? null)) {
+            // Опционально: можно не логировать такие запросы вообще.
+
+            if ($form->getSuccessType() === 'redirect') {
+                return $this->json([
+                    'success' => true,
+                    'redirectUrl' => $form->getSuccessRedirectUrl(),
+                    'message' => null,
+                ]);
+            }
+
+            return $this->json([
+                'success' => true,
+                'redirectUrl' => null,
+                'message' => $form->getSuccessMessage() ?? 'Спасибо! Заявка отправлена.',
+            ]);
+        }
         $client = $this->resolveClient($form->getCompany(), $payload);
         $pageUrl = $this->extractPageUrl($payload);
         $utm = $this->extractUtmParameters($payload);
