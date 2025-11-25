@@ -4,7 +4,13 @@ import axios from 'axios';
 
 type Props = {
   pipelineId: string | null;
-  filters: { assignee: string | 'all'; channel: string | 'all'; q: string };
+  filters: {
+    assignee: string | 'all';
+    channel: string | 'all';
+    q: string;
+    onlyWebForms: boolean;
+    utmCampaign: string;
+  };
   onOpenDeal: (deal: any) => void;
   reloadKey?: number;
 };
