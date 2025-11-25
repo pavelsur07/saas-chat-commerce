@@ -65,13 +65,13 @@ export default function CrmLayout() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex flex-1 gap-4">
-        <aside className="w-64 rounded-2xl border border-gray-200 bg-white px-3 py-2">
+      <div className="mt-4 flex flex-1 gap-4 overflow-hidden">
+        <aside className="w-64 flex-shrink-0 rounded-2xl border border-gray-200 bg-white px-3 py-2">
           <div className="flex items-center gap-2 mb-3"><div className="text-lg font-semibold">Воронки</div></div>
           <PipelineList activeId={activePipelineId} onSelect={handleSelectPipeline} />
         </aside>
 
-        <main className="flex flex-1 flex-col rounded-2xl border border-gray-200 bg-white px-3 py-2">
+        <main className="flex h-full flex-1 min-w-0 flex-col rounded-2xl border border-gray-200 bg-white px-3 py-2">
           <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-2">
             <FiltersBar value={filters} onChange={setFilters} />
             <button
