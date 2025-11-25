@@ -204,7 +204,7 @@ class CrmWebFormController extends AbstractController
             $qb = $this->em->createQueryBuilder()
                 ->select('deal')
                 ->from(CrmDeal::class, 'deal')
-                ->where("deal.meta->>'webFormId' = :formId")
+                ->where("JSON_GET_FIELD_AS_TEXT(deal.meta, 'webFormId') = :formId")
                 ->setParameter('formId', $formId);
 
             $deals = $qb->getQuery()->getResult();
