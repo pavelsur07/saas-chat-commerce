@@ -160,6 +160,17 @@ final class DealController extends AbstractController
         $ownerId = trim((string) $request->query->get('owner', ''));
         $search = trim((string) $request->query->get('search', ''));
 
+        $onlyWebForms = null;
+        $onlyWebFormsRaw = $request->query->get('onlyWebForms');
+        if ($onlyWebFormsRaw !== null && $onlyWebFormsRaw !== '') {
+            $onlyWebForms = $this->toBoolean($onlyWebFormsRaw);
+            if ($onlyWebForms === null) {
+                return $this->json(['error' => 'onlyWebForms must be boolean'], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
+        $utmCampaign = trim((string) $request->query->get('utmCampaign', ''));
+
         $limit = 20;
         $limitValue = $request->query->get('limit');
         if ($limitValue !== null && $limitValue !== '') {
@@ -242,6 +253,17 @@ final class DealController extends AbstractController
             $searchTerm = '%'.mb_strtolower($search).'%';
             $qb->andWhere('LOWER(deal.title) LIKE :search OR LOWER(COALESCE(deal.note, \'\')) LIKE :search');
             $qb->setParameter('search', $searchTerm);
+        }
+
+        if ($onlyWebForms === true) {
+            $qb->andWhere('deal.source LIKE :wfSource')
+                ->setParameter('wfSource', 'web_form:%');
+        }
+
+        if ($utmCampaign !== '') {
+            $term = '%'.trim($utmCampaign).'%';
+            $qb->andWhere("COALESCE(deal.meta->'utm'->>'utm_campaign', '') ILIKE :utmCampaign")
+                ->setParameter('utmCampaign', $term);
         }
 
         $countQb = clone $qb;

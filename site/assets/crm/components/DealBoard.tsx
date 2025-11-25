@@ -46,6 +46,14 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
       if (filters.assignee && filters.assignee !== 'all') { params.owner = filters.assignee; }
       if (filters.q) { params.search = filters.q; }
 
+      if (filters.onlyWebForms) {
+        params.onlyWebForms = 1;
+      }
+
+      if (filters.utmCampaign) {
+        params.utmCampaign = filters.utmCampaign;
+      }
+
       const { data: dealsResp } = await axios.get<{ items: Deal[] }>(`/api/crm/deals`, {
         params,
       });
@@ -63,7 +71,10 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pipelineId, reloadKey, filters.assignee, filters.q]);
+  useEffect(() => {
+    load();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [pipelineId, reloadKey, filters.assignee, filters.q, filters.onlyWebForms, filters.utmCampaign]);
 
   const onCardDragStart = (deal: Deal) => (e: React.DragEvent) => {
     dragDeal.current = deal;
