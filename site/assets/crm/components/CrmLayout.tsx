@@ -64,32 +64,30 @@ export default function CrmLayout() {
   const canCreateDeal = Boolean(activePipelineId);
 
   return (
-    <div className="h-full grid grid-cols-12 gap-4">
-      <aside className="col-span-2 rounded-2xl border border-gray-200 bg-white px-3 py-2">
-        <div className="flex items-center gap-2 mb-3"><div className="text-lg font-semibold">Воронки</div></div>
-        <PipelineList activeId={activePipelineId} onSelect={handleSelectPipeline} />
-      </aside>
+    <div className="relative flex h-full flex-col">
+      <div className="flex flex-1 gap-4">
+        <aside className="w-64 rounded-2xl border border-gray-200 bg-white px-3 py-2">
+          <div className="flex items-center gap-2 mb-3"><div className="text-lg font-semibold">Воронки</div></div>
+          <PipelineList activeId={activePipelineId} onSelect={handleSelectPipeline} />
+        </aside>
 
-      <main className="col-span-7 rounded-2xl border border-gray-200 bg-white px-3 py-2 flex flex-col">
-        <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-2">
-          <FiltersBar value={filters} onChange={setFilters} />
-          <button
-            type="button"
-            onClick={() => setCreateModalOpen(true)}
-            disabled={!canCreateDeal}
-            className={`ml-auto px-3 py-2 rounded-xl transition font-semibold ${canCreateDeal ? 'bg-black text-white hover:bg-black/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-          >
-            Новая сделка
-          </button>
-        </div>
-        <div className="flex-1 overflow-auto pt-2">
-          <DealBoard pipelineId={activePipelineId} filters={filters} onOpenDeal={(deal) => setActiveDeal(deal)} reloadKey={boardReloadKey} />
-        </div>
-      </main>
-
-      <aside className="col-span-3 rounded-2xl border border-gray-200 bg-white px-3 py-2">
-        <DealProfile deal={activeDeal} />
-      </aside>
+        <main className="flex flex-1 flex-col rounded-2xl border border-gray-200 bg-white px-3 py-2">
+          <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-2">
+            <FiltersBar value={filters} onChange={setFilters} />
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(true)}
+              disabled={!canCreateDeal}
+              className={`ml-auto px-3 py-2 rounded-xl transition font-semibold ${canCreateDeal ? 'bg-black text-white hover:bg-black/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+            >
+              Новая сделка
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto pt-2">
+            <DealBoard pipelineId={activePipelineId} filters={filters} onOpenDeal={(deal) => setActiveDeal(deal)} reloadKey={boardReloadKey} />
+          </div>
+        </main>
+      </div>
 
       <DealCreateModal
         open={isCreateModalOpen}
@@ -97,6 +95,19 @@ export default function CrmLayout() {
         onClose={() => setCreateModalOpen(false)}
         onCreated={handleDealCreated}
       />
+
+      {activeDeal && (
+        <div className="fixed inset-0 z-40 flex">
+          <div
+            className="flex-1 bg-black/20"
+            onClick={() => setActiveDeal(null)}
+          />
+
+          <div className="relative h-full w-full max-w-md bg-white border-l border-gray-200 shadow-xl">
+            <DealProfile deal={activeDeal} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
