@@ -21,6 +21,10 @@ export type Deal = {
   stage?: { id: string; name: string };
   pipeline?: { id: string; name: string };
   stageEnteredAt?: string;
+  source?: string | null;
+  meta?: any;
+  openedAt?: string;
+  createdAt?: string;
 };
 
 type PipelineSummary = { id: string; name: string };

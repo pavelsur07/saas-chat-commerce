@@ -8,12 +8,24 @@ type Deal = {
   client?: { id: number; name: string; channels?: Array<{ type: string; identifier: string }> } | null;
   unread?: number;
   daysInStage?: number;
+  source?: string | null;
+  meta?: any;
+  openedAt?: string;
+  createdAt?: string;
 };
 
 export default function DealProfile({ deal }: { deal: Deal | null }) {
   if (!deal) {
     return <div className="h-full flex items-center justify-center text-sm text-gray-500">Выберите сделку</div>;
   }
+
+  const source = (deal as any).source as string | undefined;
+  const meta = ((deal as any).meta as any) || null;
+  const isWebForm = !!source && source.startsWith('web_form:');
+  const webFormName = isWebForm ? meta?.webFormName ?? null : null;
+  const pageUrl = isWebForm ? meta?.pageUrl ?? null : null;
+  const utm = isWebForm ? meta?.utm ?? null : null;
+  const payload = isWebForm ? meta?.payload ?? null : null;
 
   const clientName = deal.client?.name ?? 'Клиент не указан';
   const clientId = deal.client?.id;
@@ -54,6 +66,41 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
           )}
         </div>
         <button className="mt-2 w-full text-sm px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50">Добавить канал</button>
+      </div>
+      <div className="mt-4">
+        <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">Источник</div>
+        {isWebForm ? (
+          <div className="space-y-1 text-sm text-gray-700">
+            <div>Канал: Сайт (форма)</div>
+            {webFormName ? <div>Форма: {webFormName}</div> : null}
+            {pageUrl ? (
+              <div>
+                Страница:{' '}
+                <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {pageUrl}
+                </a>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="text-sm text-gray-700">Источник: {source || 'не указан'}</div>
+        )}
+      </div>
+      <div className="mt-4">
+        <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">Маркетинг</div>
+        {isWebForm ? (
+          <div className="space-y-1 text-sm text-gray-700">
+            {utm?.utm_source ? <div>utm_source: {utm.utm_source}</div> : null}
+            {utm?.utm_medium ? <div>utm_medium: {utm.utm_medium}</div> : null}
+            {utm?.utm_campaign ? <div>utm_campaign: {utm.utm_campaign}</div> : null}
+            {payload?.name ? <div>Имя: {payload.name}</div> : null}
+            {payload?.phone ? <div>Телефон: {payload.phone}</div> : null}
+            {payload?.email ? <div>Email: {payload.email}</div> : null}
+            {payload?.comment ? <div>Комментарий: {payload.comment}</div> : null}
+          </div>
+        ) : (
+          <div className="text-sm text-gray-700">Данные не указаны</div>
+        )}
       </div>
       <div className="mt-4">
         <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">Быстрые действия</div>
