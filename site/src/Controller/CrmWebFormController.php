@@ -201,13 +201,14 @@ class CrmWebFormController extends AbstractController
                 'closedAmount' => 0.0,
             ];
 
-            $qb = $this->em->createQueryBuilder()
-                ->select('deal')
-                ->from(CrmDeal::class, 'deal')
-                ->where("JSON_GET_FIELD_AS_TEXT(deal.meta, 'webFormId') = :formId")
-                ->setParameter('formId', $formId);
+            $dealIds = $this->em->getConnection()->fetchFirstColumn(
+                "SELECT id FROM crm_deals WHERE meta ->> 'webFormId' = :formId",
+                ['formId' => $formId],
+            );
 
-            $deals = $qb->getQuery()->getResult();
+            $deals = $dealIds === []
+                ? []
+                : $this->em->getRepository(CrmDeal::class)->findBy(['id' => $dealIds]);
 
             foreach ($deals as $deal) {
                 if (!$deal instanceof CrmDeal) {
