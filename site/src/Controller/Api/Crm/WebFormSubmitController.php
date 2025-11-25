@@ -2,8 +2,14 @@
 
 namespace App\Controller\Api\Crm;
 
+use App\Entity\Company\Company;
+use App\Entity\Messaging\Channel\Channel;
+use App\Entity\Messaging\Client;
+use App\Repository\Messaging\ClientRepository;
 use App\Repository\Crm\CrmWebFormRepository;
 use App\Service\Crm\DealFactory;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +22,8 @@ final class WebFormSubmitController extends AbstractController
     public function __construct(
         private readonly CrmWebFormRepository $webFormRepository,
         private readonly DealFactory $dealFactory,
+        private readonly ClientRepository $clientRepository,
+        private readonly EntityManagerInterface $em,
     ) {
     }
 
@@ -33,6 +41,7 @@ final class WebFormSubmitController extends AbstractController
         }
 
         $payload = $this->getPayload($request);
+        $client = $this->resolveClient($form->getCompany(), $payload);
         $pageUrl = $this->extractPageUrl($payload);
         $utm = $this->extractUtmParameters($payload);
 
@@ -62,7 +71,7 @@ final class WebFormSubmitController extends AbstractController
             $owner,
             $title,
             $amount,
-            null,
+            $client,
             $owner,
             $source,
             $meta,
@@ -213,5 +222,72 @@ final class WebFormSubmitController extends AbstractController
         }
 
         return $utm;
+    }
+
+    /**
+     * @param array<array-key, mixed> $payload
+     */
+    private function extractNonEmptyString(array $payload, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $payload)) {
+                continue;
+            }
+
+            $value = trim((string) $payload[$key]);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<array-key, mixed> $payload
+     */
+    private function resolveClient(Company $company, array $payload): ?Client
+    {
+        $externalId = $this->extractNonEmptyString($payload, ['phone', 'tel', 'phone_number', 'phoneNumber']);
+        if ($externalId === null) {
+            $externalId = $this->extractNonEmptyString($payload, ['email', 'e-mail']);
+        }
+
+        if ($externalId === null) {
+            return null;
+        }
+
+        $channelValue = Channel::WEB->value;
+        $client = $this->clientRepository->findOneByChannelAndExternalId($channelValue, $externalId);
+
+        if ($client !== null && $client->getCompany()->getId() !== $company->getId()) {
+            $client = null;
+        }
+
+        if ($client === null) {
+            $client = new Client(Uuid::uuid4()->toString(), $channelValue, $externalId, $company);
+            $client->setWebChatSite(null);
+            $client->setUsername(null);
+            $client->setFirstName(null);
+            $client->setLastName(null);
+            $client->setMeta([]);
+        }
+
+        $metaUpdate = [];
+        foreach (['name', 'full_name', 'first_name', 'last_name', 'phone', 'email'] as $key) {
+            $value = $this->extractNonEmptyString($payload, [$key]);
+            if ($value !== null) {
+                $metaUpdate[$key] = $value;
+            }
+        }
+
+        if ($metaUpdate !== []) {
+            $client->mergeMeta($metaUpdate);
+        }
+
+        $client->touchLastSeen();
+        $this->em->persist($client);
+
+        return $client;
     }
 }
