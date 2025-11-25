@@ -32,8 +32,18 @@ type PipelineSummary = { id: string; name: string };
 export default function CrmLayout() {
   const [activePipeline, setActivePipeline] = useState<PipelineSummary | null>(null);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
-  const [filters, setFilters] = useState<{ assignee: string | 'all'; channel: string | 'all'; q: string }>({
-    assignee: 'all', channel: 'all', q: ''
+  const [filters, setFilters] = useState<{
+    assignee: string | 'all';
+    channel: string | 'all';
+    q: string;
+    onlyWebForms: boolean;
+    utmCampaign: string;
+  }>({
+    assignee: 'all',
+    channel: 'all',
+    q: '',
+    onlyWebForms: false,
+    utmCampaign: '',
   });
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [boardReloadKey, setBoardReloadKey] = useState(0);
