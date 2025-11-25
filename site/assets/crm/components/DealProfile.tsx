@@ -42,7 +42,7 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
   return (
     <div className="flex h-full flex-col bg-white">
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 mb-4">
           <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center font-semibold">
             {initials || '??'}
           </div>
