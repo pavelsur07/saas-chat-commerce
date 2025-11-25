@@ -113,47 +113,51 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
   const sortedStages = useMemo(() => stages.slice().sort((a, b) => a.position - b.position), [stages]);
 
   return (
-    <div className="flex flex-col gap-3 pb-3">
-      {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
-      <div className="flex items-start gap-3">
-        {sortedStages.map((s) => (
-          <div
-            key={s.id}
-            className="flex flex-col rounded-2xl border bg-white min-w-[18rem] shrink-0"
-            onDragOver={onColDragOver}
-            onDrop={onColDrop(s.id)}
-          >
-            <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
-            <div className="p-3 flex flex-col gap-2 min-h-24">
-              {(dealsByStage[s.id] || []).map((d) => {
-                const sla = isSlaOverdue(d, s);
-                const clientName = d.client?.name || (d as any).clientName || '...';
-                const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
-                const openedDate = openedAt ? new Date(openedAt) : null;
-                const openedDateStr = openedDate && !isNaN(openedDate.getTime())
-                  ? openedDate.toLocaleDateString('ru-RU')
-                  : null;
-                const titleLine = openedDateStr ? `${clientName} · ${openedDateStr}` : clientName;
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => onOpenDeal(d)}
-                    draggable
-                    onDragStart={onCardDragStart(d)}
-                    className={`relative block w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
-                    title={sla ? 'SLA просрочен' : undefined}
-                  >
-                    {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
-                    <div className="font-semibold">{titleLine}</div>
-                    {d.source?.startsWith('web_form:') && (
-                      <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
-                    )}
-                  </button>
-                );
-              })}
+    <div className="flex h-full flex-col">
+      <div className="mb-3 shrink-0">
+        {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
+      </div>
+      <div className="flex-1 overflow-x-auto">
+        <div className="flex h-full items-start gap-3 pb-3">
+          {sortedStages.map((s) => (
+            <div
+              key={s.id}
+              className="flex h-full min-w-[18rem] shrink-0 flex-col rounded-2xl border bg-white"
+              onDragOver={onColDragOver}
+              onDrop={onColDrop(s.id)}
+            >
+              <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
+              <div className="p-3 flex flex-1 flex-col gap-2 min-h-24 overflow-y-auto">
+                {(dealsByStage[s.id] || []).map((d) => {
+                  const sla = isSlaOverdue(d, s);
+                  const clientName = d.client?.name || (d as any).clientName || '...';
+                  const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
+                  const openedDate = openedAt ? new Date(openedAt) : null;
+                  const openedDateStr = openedDate && !isNaN(openedDate.getTime())
+                    ? openedDate.toLocaleDateString('ru-RU')
+                    : null;
+                  const titleLine = openedDateStr ? `${clientName} · ${openedDateStr}` : clientName;
+                  return (
+                    <button
+                      key={d.id}
+                      onClick={() => onOpenDeal(d)}
+                      draggable
+                      onDragStart={onCardDragStart(d)}
+                      className={`relative block w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
+                      title={sla ? 'SLA просрочен' : undefined}
+                    >
+                      {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
+                      <div className="font-semibold">{titleLine}</div>
+                      {d.source?.startsWith('web_form:') && (
+                        <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
