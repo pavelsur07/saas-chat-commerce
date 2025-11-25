@@ -19,6 +19,13 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
     return <div className="h-full flex items-center justify-center text-sm text-gray-500">Выберите сделку</div>;
   }
 
+  const client = deal.client ?? null;
+  const clientNameFromClient = client?.name && client.name.trim().length > 0 ? client.name.trim() : null;
+  const primaryChannel = client?.channels && client.channels.length > 0 ? client.channels[0] : null;
+  const primaryContact = primaryChannel && primaryChannel.identifier && primaryChannel.identifier.trim().length > 0
+    ? primaryChannel.identifier.trim()
+    : null;
+
   const source = (deal as any).source as string | undefined;
   const meta = ((deal as any).meta as any) || null;
   const isWebForm = !!source && source.startsWith('web_form:');
@@ -49,6 +56,17 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
             <div className="text-sm font-semibold">{amount ? `${amount} ₽` : ''}</div>
             <div className="text-xs text-gray-500">{deal.title}</div>
           </div>
+        </div>
+        <div className="mb-4 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+          <div className="mb-1 text-xs uppercase tracking-wide text-gray-500">Клиент</div>
+          <div className="text-sm font-semibold text-gray-900">
+            {clientNameFromClient ?? 'Без имени'}
+          </div>
+          {primaryContact && (
+            <div className="mt-0.5 text-xs text-gray-600">
+              Контакт: {primaryContact}
+            </div>
+          )}
         </div>
         <div className="mt-4">
           <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">Каналы</div>
