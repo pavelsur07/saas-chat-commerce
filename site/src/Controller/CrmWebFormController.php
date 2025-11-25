@@ -3,13 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Company\Company;
+use App\Entity\Crm\CrmDeal;
 use App\Entity\Crm\CrmPipeline;
 use App\Entity\Crm\CrmStage;
 use App\Entity\Crm\CrmWebForm;
 use App\Form\Crm\CrmWebFormType;
 use App\Security\CompanyAccess;
 use App\Service\Company\CompanyContextService;
-use Doctrine\ORM\EntityManagerInterface as EM;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,23 +23,30 @@ class CrmWebFormController extends AbstractController
     public function __construct(
         private readonly CompanyContextService $companyContext,
         private readonly CompanyAccess $companyAccess,
+        private readonly EntityManagerInterface $em,
     ) {
     }
 
     #[Route('', name: 'crm_forms_index', methods: ['GET'])]
-    public function index(Request $request, EM $em): Response
+    public function index(Request $request): Response
     {
         $company = $this->companyContext->getCurrentCompanyOrThrow();
-        $forms = $em->getRepository(CrmWebForm::class)->findForCompany($company);
+        $forms = $this->em->getRepository(CrmWebForm::class)->findForCompany($company);
+
+        $analytics = $this->buildFormsAnalytics($forms);
+        $formsStats = $analytics['forms'];
+        $utmStats = $analytics['utm'];
 
         return $this->render('crm/forms/index.html.twig', [
             'forms' => $forms,
             'widgetHost' => $request->getSchemeAndHttpHost(),
+            'formsStats' => $formsStats,
+            'utmStats' => $utmStats,
         ]);
     }
 
     #[Route('/new', name: 'crm_forms_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EM $em): Response
+    public function new(Request $request, EntityManagerInterface $em): Response
     {
         $company = $this->companyContext->getCurrentCompanyOrThrow();
 
@@ -98,7 +106,7 @@ class CrmWebFormController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'crm_forms_edit', methods: ['GET', 'POST'])]
-    public function edit(CrmWebForm $crmForm, Request $request, EM $em): Response
+    public function edit(CrmWebForm $crmForm, Request $request, EntityManagerInterface $em): Response
     {
         $this->companyAccess->assertSame($crmForm->getCompany());
 
@@ -120,7 +128,7 @@ class CrmWebFormController extends AbstractController
     }
 
     #[Route('/{id}/toggle', name: 'crm_forms_toggle', methods: ['POST'])]
-    public function toggle(CrmWebForm $crmForm, Request $request, EM $em): Response
+    public function toggle(CrmWebForm $crmForm, Request $request, EntityManagerInterface $em): Response
     {
         $this->companyAccess->assertSame($crmForm->getCompany());
 
@@ -134,7 +142,7 @@ class CrmWebFormController extends AbstractController
         return $this->redirectToRoute('crm_forms_index');
     }
 
-    private function generatePublicKey(EM $em): string
+    private function generatePublicKey(EntityManagerInterface $em): string
     {
         $repository = $em->getRepository(CrmWebForm::class);
 
@@ -145,7 +153,7 @@ class CrmWebFormController extends AbstractController
         return $key;
     }
 
-    private function generateSlug(EM $em, Company $company): string
+    private function generateSlug(EntityManagerInterface $em, Company $company): string
     {
         $repository = $em->getRepository(CrmWebForm::class);
 
@@ -154,5 +162,113 @@ class CrmWebFormController extends AbstractController
         } while ($repository->findOneBy(['company' => $company, 'slug' => $slug]));
 
         return $slug;
+    }
+
+    /**
+     * @param array<int,\App\Entity\Crm\CrmWebForm> $forms
+     * @return array{
+     *     forms: array<string,array{
+     *         name: string,
+     *         totalDeals: int,
+     *         closedDeals: int,
+     *         closedAmount: float
+     *     }>,
+     *     utm: array<string,array{
+     *         campaign: string,
+     *         source: string,
+     *         medium: string,
+     *         totalDeals: int,
+     *         closedDeals: int,
+     *         closedAmount: float
+     *     }>
+     * }
+     */
+    private function buildFormsAnalytics(array $forms): array
+    {
+        $formsStats = [];
+        $utmStats = [];
+
+        foreach ($forms as $form) {
+            if (!$form instanceof \App\Entity\Crm\CrmWebForm) {
+                continue;
+            }
+
+            $formId = (string) $form->getId();
+            $formsStats[$formId] = [
+                'name' => $form->getName(),
+                'totalDeals' => 0,
+                'closedDeals' => 0,
+                'closedAmount' => 0.0,
+            ];
+
+            $qb = $this->em->createQueryBuilder()
+                ->select('deal')
+                ->from(CrmDeal::class, 'deal')
+                ->where("deal.meta->>'webFormId' = :formId")
+                ->setParameter('formId', $formId);
+
+            $deals = $qb->getQuery()->getResult();
+
+            foreach ($deals as $deal) {
+                if (!$deal instanceof CrmDeal) {
+                    continue;
+                }
+
+                $formsStats[$formId]['totalDeals']++;
+
+                $isClosed = method_exists($deal, 'isClosed') ? $deal->isClosed() : false;
+                $amount = method_exists($deal, 'getAmount') ? $deal->getAmount() : null;
+
+                if ($isClosed) {
+                    $formsStats[$formId]['closedDeals']++;
+                    if ($amount !== null) {
+                        $formsStats[$formId]['closedAmount'] += (float) $amount;
+                    }
+                }
+
+                if (!method_exists($deal, 'getMeta')) {
+                    continue;
+                }
+
+                $meta = $deal->getMeta();
+                if (!is_array($meta) || !isset($meta['utm']) || !is_array($meta['utm'])) {
+                    continue;
+                }
+
+                $utm = $meta['utm'];
+                $campaign = isset($utm['utm_campaign']) ? trim((string) $utm['utm_campaign']) : '';
+                if ($campaign === '') {
+                    continue;
+                }
+
+                $source = isset($utm['utm_source']) ? (string) $utm['utm_source'] : '';
+                $medium = isset($utm['utm_medium']) ? (string) $utm['utm_medium'] : '';
+
+                if (!isset($utmStats[$campaign])) {
+                    $utmStats[$campaign] = [
+                        'campaign' => $campaign,
+                        'source' => $source,
+                        'medium' => $medium,
+                        'totalDeals' => 0,
+                        'closedDeals' => 0,
+                        'closedAmount' => 0.0,
+                    ];
+                }
+
+                $utmStats[$campaign]['totalDeals']++;
+
+                if ($isClosed) {
+                    $utmStats[$campaign]['closedDeals']++;
+                    if ($amount !== null) {
+                        $utmStats[$campaign]['closedAmount'] += (float) $amount;
+                    }
+                }
+            }
+        }
+
+        return [
+            'forms' => $formsStats,
+            'utm' => $utmStats,
+        ];
     }
 }
