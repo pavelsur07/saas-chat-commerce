@@ -18,6 +18,9 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Exception\TransformationFailedException;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -102,9 +105,11 @@ class CrmWebFormType extends AbstractType
                 'label' => 'Поля формы (JSON)',
                 'required' => false,
                 'attr' => [
-                    'rows' => 4,
+                    'rows' => 1,
                     'spellcheck' => 'false',
-                    'class' => 'font-mono text-sm',
+                    'class' => 'font-mono text-sm text-xs',
+                    'data-controller' => 'webform-fields',
+                    'data-webform-fields-target' => 'textarea',
                 ],
                 'help' => 'На первом этапе можно оставить пустым или указать JSON-массив полей',
             ])
@@ -156,6 +161,111 @@ class CrmWebFormType extends AbstractType
                 }
             }
         ));
+
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event): void {
+            $form = $event->getForm();
+            $data = $event->getData();
+
+            if (!\is_array($data)) {
+                return;
+            }
+
+            if (!\array_key_exists('fields', $data)) {
+                return;
+            }
+
+            $raw = $data['fields'];
+
+            if ($raw === null || $raw === '') {
+                try {
+                    $data['fields'] = json_encode([], JSON_THROW_ON_ERROR);
+                } catch (\Throwable) {
+                    $form->get('fields')->addError(new FormError('Не удалось сохранить пустой список полей.'));
+
+                    return;
+                }
+
+                $event->setData($data);
+
+                return;
+            }
+
+            if (!\is_string($raw)) {
+                $form->get('fields')->addError(new FormError('Неверный формат JSON.'));
+
+                return;
+            }
+
+            $decoded = null;
+            try {
+                $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\Throwable) {
+                $form->get('fields')->addError(new FormError('Не удалось разобрать JSON. Проверьте синтаксис.'));
+
+                return;
+            }
+
+            if (!\is_array($decoded)) {
+                $form->get('fields')->addError(new FormError('JSON должен быть массивом полей.'));
+
+                return;
+            }
+
+            $normalized = [];
+            $allowedTypes = ['text', 'textarea', 'email', 'tel', 'checkbox', 'select'];
+
+            foreach ($decoded as $index => $item) {
+                if (!\is_array($item)) {
+                    $form->get('fields')->addError(new FormError(sprintf('Элемент #%d имеет неверный формат.', $index + 1)));
+
+                    return;
+                }
+
+                $key = isset($item['key']) ? (string) $item['key'] : '';
+                $label = isset($item['label']) ? (string) $item['label'] : '';
+                $type = isset($item['type']) ? (string) $item['type'] : 'text';
+                $required = isset($item['required']) ? (bool) $item['required'] : false;
+                $placeholder = isset($item['placeholder']) ? (string) $item['placeholder'] : '';
+                $options = isset($item['options']) && \is_array($item['options']) ? $item['options'] : [];
+
+                if ($key === '') {
+                    $form->get('fields')->addError(new FormError(sprintf('Элемент #%d: не заполнен "key".', $index + 1)));
+
+                    return;
+                }
+
+                if ($label === '') {
+                    $form->get('fields')->addError(new FormError(sprintf('Элемент #%d: не заполнен "label".', $index + 1)));
+
+                    return;
+                }
+
+                if (!\in_array($type, $allowedTypes, true)) {
+                    $form->get('fields')->addError(new FormError(sprintf('Элемент #%d: недопустимый тип "%s".', $index + 1, $type)));
+
+                    return;
+                }
+
+                $normalized[] = [
+                    'key' => $key,
+                    'label' => $label,
+                    'type' => $type,
+                    'required' => $required,
+                    'placeholder' => $placeholder,
+                    'options' => $options,
+                ];
+            }
+
+            try {
+                $data['fields'] = json_encode($normalized, JSON_THROW_ON_ERROR);
+            } catch (\Throwable) {
+                $form->get('fields')->addError(new FormError('Не удалось сохранить поля в JSON.'));
+
+                return;
+            }
+
+            $event->setData($data);
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

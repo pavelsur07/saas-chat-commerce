@@ -227,10 +227,200 @@
             submitBtn.textContent = originalText || 'Отправить';
           }
         });
-    });
+        });
   })();
 </script>{% endapply %}</code></pre>
                             </div>
+
+                            {% set parsedFields = form.fields is defined and form.fields ? form.fields|json_decode : [] %}
+
+                            {% if parsedFields is iterable and parsedFields|length > 0 %}
+                                <div class="space-y-2 mt-4">
+                                    <div class="text-sm font-medium text-gray-700">
+                                        HTML-вариант по полям формы (fields)
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        Этот сниппет генерируется на основе конфигурации полей формы. Вы можете вставить его на сайт вместо стандартного варианта.
+                                    </p>
+
+                                    <pre class="mt-1 max-h-96 overflow-auto rounded border bg-gray-50 p-3 text-xs">
+<code>{% apply escape %}<form
+  action="https://{{ app.request.host }}/api/crm/web-forms/{{ form.publicKey }}/submit"
+  method="post"
+  class="vf-lead-form"
+>
+  <input type="hidden" name="page_url" value="">
+  <input type="hidden" name="utm_source" value="">
+  <input type="hidden" name="utm_medium" value="">
+  <input type="hidden" name="utm_campaign" value="">
+
+  <!-- Honeypot: скрытое поле для ботов -->
+  <div style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+    <label>
+      Не заполняйте это поле
+      <input type="text" name="_hpt" tabindex="-1" autocomplete="off">
+    </label>
+  </div>
+
+{% for field in parsedFields %}
+  {% set fKey = field.key ?? ('field_' ~ loop.index) %}
+  {% set fLabel = field.label ?? ('Поле ' ~ loop.index) %}
+  {% set fType = field.type ?? 'text' %}
+  {% set fRequired = field.required ?? false %}
+  {% set fPlaceholder = field.placeholder ?? '' %}
+
+  <div style="margin-bottom: 8px;">
+    <label style="display:block;font-size:14px;margin-bottom:4px;">
+      {{ fLabel }}{% if fRequired %}*{% endif %}
+      {% if fType in ['text', 'email', 'tel'] %}
+        <input
+          type="{{ fType }}"
+          name="{{ fKey }}"
+          {% if fPlaceholder %}placeholder="{{ fPlaceholder }}"{% endif %}
+          {% if fRequired %}required{% endif %}
+          style="display:block;width:100%;padding:6px 8px;border:1px solid #D1D5DB;border-radius:4px;font-size:14px;"
+        >
+      {% elseif fType == 'textarea' %}
+        <textarea
+          name="{{ fKey }}"
+          {% if fPlaceholder %}placeholder="{{ fPlaceholder }}"{% endif %}
+          {% if fRequired %}required{% endif %}
+          style="display:block;width:100%;min-height:80px;padding:6px 8px;border:1px solid #D1D5DB;border-radius:4px;font-size:14px;"
+        ></textarea>
+      {% elseif fType == 'checkbox' %}
+        <input
+          type="checkbox"
+          name="{{ fKey }}"
+          {% if fRequired %}required{% endif %}
+          style="margin-right:6px;"
+        >
+      {% else %}
+        <input
+          type="text"
+          name="{{ fKey }}"
+          {% if fPlaceholder %}placeholder="{{ fPlaceholder }}"{% endif %}
+          {% if fRequired %}required{% endif %}
+          style="display:block;width:100%;padding:6px 8px;border:1px solid #D1D5DB;border-radius:4px;font-size:14px;"
+        >
+      {% endif %}
+    </label>
+  </div>
+{% endfor %}
+
+  <button
+    type="submit"
+    style="display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:999px;border:none;background:#111827;color:white;font-size:14px;font-weight:600;cursor:pointer;"
+  >
+    Отправить
+  </button>
+</form>
+<script>
+  (function () {
+    var f = document.querySelector('.vf-lead-form');
+    if (!f) return;
+
+    var params = new URLSearchParams(window.location.search);
+    var pageUrlInput = f.querySelector('input[name="page_url"]');
+    if (pageUrlInput) {
+      pageUrlInput.value = window.location.href;
+    }
+    ['utm_source','utm_medium','utm_campaign'].forEach(function (k) {
+      var input = f.querySelector('input[name="'+k+'"]');
+      if (!input) return;
+      var v = params.get(k);
+      if (v) input.value = v;
+    });
+
+    if (typeof window.fetch !== 'function') {
+      return;
+    }
+
+    function ensureMessageContainers() {
+      var successBox = f.querySelector('.vf-lead-form-success');
+      var errorBox = f.querySelector('.vf-lead-form-error');
+
+      if (!successBox) {
+        successBox = document.createElement('div');
+        successBox.className = 'vf-lead-form-success';
+        successBox.style.marginTop = '8px';
+        successBox.style.fontSize = '14px';
+        successBox.style.color = '#059669';
+        f.appendChild(successBox);
+      }
+
+      if (!errorBox) {
+        errorBox = document.createElement('div');
+        errorBox.className = 'vf-lead-form-error';
+        errorBox.style.marginTop = '4px';
+        errorBox.style.fontSize = '13px';
+        errorBox.style.color = '#dc2626';
+        f.appendChild(errorBox);
+      }
+
+      return { successBox: successBox, errorBox: errorBox };
+    }
+
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var containers = ensureMessageContainers();
+      var successBox = containers.successBox;
+      var errorBox = containers.errorBox;
+
+      successBox.textContent = '';
+      errorBox.textContent = '';
+
+      var submitBtn = f.querySelector('button[type="submit"]');
+      var originalText = submitBtn ? submitBtn.textContent : null;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Отправка...';
+      }
+
+      var formData = new FormData(f);
+
+      fetch(f.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(function (response) {
+          return response.json().catch(function () {
+            throw new Error('Invalid JSON response');
+          });
+        })
+        .then(function (data) {
+          if (data && data.success) {
+            if (data.redirectUrl) {
+              window.location.href = data.redirectUrl;
+              return;
+            }
+            var message = data.message || 'Спасибо! Заявка отправлена.';
+            successBox.textContent = message;
+            errorBox.textContent = '';
+            f.reset();
+          } else {
+            var errMsg = (data && data.error) ? data.error : 'Не удалось отправить форму. Попробуйте ещё раз.';
+            errorBox.textContent = errMsg;
+          }
+        })
+        .catch(function () {
+          errorBox.textContent = 'Произошла ошибка при отправке. Попробуйте ещё раз.';
+        })
+        .finally(function () {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText || 'Отправить';
+          }
+        });
+    });
+  })();
+</script>{% endapply %}</code>
+                                    </pre>
+                                </div>
+                            {% endif %}
 
                             <div class="space-y-1">
                                 <div class="text-sm font-medium text-gray-700">Скрипт-виджет</div>
