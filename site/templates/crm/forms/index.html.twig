@@ -232,7 +232,7 @@
 </script>{% endapply %}</code></pre>
                             </div>
 
-                            {% set parsedFields = form.fields is defined and form.fields ? form.fields|json_decode : [] %}
+                            {% set parsedFields = form.fields is defined and form.fields ? form.fields : [] %}
 
                             {% if parsedFields is iterable and parsedFields|length > 0 %}
                                 <div class="space-y-2 mt-4">
