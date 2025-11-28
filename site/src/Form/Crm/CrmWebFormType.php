@@ -108,7 +108,6 @@ class CrmWebFormType extends AbstractType
                     'rows' => 1,
                     'spellcheck' => 'false',
                     'class' => 'font-mono text-sm text-xs',
-                    'data-controller' => 'webform-fields',
                     'data-webform-fields-target' => 'textarea',
                 ],
                 'help' => 'На первом этапе можно оставить пустым или указать JSON-массив полей',
