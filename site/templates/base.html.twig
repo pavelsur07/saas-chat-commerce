@@ -46,11 +46,6 @@
                         📊 CRM
                     </a>
 
-                    <a href="{{ path('crm_forms_index') }}"
-                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.attributes.get('_route') starts with 'crm_forms_' ? 'bg-gray-800' : '' }}">
-                        📝 WebForm
-                    </a>
-
                     <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
                         🧠 Сценарии <span class="text-xs text-gray-400">(в разработке)</span>
                     </a>
@@ -72,6 +67,11 @@
                     <a href="{{ path('web_chat_site_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'web_chat_site_' ? 'bg-gray-800' : '' }}">
                         💬 WebChat
+                    </a>
+
+                    <a href="{{ path('crm_forms_index') }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.attributes.get('_route') starts with 'crm_forms_' ? 'bg-gray-800' : '' }}">
+                        📝 WebForm
                     </a>
 
                     <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
