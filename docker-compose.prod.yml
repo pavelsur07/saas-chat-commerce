@@ -35,7 +35,7 @@ services:
             - traefik.http.routers.http-catchall.middlewares=redirect-to-https
             - traefik.http.routers.http-catchall.priority=1          # Низкий приоритет, чтобы не мешать ACME
 
-            - traefik.http.routers.chat-redirect.rule=Host(`chat.2bstock.ru`) || Host(`www.chat.2bstock.ru`)
+            - traefik.http.routers.chat-redirect.rule=Host(`app.conwix.ru`) || Host(`www.app.conwix.ru`)
             - traefik.http.routers.chat-redirect.entrypoints=http,https
             - traefik.http.routers.chat-redirect.middlewares=chat-domain-redirect
             - traefik.http.routers.chat-redirect.priority=15
@@ -45,7 +45,7 @@ services:
             - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
             - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
 
-            - traefik.http.middlewares.chat-domain-redirect.redirectregex.regex=^https?://(www\.)?chat\.2bstock\.ru/(.*)$
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.regex=^https?://(www\.)?app\.conwix\.ru/(.*)$
             - traefik.http.middlewares.chat-domain-redirect.redirectregex.replacement=https://app.conwix.ru/$${2}
             - traefik.http.middlewares.chat-domain-redirect.redirectregex.permanent=true
 
@@ -54,7 +54,7 @@ services:
             context: site
             dockerfile: docker/production/nginx/Dockerfile
 #            args:
-#                SOCKET_URL: https://chat.2bstock.ru
+#                SOCKET_URL: https://app.conwix.ru
         container_name: site-nginx
         restart: always
         depends_on:
