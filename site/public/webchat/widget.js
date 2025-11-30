@@ -29,8 +29,8 @@
     console.warn('[WebChat] data-site-key is missing on <script> tag.');
   }
 
-  const DEFAULT_API_BASE = 'https://app.conwix.ru';
-  const DEFAULT_SOCKET_BASE = 'https://app.conwix.ru';
+  const DEFAULT_API_BASE = 'https://chat.2bstock.ru';
+  const DEFAULT_SOCKET_BASE = 'https://chat.2bstock.ru';
 
   const getDataAttr = (name) => {
     if (!scriptTag) return null;
