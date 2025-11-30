@@ -28,19 +28,26 @@ services:
             - traefik-public
         labels:
             - traefik.enable=true
-            
+
             # Глобальный роутер HTTP -> HTTPS
-            # - traefik.http.routers.http-catchall.rule=HostRegexp(chat.2bstock.ru) || Host(www.chat.2bstock.ru)
+            - traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)
             - traefik.http.routers.http-catchall.entrypoints=http
-            - traefik.http.routers.http-catchall.middlewares=frontend-redirect,redirect-to-https
+            - traefik.http.routers.http-catchall.middlewares=redirect-to-https
             - traefik.http.routers.http-catchall.priority=1          # Низкий приоритет, чтобы не мешать ACME
-            
+
+            - traefik.http.routers.chat-redirect.rule=Host(`chat.2bstock.ru`) || Host(`www.chat.2bstock.ru`)
+            - traefik.http.routers.chat-redirect.entrypoints=http,https
+            - traefik.http.routers.chat-redirect.middlewares=chat-domain-redirect
+            - traefik.http.routers.chat-redirect.priority=15
+            - traefik.http.routers.chat-redirect.tls=true
+            - traefik.http.routers.chat-redirect.service=noop@internal
+
             - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
             - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
-            
-            - traefik.http.middlewares.frontend-redirect.redirectregex.regex=^(https?://)www.chat.2bstock.ru/(.*)$$
-            - traefik.http.middlewares.frontend-redirect.redirectregex.replacement=$${1}chat.2bstock.ru/$${2}
-            - traefik.http.middlewares.frontend-redirect.redirectregex.permanent=true
+
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.regex=^https?://(www\.)?chat\.2bstock\.ru/(.*)$
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.replacement=https://app.conwix.ru/$${2}
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.permanent=true
 
     site:
         build:
@@ -59,7 +66,7 @@ services:
             - default
         labels:
             - traefik.enable=true
-            - traefik.http.routers.myapp.rule=Host(`chat.2bstock.ru`)
+            - traefik.http.routers.myapp.rule=Host(`app.conwix.ru`)
             - traefik.http.routers.myapp.entrypoints=https
             - traefik.http.routers.myapp.tls=true
             - traefik.http.routers.myapp.tls.certresolver=letsEncrypt
@@ -157,7 +164,7 @@ services:
             - redis-realtime
         labels:
             - traefik.enable=true
-            - traefik.http.routers.socket.rule=Host(`chat.2bstock.ru`) && PathPrefix(`/socket.io`)
+            - traefik.http.routers.socket.rule=Host(`app.conwix.ru`) && PathPrefix(`/socket.io`)
             - traefik.http.routers.socket.entrypoints=https
             - traefik.http.routers.socket.tls=true
             - traefik.http.routers.socket.tls.certresolver=letsEncrypt
