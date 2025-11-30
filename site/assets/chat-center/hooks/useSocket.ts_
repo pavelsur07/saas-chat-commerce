@@ -28,7 +28,7 @@ declare global {
 }
 
 const DEV_DEFAULT_URL = 'http://localhost:3001';
-const PROD_DEFAULT_URL = 'https://app.conwix.ru';
+const PROD_DEFAULT_URL = 'https://chat.2bstock.ru';
 const DEFAULT_PATH = '/socket.io';
 
 function detectIsProd(): boolean {
