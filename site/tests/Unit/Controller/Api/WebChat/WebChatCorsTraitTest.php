@@ -23,32 +23,32 @@ final class WebChatCorsTraitTest extends TestCase
         $trait = $this->createTraitInstance();
 
         self::assertTrue($trait->exposedIsHostAllowed('example.com', ['*']));
-        self::assertTrue($trait->exposedIsHostAllowed('chat.2bstock.ru', ['*']));
+        self::assertTrue($trait->exposedIsHostAllowed('app.conwix.ru', ['*']));
     }
 
     public function testSubdomainsAllowedByWildcardRule(): void
     {
         $trait = $this->createTraitInstance();
 
-        self::assertTrue($trait->exposedIsHostAllowed('chat.2bstock.ru', ['*.2bstock.ru']));
-        self::assertTrue($trait->exposedIsHostAllowed('2bstock.ru', ['*.2bstock.ru']));
-        self::assertTrue($trait->exposedIsHostAllowed('deep.chat.2bstock.ru', ['*.2bstock.ru']));
+        self::assertTrue($trait->exposedIsHostAllowed('app.conwix.ru', ['*.conwix.ru']));
+        self::assertTrue($trait->exposedIsHostAllowed('conwix.ru', ['*.conwix.ru']));
+        self::assertTrue($trait->exposedIsHostAllowed('deep.app.conwix.ru', ['*.conwix.ru']));
     }
 
     public function testExactMatchesStillWork(): void
     {
         $trait = $this->createTraitInstance();
 
-        self::assertTrue($trait->exposedIsHostAllowed('chat.2bstock.ru', ['chat.2bstock.ru']));
-        self::assertTrue($trait->exposedIsHostAllowed('chat.2bstock.ru', ['https://chat.2bstock.ru']));
-        self::assertFalse($trait->exposedIsHostAllowed('shop.2bstock.ru', ['chat.2bstock.ru']));
+        self::assertTrue($trait->exposedIsHostAllowed('app.conwix.ru', ['app.conwix.ru']));
+        self::assertTrue($trait->exposedIsHostAllowed('app.conwix.ru', ['https://app.conwix.ru']));
+        self::assertFalse($trait->exposedIsHostAllowed('shop.conwix.ru', ['app.conwix.ru']));
     }
 
     public function testWildcardDoesNotAllowUnrelatedHosts(): void
     {
         $trait = $this->createTraitInstance();
 
-        self::assertFalse($trait->exposedIsHostAllowed('malicious.example', ['*.2bstock.ru']));
+        self::assertFalse($trait->exposedIsHostAllowed('malicious.example', ['*.conwix.ru']));
     }
 }
 
