@@ -60,7 +60,9 @@ class CrmWebFormController extends AbstractController
             ->getOneOrNullResult();
 
         if (!$pipeline instanceof CrmPipeline) {
-            throw $this->createNotFoundException('Для создания формы нужна хотя бы одна воронка.');
+            $this->addFlash('error', 'Для создания формы нужна хотя бы одна воронка.');
+
+            return $this->redirectToRoute('crm_index');
         }
 
         $stage = $em->getRepository(CrmStage::class)
@@ -73,7 +75,9 @@ class CrmWebFormController extends AbstractController
             ->getOneOrNullResult();
 
         if (!$stage instanceof CrmStage) {
-            throw $this->createNotFoundException('В выбранной воронке нет этапов.');
+            $this->addFlash('error', 'В выбранной воронке нет этапов.');
+
+            return $this->redirectToRoute('crm_index');
         }
 
         $formEntity = new CrmWebForm(
