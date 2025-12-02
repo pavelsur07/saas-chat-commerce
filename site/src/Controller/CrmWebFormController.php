@@ -102,6 +102,7 @@ class CrmWebFormController extends AbstractController
             'form' => $form->createView(),
             'crmForm' => $formEntity,
             'isEdit' => false,
+            'widgetHost' => $request->getSchemeAndHttpHost(),
         ]);
     }
 
@@ -124,6 +125,7 @@ class CrmWebFormController extends AbstractController
             'form' => $form->createView(),
             'crmForm' => $crmForm,
             'isEdit' => true,
+            'widgetHost' => $request->getSchemeAndHttpHost(),
         ]);
     }
 
