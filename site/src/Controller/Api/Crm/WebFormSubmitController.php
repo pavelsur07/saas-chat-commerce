@@ -304,9 +304,37 @@ final class WebFormSubmitController extends AbstractController
             $client->mergeMeta($metaUpdate);
         }
 
+        $this->populateClientName($client, $payload);
+
         $client->touchLastSeen();
         $this->em->persist($client);
 
         return $client;
+    }
+
+    /**
+     * @param array<array-key, mixed> $payload
+     */
+    private function populateClientName(Client $client, array $payload): void
+    {
+        $firstName = $this->extractNonEmptyString($payload, ['first_name', 'firstName']);
+        $lastName = $this->extractNonEmptyString($payload, ['last_name', 'lastName']);
+
+        if ($firstName === null && $lastName === null) {
+            $fullName = $this->extractNonEmptyString($payload, ['name', 'full_name', 'fullName']);
+            if ($fullName !== null) {
+                $parts = preg_split('/\s+/', $fullName, 2) ?: [];
+                $firstName = $parts[0] ?? null;
+                $lastName = $parts[1] ?? null;
+            }
+        }
+
+        if ($firstName !== null) {
+            $client->setFirstName($firstName);
+        }
+
+        if ($lastName !== null) {
+            $client->setLastName($lastName);
+        }
     }
 }
