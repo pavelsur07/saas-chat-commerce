@@ -22,7 +22,12 @@ type Deal = {
   stageId: string;
   stageEnteredAt?: string;
   source?: string;
-  client?: { name?: string | null } | null;
+  client?: {
+    name?: string | null;
+    displayName?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
   openedAt?: string;
   createdAt?: string | number;
   daysInStage?: number;
@@ -145,7 +150,16 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
                     const daysInStage = typeof d.daysInStage === 'number' ? d.daysInStage : null;
                     const isNew = isRecent && (daysInStage === null || daysInStage === 0);
                     const sla = isSlaOverdue(d, s);
-                    const clientName = d.client?.name || (d as any).clientName || '...';
+                    const clientName = (() => {
+                      const client = d.client;
+                      const name = client?.name || client?.displayName || (d as any).clientName || null;
+                      if (name && `${name}`.trim().length > 0) {
+                        return `${name}`.trim();
+                      }
+
+                      const fullName = [client?.firstName, client?.lastName].filter(Boolean).join(' ').trim();
+                      return fullName || 'Клиент не указан';
+                    })();
                     const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
                     const openedDate = openedAt ? new Date(openedAt) : null;
                     const openedDateStr = openedDate && !isNaN(openedDate.getTime())
