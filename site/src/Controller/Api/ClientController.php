@@ -49,6 +49,12 @@ class ClientController extends AbstractController
             $lastMessage = $messages->findLastOneByClient($client->getId());
             $awaiting = $lastMessage ? Message::IN === $lastMessage->getDirection() : false;
 
+            $telegramBotName = null;
+            $bot = $client->getTelegramBot();
+            if ($bot) {
+                $telegramBotName = $bot->getFirstName() ?? $bot->getUsername();
+            }
+
             $state = $readStates->findOneBy([
                 'company' => $company,
                 'client' => $client,
@@ -73,6 +79,7 @@ class ClientController extends AbstractController
                 'source' => $client->getChannel(),
                 'unread_count' => $unread,
                 'awaiting' => $awaiting,
+                'telegram_bot_name' => $telegramBotName,
             ];
         }, $items);
 
