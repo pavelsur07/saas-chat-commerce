@@ -40,6 +40,40 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
 
   const dragDeal = useRef<Deal | null>(null);
 
+  const buildWebFormLabel = (meta: any): string | null => {
+    const formName = typeof meta?.webFormName === 'string' && meta.webFormName.trim().length > 0
+      ? meta.webFormName.trim()
+      : null;
+
+    const siteName = typeof meta?.siteName === 'string' && meta.siteName.trim().length > 0
+      ? meta.siteName.trim()
+      : null;
+    const pageUrl = typeof meta?.pageUrl === 'string' ? meta.pageUrl : null;
+    const siteFromUrl = (() => {
+      if (!pageUrl) {
+        return null;
+      }
+
+      try {
+        const url = new URL(pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`);
+        return url.hostname.replace(/^www\./, '');
+      } catch (e) {
+        return null;
+      }
+    })();
+    const siteTitle = siteName || siteFromUrl;
+
+    if (!formName && !siteTitle) {
+      return null;
+    }
+
+    if (siteTitle && formName) {
+      return `${siteTitle} · ${formName}`;
+    }
+
+    return formName || siteTitle;
+  };
+
   const load = async () => {
     if (!pipelineId) { setStages([]); setDealsByStage({}); return; }
     try {
@@ -187,7 +221,9 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
                         )}
                         <div className="font-semibold">{titleLine}</div>
                         {d.source?.startsWith('web_form:') && (
-                          <div className="mt-1 text-xs text-blue-600">С сайта (форма)</div>
+                          <div className="mt-1 text-xs text-blue-600">
+                            {buildWebFormLabel((d as any).meta) || 'Сайт · Форма'}
+                          </div>
                         )}
                       </button>
                     );

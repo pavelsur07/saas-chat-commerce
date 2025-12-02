@@ -33,6 +33,26 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
   const pageUrl = isWebForm ? meta?.pageUrl ?? null : null;
   const utm = isWebForm ? meta?.utm ?? null : null;
   const payload = isWebForm ? meta?.payload ?? null : null;
+  const siteName = isWebForm && typeof meta?.siteName === 'string' && meta.siteName.trim().length > 0
+    ? meta.siteName.trim()
+    : null;
+  const webFormSite = (() => {
+    if (!isWebForm || !pageUrl) {
+      return null;
+    }
+
+    try {
+      const url = new URL(pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`);
+      return url.hostname.replace(/^www\./, '');
+    } catch (e) {
+      return null;
+    }
+  })();
+  const webFormLabel = isWebForm
+    ? [siteName || webFormSite, webFormName]
+      .filter((v) => typeof v === 'string' && v.trim().length > 0)
+      .join(' · ')
+    : null;
 
   const clientName = deal.client?.name ?? 'Клиент не указан';
   const clientId = deal.client?.id;
@@ -90,7 +110,7 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
           <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">Источник</div>
           {isWebForm ? (
             <div className="space-y-1 text-sm text-gray-700">
-              <div>Канал: Сайт (форма)</div>
+              <div>Канал: {webFormLabel || 'Сайт · Форма'}</div>
               {webFormName ? <div>Форма: {webFormName}</div> : null}
               {pageUrl ? (
                 <div>
