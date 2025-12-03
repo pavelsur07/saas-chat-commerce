@@ -68,38 +68,6 @@
         </table>
     </div>
 
-    <div class="space-y-3">
-        {% for form in forms %}
-            <div class="p-4 bg-white border rounded">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div class="space-y-2 min-w-0">
-                        <div class="text-lg font-medium">{{ form.name }}</div>
-                        <div class="text-sm text-gray-600">Slug: <span class="font-mono">{{ form.slug }}</span></div>
-                        <div class="text-sm text-gray-600">Воронка: {{ form.pipeline.name }}</div>
-                        <div class="text-sm text-gray-600">Этап: {{ form.stage.name }}</div>
-                        <div class="text-sm text-gray-600">Public key: <span class="font-mono">{{ form.publicKey }}</span></div>
-                    </div>
-                    <div class="flex flex-col items-start space-y-2 lg:items-end lg:w-48 flex-shrink-0 lg:self-start">
-                        <span class="inline-flex items-center px-2 py-1 rounded text-xs {{ form.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600' }}">
-                            {{ form.isActive ? 'Активна' : 'Отключена' }}
-                        </span>
-                        <div class="flex space-x-3">
-                            <a class="text-blue-600" href="{{ path('crm_forms_edit', {id: form.id}) }}">Редактировать</a>
-                            <form method="post" action="{{ path('crm_forms_toggle', {id: form.id}) }}" onsubmit="return confirm('Изменить статус формы?');">
-                                <input type="hidden" name="_token" value="{{ csrf_token('toggle_crm_form_' ~ form.id) }}">
-                                <button type="submit" class="text-{{ form.isActive ? 'amber' : 'green' }}-600">
-                                    {{ form.isActive ? 'Отключить' : 'Включить' }}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <div class="text-sm text-gray-500">Формы ещё не созданы.</div>
-        {% endfor %}
-    </div>
-
     {% if utmStats is defined and utmStats is not empty %}
         <div class="mt-8">
             <h2 class="mb-3 text-lg font-semibold">UTM-аналитика по заявкам с форм</h2>
