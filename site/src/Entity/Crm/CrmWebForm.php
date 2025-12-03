@@ -63,6 +63,9 @@ class CrmWebForm
     #[ORM\Column(type: 'jsonb', options: ['default' => '[]'])]
     private array $tags = [];
 
+    #[ORM\Column(type: 'jsonb', options: ['default' => '[]'])]
+    private array $allowedOrigins = [];
+
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $isActive = true;
 
@@ -83,6 +86,7 @@ class CrmWebForm
         array $fields = [],
         string $successType = 'message',
         array $tags = [],
+        array $allowedOrigins = [],
         bool $isActive = true,
     ) {
         Assert::uuid($id);
@@ -99,6 +103,7 @@ class CrmWebForm
         $this->setFields($fields);
         $this->setSuccessType($successType);
         $this->setTags($tags);
+        $this->setAllowedOrigins($allowedOrigins);
         $this->isActive = $isActive;
 
         $now = new DateTimeImmutable();
@@ -253,6 +258,37 @@ class CrmWebForm
     public function setTags(array $tags): void
     {
         $this->tags = array_values(array_map(static fn ($tag): string => (string) $tag, $tags));
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getAllowedOrigins(): array
+    {
+        return $this->allowedOrigins;
+    }
+
+    /**
+     * @param string[] $allowedOrigins
+     */
+    public function setAllowedOrigins(array $allowedOrigins): void
+    {
+        $this->allowedOrigins = array_values(array_map(static fn ($origin): string => (string) $origin, $allowedOrigins));
+    }
+
+    public function addAllowedOrigin(string $origin): void
+    {
+        if (!in_array($origin, $this->allowedOrigins, true)) {
+            $this->allowedOrigins[] = $origin;
+        }
+    }
+
+    public function removeAllowedOrigin(string $origin): void
+    {
+        $this->allowedOrigins = array_values(array_filter(
+            $this->allowedOrigins,
+            static fn (string $existing): bool => $existing !== $origin,
+        ));
     }
 
     public function isActive(): bool

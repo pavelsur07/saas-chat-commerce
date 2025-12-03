@@ -5,6 +5,7 @@ namespace App\Controller\Api\Crm;
 use App\Entity\Company\Company;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
+use App\Controller\Api\Crm\WebFormCorsTrait;
 use App\Repository\Messaging\ClientRepository;
 use App\Repository\Crm\CrmWebFormRepository;
 use App\Service\Crm\DealFactory;
@@ -19,6 +20,8 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/crm/web-forms')]
 final class WebFormSubmitController extends AbstractController
 {
+    use WebFormCorsTrait;
+
     public function __construct(
         private readonly CrmWebFormRepository $webFormRepository,
         private readonly DealFactory $dealFactory,
@@ -27,41 +30,65 @@ final class WebFormSubmitController extends AbstractController
     ) {
     }
 
-    #[Route('/{publicKey}/submit', name: 'api_crm_web_form_submit', methods: ['POST'])]
-    public function submit(Request $request, string $publicKey): JsonResponse
+    #[Route('/{publicKey}/submit', name: 'api_crm_web_form_submit', methods: ['POST', 'OPTIONS'])]
+    public function submit(Request $request, string $publicKey): Response
     {
+        $preflight = $this->handlePreflight($request, $publicKey, $this->webFormRepository);
+        if ($preflight instanceof Response) {
+            return $preflight;
+        }
+
         $form = $this->webFormRepository->findActiveByPublicKey($publicKey);
         if (!$form || !$this->webFormRepository->isStorageReady()) {
-            return $this->json(['error' => 'Form not found'], Response::HTTP_NOT_FOUND);
+            return $this->applyCors(
+                $this->json(['error' => 'Form not found'], Response::HTTP_NOT_FOUND),
+                $request,
+                $this->guessRequestOrigin($request),
+            );
         }
 
         $owner = $form->getOwner();
         if (!$owner) {
-            return $this->json(['error' => 'Form owner is not configured'], Response::HTTP_BAD_REQUEST);
+            return $this->applyCors(
+                $this->json(['error' => 'Form owner is not configured'], Response::HTTP_BAD_REQUEST),
+                $request,
+                $this->guessRequestOrigin($request),
+            );
         }
 
         $payload = $this->getPayload($request);
+        $pageUrl = $this->extractPageUrl($payload);
+        $fallbackOrigin = $this->guessRequestOrigin($request, $pageUrl);
+        $allowedOrigin = $this->resolveAllowedOrigin($request->headers->get('Origin'), $form->getAllowedOrigins(), $pageUrl);
+
+        if ($allowedOrigin === null) {
+            return $this->applyCors(
+                $this->json(['error' => 'Origin not allowed'], Response::HTTP_FORBIDDEN),
+                $request,
+                $fallbackOrigin,
+            );
+        }
+
         // Honeypot-антиспам: если скрытое поле _hpt заполнено, считаем, что это бот.
         // Не создаём сделку и клиента, но возвращаем "успех", чтобы бот "успокоился".
         if (!empty($payload['_hpt'] ?? null)) {
             // Опционально: можно не логировать такие запросы вообще.
 
             if ($form->getSuccessType() === 'redirect') {
-                return $this->json([
+                return $this->applyCors($this->json([
                     'success' => true,
                     'redirectUrl' => $form->getSuccessRedirectUrl(),
                     'message' => null,
-                ]);
+                ]), $request, $allowedOrigin);
             }
 
-            return $this->json([
+            return $this->applyCors($this->json([
                 'success' => true,
                 'redirectUrl' => null,
                 'message' => $form->getSuccessMessage() ?? 'Спасибо! Заявка отправлена.',
-            ]);
+            ]), $request, $allowedOrigin);
         }
         $client = $this->resolveClient($form->getCompany(), $payload);
-        $pageUrl = $this->extractPageUrl($payload);
         $utm = $this->extractUtmParameters($payload);
 
         $title = $this->buildTitle($form->getName(), $payload);
@@ -105,7 +132,7 @@ final class WebFormSubmitController extends AbstractController
             $response['redirectUrl'] = null;
         }
 
-        return $this->json($response);
+        return $this->applyCors($this->json($response), $request, $allowedOrigin);
     }
 
     /**
