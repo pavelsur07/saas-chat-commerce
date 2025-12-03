@@ -53,6 +53,30 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
       .filter((v) => typeof v === 'string' && v.trim().length > 0)
       .join(' · ')
     : null;
+  const payloadServiceKeys = new Set(['utm', 'pageUrl', 'webFormName', 'siteName']);
+  const humanizePayloadKey = (key: string) => key
+    .replace(/_/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, (s) => s.toUpperCase());
+  const payloadEntries = payload && typeof payload === 'object'
+    ? Object.entries(payload).filter(([key, value]) => {
+      if (payloadServiceKeys.has(key)) {
+        return false;
+      }
+
+      if (value === null || value === undefined) {
+        return false;
+      }
+
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+
+      return true;
+    })
+    : [];
 
   const clientName = deal.client?.name ?? 'Клиент не указан';
   const clientId = deal.client?.id;
@@ -132,10 +156,11 @@ export default function DealProfile({ deal }: { deal: Deal | null }) {
               {utm?.utm_source ? <div>utm_source: {utm.utm_source}</div> : null}
               {utm?.utm_medium ? <div>utm_medium: {utm.utm_medium}</div> : null}
               {utm?.utm_campaign ? <div>utm_campaign: {utm.utm_campaign}</div> : null}
-              {payload?.name ? <div>Имя: {payload.name}</div> : null}
-              {payload?.phone ? <div>Телефон: {payload.phone}</div> : null}
-              {payload?.email ? <div>Email: {payload.email}</div> : null}
-              {payload?.comment ? <div>Комментарий: {payload.comment}</div> : null}
+              {payloadEntries.map(([key, value]) => (
+                <div key={key}>
+                  {humanizePayloadKey(key)}: {typeof value === 'string' ? value : String(value)}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-sm text-gray-700">Данные не указаны</div>
