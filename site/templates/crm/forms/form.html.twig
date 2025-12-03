@@ -206,6 +206,63 @@
       return { successBox: successBox, errorBox: errorBox };
     }
 
+    function sanitizeSuccessMessage(html) {
+      if (!html) return '';
+
+      var template = document.createElement('template');
+      template.innerHTML = html;
+
+      var allowedProtocols = ['http:', 'https:'];
+
+      function appendSanitized(node, target) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          target.appendChild(document.createTextNode(node.textContent));
+          return;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return;
+        }
+
+        if (node.tagName === 'A') {
+          var href = (node.getAttribute('href') || '').trim();
+          var url;
+
+          try {
+            url = new URL(href, window.location.origin);
+          } catch (e) {
+            url = null;
+          }
+
+          if (!url || allowedProtocols.indexOf(url.protocol) === -1) {
+            appendSanitized(document.createTextNode(node.textContent || ''), target);
+            return;
+          }
+
+          var link = document.createElement('a');
+          link.textContent = node.textContent;
+          link.href = url.href;
+          link.rel = 'noopener noreferrer';
+          link.target = '_blank';
+          target.appendChild(link);
+          return;
+        }
+
+        node.childNodes.forEach(function (child) {
+          appendSanitized(child, target);
+        });
+      }
+
+      var fragment = document.createDocumentFragment();
+      template.content.childNodes.forEach(function (child) {
+        appendSanitized(child, fragment);
+      });
+
+      var container = document.createElement('div');
+      container.appendChild(fragment);
+      return container.innerHTML;
+    }
+
     f.addEventListener('submit', function (e) {
       e.preventDefault();
 
@@ -244,7 +301,7 @@
               return;
             }
             var message = data.message || 'Спасибо! Заявка отправлена.';
-            successBox.textContent = message;
+            successBox.innerHTML = sanitizeSuccessMessage(message);
             errorBox.textContent = '';
             f.reset();
           } else {

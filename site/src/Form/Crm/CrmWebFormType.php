@@ -96,6 +96,7 @@ class CrmWebFormType extends AbstractType
                 'attr' => [
                     'rows' => 3,
                 ],
+                'help' => 'Можно добавить ссылку вида <a href="https://example.com/next">перейти далее</a> — она будет показана в сообщении.',
             ])
             ->add('successRedirectUrl', TextType::class, [
                 'label' => 'URL для редиректа',
