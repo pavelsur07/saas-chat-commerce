@@ -570,14 +570,16 @@
 }
 .wc-send {
   height: 42px;
-  padding: 0 14px;
-  border-radius: 10px;
+  width: 42px;
+  border-radius: 50%;
   border: 0;
   background: var(--wc-accent);
   color: white;
-  font-weight: 600;
+  display: inline-grid;
+  place-items: center;
   cursor: pointer;
 }
+.wc-send svg { width: 18px; height: 18px; fill: currentColor; }
 .wc-send[disabled] { opacity: 0.6; cursor: not-allowed; }
 .wc-empty {
   opacity: 0.66; text-align: center; padding: 12px; font-size: 13px;
@@ -620,7 +622,10 @@
     ta = el('textarea', 'wc-textarea');
     ta.setAttribute('rows', '1');
     ta.setAttribute('placeholder', 'Ваше сообщение…');
-    sendBtn = el('button', 'wc-send', 'Отправить');
+    sendBtn = el('button', 'wc-send');
+    sendBtn.setAttribute('type', 'button');
+    sendBtn.setAttribute('aria-label', 'Отправить сообщение');
+    sendBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.4 20.6c-.5.3-1.1-.2-.9-.8l2.2-6.9a1 1 0 0 1 .7-.7L19 8c.6-.2 1.1.4.8 1l-4.6 13a.8.8 0 0 1-1.4.2l-3.6-4.8a1 1 0 0 0-.7-.4l-6 .6Z"/></svg>`;
     sendBtn.disabled = false;
     inputArea.append(ta, sendBtn);
 
