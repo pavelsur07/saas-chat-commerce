@@ -34,7 +34,7 @@ jobs:
             
             - name: 🚀 Deploy application
               run: |
-                  ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+                  ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=120 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
                     set -e
                   
                     cd ${{ secrets.SERVER_DIR }}
@@ -47,10 +47,17 @@ jobs:
                   
                     echo "🐳 Запуск docker-compose"
                     cd ./current
+
+                    export DOCKER_BUILDKIT=1
+                    export COMPOSE_DOCKER_CLI_BUILD=1
                   
                     APP_SECRET="${{ secrets.APP_SECRET }}" \
                     POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
-                    docker compose -f docker-compose.prod.yml up -d --build
+                    docker compose -f docker-compose.prod.yml build --progress=plain
+
+                    APP_SECRET="${{ secrets.APP_SECRET }}" \
+                    POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+                    docker compose -f docker-compose.prod.yml up -d
                   
                     echo "✅ Деплой завершён"
                   EOF
