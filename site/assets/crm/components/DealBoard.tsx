@@ -157,7 +157,7 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
       <div className="mb-3 shrink-0">
         {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
       </div>
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex-1 min-h-0 overflow-x-auto">
         <div className="flex h-full items-start gap-3 pb-3">
           {sortedStages.map((s) => (
             <div
