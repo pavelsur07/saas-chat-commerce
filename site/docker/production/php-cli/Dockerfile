@@ -21,7 +21,7 @@ RUN composer install --no-dev --prefer-dist --no-progress --no-scripts --optimiz
 
 FROM php:8.2-cli-alpine
 
-RUN apk add --no-cache bash coreutils icu-dev libpq-dev \
+RUN apk add --no-cache bash coreutils icu-data-full icu-dev libpq-dev libstdc++ \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl pdo_pgsql opcache

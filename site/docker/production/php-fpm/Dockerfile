@@ -31,7 +31,7 @@ RUN yarn build
 ### FPM ###
 FROM php:8.2-fpm-alpine
 
-RUN apk add --no-cache fcgi icu-dev libpq-dev \
+RUN apk add --no-cache fcgi icu-data-full icu-dev libpq-dev libstdc++ \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl pdo_pgsql opcache
