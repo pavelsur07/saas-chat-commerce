@@ -64,7 +64,7 @@ export default function CrmLayout() {
   const canCreateDeal = Boolean(activePipelineId);
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-[85vh] flex-col">
       <div className="mt-4 flex flex-1 gap-4 overflow-hidden">
         <aside className="w-64 flex-shrink-0 rounded-2xl border border-gray-200 bg-white px-3 py-2">
           <div className="flex items-center gap-2 mb-3"><div className="text-lg font-semibold">Воронки</div></div>
