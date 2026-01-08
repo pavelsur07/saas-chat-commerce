@@ -64,14 +64,14 @@ export default function CrmLayout() {
   const canCreateDeal = Boolean(activePipelineId);
 
   return (
-    <div className="relative flex h-[85vh] flex-col">
-      <div className="mt-4 flex flex-1 gap-4 overflow-hidden">
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div className="mt-4 flex flex-1 min-h-0 gap-4 overflow-hidden">
         <aside className="w-64 flex-shrink-0 rounded-2xl border border-gray-200 bg-white px-3 py-2">
           <div className="flex items-center gap-2 mb-3"><div className="text-lg font-semibold">Воронки</div></div>
           <PipelineList activeId={activePipelineId} onSelect={handleSelectPipeline} />
         </aside>
 
-        <main className="flex h-full flex-1 min-w-0 flex-col rounded-2xl border border-gray-200 bg-white px-3 py-2">
+        <main className="flex h-full min-h-0 flex-1 min-w-0 flex-col rounded-2xl border border-gray-200 bg-white px-3 py-2">
           <div className="flex items-center gap-3 border-b border-gray-200 pb-2 mb-2">
             <FiltersBar value={filters} onChange={setFilters} />
             <button
@@ -83,7 +83,7 @@ export default function CrmLayout() {
               Новая сделка
             </button>
           </div>
-          <div className="flex-1 overflow-auto pt-2">
+          <div className="flex-1 min-h-0 overflow-y-auto pt-2">
             <DealBoard pipelineId={activePipelineId} filters={filters} onOpenDeal={(deal) => setActiveDeal(deal)} reloadKey={boardReloadKey} />
           </div>
         </main>
