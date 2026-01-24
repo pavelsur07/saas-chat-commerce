@@ -11,7 +11,7 @@
     <table class="w-full text-left border">
         <thead>
         <tr>
-            <th class="px-4 py-2">Token</th>
+            <th class="px-4 py-2">Имя бота</th>
             <th class="px-4 py-2">Webhook</th>
             <th class="px-4 py-2">Статус</th>
             <th class="px-4 py-2">Действия</th>
@@ -20,7 +20,7 @@
         <tbody>
         {% for bot in bots %}
             <tr class="border-t">
-                <td class="px-4 py-2 text-xs">{{ bot.token|slice(0,15) ~ '...' }}</td>
+                <td class="px-4 py-2 text-xs">{{ bot.username ?? bot.firstName ?? '—' }}</td>
                 <td class="px-4 py-2 text-xs">{{ bot.webhookUrl }}</td>
                 <td class="px-4 py-2">{{ bot.isActive ? '🟢 Активен' : '🔴 Отключён' }}</td>
                 <td class="px-4 py-2">

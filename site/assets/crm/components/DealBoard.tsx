@@ -4,7 +4,13 @@ import axios from 'axios';
 
 type Props = {
   pipelineId: string | null;
-  filters: { assignee: string | 'all'; channel: string | 'all'; q: string };
+  filters: {
+    assignee: string | 'all';
+    channel: string | 'all';
+    q: string;
+    onlyWebForms: boolean;
+    utmCampaign: string;
+  };
   onOpenDeal: (deal: any) => void;
   reloadKey?: number;
 };
@@ -15,6 +21,16 @@ type Deal = {
   title: string;
   stageId: string;
   stageEnteredAt?: string;
+  source?: string;
+  client?: {
+    name?: string | null;
+    displayName?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
+  openedAt?: string;
+  createdAt?: string | number;
+  daysInStage?: number;
 };
 
 export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey = 0 }: Props) {
@@ -23,6 +39,40 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
   const [error, setError] = useState<string | null>(null);
 
   const dragDeal = useRef<Deal | null>(null);
+
+  const buildWebFormLabel = (meta: any): string | null => {
+    const formName = typeof meta?.webFormName === 'string' && meta.webFormName.trim().length > 0
+      ? meta.webFormName.trim()
+      : null;
+
+    const siteName = typeof meta?.siteName === 'string' && meta.siteName.trim().length > 0
+      ? meta.siteName.trim()
+      : null;
+    const pageUrl = typeof meta?.pageUrl === 'string' ? meta.pageUrl : null;
+    const siteFromUrl = (() => {
+      if (!pageUrl) {
+        return null;
+      }
+
+      try {
+        const url = new URL(pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`);
+        return url.hostname.replace(/^www\./, '');
+      } catch (e) {
+        return null;
+      }
+    })();
+    const siteTitle = siteName || siteFromUrl;
+
+    if (!formName && !siteTitle) {
+      return null;
+    }
+
+    if (siteTitle && formName) {
+      return `${siteTitle} · ${formName}`;
+    }
+
+    return formName || siteTitle;
+  };
 
   const load = async () => {
     if (!pipelineId) { setStages([]); setDealsByStage({}); return; }
@@ -35,6 +85,14 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
       const params: Record<string, string | number> = { pipeline: pipelineId, limit: 100, offset: 0 };
       if (filters.assignee && filters.assignee !== 'all') { params.owner = filters.assignee; }
       if (filters.q) { params.search = filters.q; }
+
+      if (filters.onlyWebForms) {
+        params.onlyWebForms = 1;
+      }
+
+      if (filters.utmCampaign) {
+        params.utmCampaign = filters.utmCampaign;
+      }
 
       const { data: dealsResp } = await axios.get<{ items: Deal[] }>(`/api/crm/deals`, {
         params,
@@ -53,7 +111,10 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pipelineId, reloadKey, filters.assignee, filters.q]);
+  useEffect(() => {
+    load();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [pipelineId, reloadKey, filters.assignee, filters.q, filters.onlyWebForms, filters.utmCampaign]);
 
   const onCardDragStart = (deal: Deal) => (e: React.DragEvent) => {
     dragDeal.current = deal;
@@ -92,37 +153,86 @@ export default function DealBoard({ pipelineId, filters, onOpenDeal, reloadKey =
   const sortedStages = useMemo(() => stages.slice().sort((a, b) => a.position - b.position), [stages]);
 
   return (
-    <div className="flex flex-col gap-3 pb-3">
-      {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
-      <div className="flex items-start gap-3">
-        {sortedStages.map((s) => (
-          <div
-            key={s.id}
-            className="flex flex-col rounded-2xl border bg-white min-w-[18rem] shrink-0"
-            onDragOver={onColDragOver}
-            onDrop={onColDrop(s.id)}
-          >
-            <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
-            <div className="p-3 space-y-2 min-h-24">
-              {(dealsByStage[s.id] || []).map((d) => {
-                const sla = isSlaOverdue(d, s);
-                return (
-                  <button
-                    key={d.id}
-                  onClick={() => onOpenDeal(d)}
-                  draggable
-                  onDragStart={onCardDragStart(d)}
-                  className={`relative rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
-                  title={sla ? 'SLA просрочен' : undefined}
-                >
-                  {sla && <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">SLA</span>}
-                  <div className="font-semibold">{d.title}</div>
-                </button>
-                );
-              })}
+    <div className="flex h-full flex-col">
+      <div className="mb-3 shrink-0">
+        {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2">{error}</div>}
+      </div>
+      <div className="flex-1 min-h-0 overflow-x-auto">
+        <div className="flex h-full items-start gap-3 pb-3">
+          {sortedStages.map((s) => (
+            <div
+              key={s.id}
+              className="flex h-full min-w-[18rem] shrink-0 flex-col rounded-2xl border bg-white"
+              onDragOver={onColDragOver}
+              onDrop={onColDrop(s.id)}
+            >
+              <div className="p-3 border-b"><div className="font-semibold">{s.name}</div></div>
+              <div className="p-3 flex flex-1 flex-col gap-2 min-h-24 overflow-y-auto">
+                {(() => {
+                  const stageDeals = dealsByStage[s.id] || [];
+
+                  const sortedStageDeals = stageDeals.slice().sort((a, b) => {
+                    const aCreated = a.createdAt ? new Date(a.createdAt as any).getTime() : 0;
+                    const bCreated = b.createdAt ? new Date(b.createdAt as any).getTime() : 0;
+                    return bCreated - aCreated;
+                  });
+
+                  return sortedStageDeals.map((d) => {
+                    const createdAtMs = d.createdAt ? new Date(d.createdAt as any).getTime() : 0;
+                    const now = Date.now();
+                    const isRecent = createdAtMs > 0 && (now - createdAtMs) <= 24 * 60 * 60 * 1000;
+                    const daysInStage = typeof d.daysInStage === 'number' ? d.daysInStage : null;
+                    const isNew = isRecent && (daysInStage === null || daysInStage === 0);
+                    const sla = isSlaOverdue(d, s);
+                    const clientName = (() => {
+                      const client = d.client;
+                      const name = client?.name || client?.displayName || (d as any).clientName || null;
+                      if (name && `${name}`.trim().length > 0) {
+                        return `${name}`.trim();
+                      }
+
+                      const fullName = [client?.firstName, client?.lastName].filter(Boolean).join(' ').trim();
+                      return fullName || 'Клиент не указан';
+                    })();
+                    const openedAt = d.openedAt || (d as any).openedAt || d.createdAt || (d as any).createdAt;
+                    const openedDate = openedAt ? new Date(openedAt) : null;
+                    const openedDateStr = openedDate && !isNaN(openedDate.getTime())
+                      ? openedDate.toLocaleDateString('ru-RU')
+                      : null;
+                    const titleLine = openedDateStr ? `${clientName} · ${openedDateStr}` : clientName;
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => onOpenDeal(d)}
+                        draggable
+                        onDragStart={onCardDragStart(d)}
+                        className={`relative block w-full rounded-2xl border bg-white p-3 shadow-sm text-left ${sla ? 'ring-1 ring-rose-300' : ''}`}
+                        title={sla ? 'SLA просрочен' : undefined}
+                      >
+                        {isNew && (
+                          <span className="absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                            Новая
+                          </span>
+                        )}
+                        {sla && (
+                          <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                            SLA
+                          </span>
+                        )}
+                        <div className="font-semibold">{titleLine}</div>
+                        {d.source?.startsWith('web_form:') && (
+                          <div className="mt-1 text-xs text-blue-600">
+                            {buildWebFormLabel((d as any).meta) || 'Сайт · Форма'}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

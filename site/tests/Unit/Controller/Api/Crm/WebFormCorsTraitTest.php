@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Controller\Api\WebChat;
+namespace App\Tests\Unit\Controller\Api\Crm;
 
-use App\Controller\Api\WebChat\WebChatCorsTrait;
+use App\Controller\Api\Crm\WebFormCorsTrait;
 use PHPUnit\Framework\TestCase;
 
-final class WebChatCorsTraitTest extends TestCase
+final class WebFormCorsTraitTest extends TestCase
 {
     private function createTraitInstance(): object
     {
         return new class {
-            use WebChatCorsTrait {
+            use WebFormCorsTrait {
                 isHostAllowed as public exposedIsHostAllowed;
             }
         };

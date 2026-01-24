@@ -8,11 +8,13 @@ import { PATH, getSocketUrl, MessagePayload } from '../hooks/useSocket';
 type Client = {
     id: string;
     name: string;
+    channel?: string;
     source: string;
     last_message?: string;
     last_message_at?: string;
     unread_count?: number;
     awaiting?: boolean;
+    telegram_bot_name?: string | null;
 };
 
 type Props = {
@@ -126,6 +128,9 @@ const ClientList: React.FC<Props> = ({ onSelect }) => {
             {clients.map((client) => {
                 const unread = client.unread_count ?? 0;
                 const awaiting = Boolean(client.awaiting);
+                const isTelegramBotContact =
+                    (client.channel || client.source)?.toLowerCase() === 'telegram' &&
+                    Boolean(client.telegram_bot_name);
 
                 return (
                     <button
@@ -148,7 +153,14 @@ const ClientList: React.FC<Props> = ({ onSelect }) => {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <span className="truncate">{client.name || 'Без имени'}</span>
-                                    <span className="text-xs text-gray-500">{client.source}</span>
+                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                        <span className="uppercase">{client.source}</span>
+                                        {isTelegramBotContact && (
+                                            <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                                {client.telegram_bot_name}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex items-center justify-between gap-2 mt-1 text-xs text-gray-600">
                                     <span className="truncate">{client.last_message}</span>

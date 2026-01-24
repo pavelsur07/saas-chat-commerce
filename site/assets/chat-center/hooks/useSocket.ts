@@ -12,7 +12,7 @@ export type MessagePayload = {
 };
 
 const DEV_URL  = 'http://localhost:3001';
-const PROD_URL = 'https://chat.2bstock.ru';
+const PROD_URL = 'https://app.conwix.ru';
 export const PATH = '/socket.io';
 
 /*

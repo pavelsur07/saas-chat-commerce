@@ -90,6 +90,10 @@ class TelegramBotController extends AbstractController
 
             $this->telegramService->setWebhook($bot->getToken(), $webhookUrl);
             $bot->setWebhookUrl($webhookUrl);
+
+            $info = $this->telegramService->validateToken($bot->getToken());
+            $bot->setUsername($info['username'] ?? $bot->getUsername());
+            $bot->setFirstName($info['first_name'] ?? $bot->getFirstName());
             $this->em->flush();
 
             $this->addFlash('success', 'Webhook успешно установлен');
