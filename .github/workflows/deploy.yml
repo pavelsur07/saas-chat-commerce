@@ -27,8 +27,7 @@ jobs:
 
       - name: 🛠 Build and Push Images
         run: |
-          # Собираем сразу все образы. Кэш (gha) сделает повторные билды мгновенными.
-          
+          # Сборка всех компонентов системы с использованием кэша GitHub Actions
           docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
             -t ghcr.io/${{ github.repository }}/php-fpm:latest -f site/docker/production/php-fpm/Dockerfile site
           
@@ -50,23 +49,36 @@ jobs:
           script: |
             cd ${{ secrets.SERVER_DIR }}
             
-            # Авторизация в GHCR на сервере
+            # Авторизация в реестре на сервере
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Указываем имя репозитория для docker-compose (нужно для путей к образам)
+            # Экспорт всех необходимых секретов в окружение shell
             export GITHUB_REPOSITORY="${{ github.repository }}"
             export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
             export APP_SECRET="${{ secrets.APP_SECRET }}"
             export TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
             export TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
             
-            # Обновляем образы и перезапускаем
+            echo "📥 Обновление образов..."
             docker compose -f docker-compose.prod.yml pull
+            
+            echo "🏗 Запуск контейнеров..."
+            # --remove-orphans удалит старые хвосты, но НЕ тронет volumes
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
-            # Миграции
-            echo "🧬 Running migrations..."
+            echo "🔍 Проверка статуса (ждем 10 секунд)..."
+            sleep 10
+            docker ps
+            
+            # Если после запуска docker ps пустой или контейнеры упали — выводим логи и фейлим билд
+            if [ $(docker ps -f name=site-nginx -q | wc -l) -eq 0 ]; then
+              echo "❌ ОШИБКА: Контейнеры не поднялись! Вывожу логи..."
+              docker compose -f docker-compose.prod.yml logs
+              exit 1
+            fi
+            
+            echo "🧬 Выполнение миграций..."
             docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction
             
-            # Очистка места
+            echo "🧹 Очистка старых образов..."
             docker image prune -f
