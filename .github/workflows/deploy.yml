@@ -1,81 +1,62 @@
-name: 🚀 Deploy to Production
+name: 🚀 Fast Deploy
 
 on:
-    push:
-        branches: [ master ]
+  push:
+    branches: [ master ]
+
+# Разрешаем Actions пушить образы в пакеты репозитория
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        
-        steps:
-            - name: 📦 Checkout repository
-              uses: actions/checkout@v4
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🛠 Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/production/php/Dockerfile # Укажи путь к своему Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🚀 Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.SERVER_DIR }}
             
-            - name: 🛠 Install zip
-              run: sudo apt-get install -y zip
-            
-            - name: 🔐 Setup SSH key
-              uses: webfactory/ssh-agent@v0.8.0
-              with:
-                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-            
-            - name: 📦 Create deploy archive
-              run: |
-                  zip -r app.zip . \
-                    -x "vendor/*" \
-                    -x "var/*" \
-                    -x "node_modules/*" \
-                    -x "app.zip"
-            
-            - name: 📤 Upload archive to server
-              run: |
-                  scp -o StrictHostKeyChecking=no app.zip ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_DIR }}
-            
-            - name: 🚀 Deploy application
-              run: |
-                  ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-                    set -e
-                  
-                    cd ${{ secrets.SERVER_DIR }}
-                  
-                    echo "📦 Распаковка архива"
-                    rm -rf ./current
-                    mkdir -p ./current
-                    unzip -o app.zip -d ./current
-                    rm app.zip
-                  
-                    echo "🐳 Запуск docker-compose"
-                    cd ./current
-                  
-                    APP_SECRET="${{ secrets.APP_SECRET }}" \
-                    POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
-                    docker compose -f docker-compose.prod.yml up -d --build
-                  
-                    echo "✅ Деплой завершён"
-                  EOF
-    
-    migrations:
-        needs: deploy
-        runs-on: ubuntu-latest
-        
-        steps:
-            - name: 🔐 Setup SSH key
-              uses: webfactory/ssh-agent@v0.8.0
-              with:
-                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-            
-            - name: 🕐 Wait for services to be ready
-              run: sleep 5
-            
-            - name: 🧬 Run Doctrine migrations
-              run: |
-                  ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-                    echo "🚧 Выполняем миграции"
-                    cd ${{ secrets.SERVER_DIR }}/current
-                  
-                    APP_SECRET="${{ secrets.APP_SECRET }}" \
-                    POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
-                    docker compose -f docker-compose.prod.yml run --rm site-php-cli bin/console doctrine:migrations:migrate --no-interaction
-                    echo "✅ Миграции применены"
-                  EOF
+            # Авторизация в реестре на сервере
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+            # Обновление образов и перезапуск
+            docker compose -f docker-compose.prod.yml pull
+          
+            APP_SECRET="${{ secrets.APP_SECRET }}" \
+            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+            docker compose -f docker-compose.prod.yml up -d
+          
+            # Миграции сразу после запуска
+            docker compose -f docker-compose.prod.yml run --rm site-php-cli bin/console doctrine:migrations:migrate --no-interaction
+          
+            # Очистка старых образов
+            docker image prune -f
