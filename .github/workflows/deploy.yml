@@ -1,10 +1,9 @@
-name: 🚀 Fast Deploy
+name: 🚀 Production CI/CD
 
 on:
   push:
     branches: [ master ]
 
-# Разрешаем Actions пушить образы в пакеты репозитория
 permissions:
   contents: read
   packages: write
@@ -13,7 +12,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: 📦 Checkout
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
       - name: 🐳 Set up Docker Buildx
@@ -26,15 +25,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🛠 Build and Push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/production/php/Dockerfile # Укажи путь к своему Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository }}/app:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: 🛠 Build and Push Images
+        run: |
+          # Собираем сразу все образы. Кэш (gha) сделает повторные билды мгновенными.
+          
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/php-fpm:latest -f site/docker/production/php-fpm/Dockerfile site
+          
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/php-cli:latest -f site/docker/production/php-cli/Dockerfile site
+          
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/nginx:latest -f site/docker/production/nginx/Dockerfile site
+          
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/socket-server:latest socket-server
 
       - name: 🚀 Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -45,18 +50,23 @@ jobs:
           script: |
             cd ${{ secrets.SERVER_DIR }}
             
-            # Авторизация в реестре на сервере
+            # Авторизация в GHCR на сервере
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Обновление образов и перезапуск
+            # Указываем имя репозитория для docker-compose (нужно для путей к образам)
+            export GITHUB_REPOSITORY="${{ github.repository }}"
+            export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
+            export APP_SECRET="${{ secrets.APP_SECRET }}"
+            export TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+            export TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
+            
+            # Обновляем образы и перезапускаем
             docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
-            APP_SECRET="${{ secrets.APP_SECRET }}" \
-            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
-            docker compose -f docker-compose.prod.yml up -d
+            # Миграции
+            echo "🧬 Running migrations..."
+            docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction
             
-            # Миграции сразу после запуска
-            docker compose -f docker-compose.prod.yml run --rm site-php-cli bin/console doctrine:migrations:migrate --no-interaction
-            
-            # Очистка старых образов
+            # Очистка места
             docker image prune -f

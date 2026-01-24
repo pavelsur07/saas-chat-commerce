@@ -1,0 +1,190 @@
+version: '3.8'
+
+services:
+    traefik:
+        image: traefik:3.3               # Рекомендуется указать конкретную версию (например, 3.3.4)
+        container_name: traefik
+        restart: always
+        command:
+            - --api.dashboard=true
+            # - --api.insecure=true       # (раскомментировать временно, чтобы зайти на http://<host>:8080/dashboard/)
+            - --providers.docker=true
+            - --providers.docker.exposedByDefault=false
+            - --entrypoints.http.address=:80
+            - --entrypoints.https.address=:443
+            - --certificatesresolvers.letsEncrypt.acme.httpChallenge=true
+            - --certificatesresolvers.letsEncrypt.acme.httpChallenge.entryPoint=http
+            - --certificatesresolvers.letsEncrypt.acme.email=mail@2bstock.ru
+            - --certificatesresolvers.letsEncrypt.acme.storage=/certs/acme.json
+            - --log.level=INFO
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080"    # Traefik dashboard (при insecure=true)
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - traefik-certs:/certs
+        networks:
+            - traefik-public
+        labels:
+            - traefik.enable=true
+
+            # Глобальный роутер HTTP -> HTTPS
+            - traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)
+            - traefik.http.routers.http-catchall.entrypoints=http
+            - traefik.http.routers.http-catchall.middlewares=redirect-to-https
+            - traefik.http.routers.http-catchall.priority=1          # Низкий приоритет, чтобы не мешать ACME
+
+            - traefik.http.routers.chat-redirect.rule=Host(`chat.2bstock.ru`) || Host(`www.chat.2bstock.ru`)
+            - traefik.http.routers.chat-redirect.entrypoints=http,https
+            - traefik.http.routers.chat-redirect.middlewares=chat-domain-redirect
+            - traefik.http.routers.chat-redirect.priority=15
+            - traefik.http.routers.chat-redirect.tls=true
+            - traefik.http.routers.chat-redirect.service=noop@internal
+
+            - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+            - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.regex=^https?://(www\.)?chat\.2bstock\.ru/(.*)$
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.replacement=https://app.conwix.ru/$${2}
+            - traefik.http.middlewares.chat-domain-redirect.redirectregex.permanent=true
+
+    site:
+        build:
+            context: site
+            dockerfile: docker/production/nginx/Dockerfile
+#            args:
+#                SOCKET_URL: https://chat.2bstock.ru
+        container_name: site-nginx
+        restart: always
+        depends_on:
+            - site-php-fpm
+        expose:
+            - "80"
+        networks:
+            - traefik-public
+            - default
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.myapp.rule=Host(`app.conwix.ru`)
+            - traefik.http.routers.myapp.entrypoints=https
+            - traefik.http.routers.myapp.tls=true
+            - traefik.http.routers.myapp.tls.certresolver=letsEncrypt
+            - traefik.http.services.myapp.loadbalancer.server.port=80
+            - traefik.http.routers.myapp.priority=10
+            - traefik.docker.network=traefik-public    # Явно указать сеть для Traefik
+    
+    site-php-fpm:
+        build:
+            context: site
+            dockerfile: docker/production/php-fpm/Dockerfile
+        container_name: site-php-fpm
+        restart: always
+        environment:
+            REDIS_SESSION_DSN: redis://redis-realtime:6379/1
+            REDIS_DSN: redis://redis-realtime:6379/0
+            DATABASE_URL: pgsql://app:${POSTGRES_PASSWORD}@site-postgres:5432/app
+            APP_ENV: prod
+            APP_SECRET: ${APP_SECRET}
+            AI_INJECT_COMPANY_SYSTEM: 1
+            REDIS_REALTIME_HOST: redis-realtime
+            REDIS_REALTIME_PORT: 6379
+            AI_MAX_CONTEXT_CHARS: 5000
+            AI_PROVIDER: mock
+            AI_KNOWLEDGE_CACHE_TTL: 600
+            AI_KNOWLEDGE_TOP_N: 5
+            TELEGRAM_BOT_TOKEN: 7878108394:AAGOe1pmUuK4S9Yp14EgsEqUqzKy-13JKvo
+            TELEGRAM_CHAT_ID: -1003037201129
+            TELEGRAM_TOPIC_ID: ''
+        networks:
+            - default
+        depends_on:
+            - site-postgres
+    site-php-cli:
+        build:
+            context: site
+            dockerfile: docker/production/php-cli/Dockerfile
+        container_name: site-php-cli
+        environment:
+            DATABASE_URL: pgsql://app:${POSTGRES_PASSWORD}@site-postgres:5432/app
+            APP_ENV: prod
+            APP_SECRET: ${APP_SECRET}
+            AI_INJECT_COMPANY_SYSTEM: 1
+            REDIS_REALTIME_HOST: redis-realtime
+            REDIS_REALTIME_PORT: 6379
+            REDIS_SESSION_DSN: redis://redis-realtime:6379/1
+            REDIS_DSN: redis://redis-realtime:6379/0
+            AI_MAX_CONTEXT_CHARS: 5000
+            AI_PROVIDER: mock
+            AI_KNOWLEDGE_CACHE_TTL: 600
+            AI_KNOWLEDGE_TOP_N: 5
+            TELEGRAM_BOT_TOKEN: 7878108394:AAGOe1pmUuK4S9Yp14EgsEqUqzKy-13JKvo
+            TELEGRAM_CHAT_ID: -1003037201129
+            TELEGRAM_TOPIC_ID: ''
+        networks:
+            - default
+        depends_on:
+            - site-postgres
+    site-postgres:
+        image: postgres:15-alpine
+        container_name: symfony-postgres
+        restart: always
+        environment:
+            POSTGRES_DB: app
+            POSTGRES_USER: app
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        networks:
+            - default
+    socket-server:
+        build:
+            context: socket-server
+        container_name: socket-server
+        restart: always
+#        ports:
+#            - "3001:3001"
+#        volumes:
+#            - ./socket-server:/app
+        environment:
+            APP_SECRET: ${APP_SECRET}
+            SOCKET_PATH: /socket.io
+            PORT: 3001
+            REDIS_URL: redis://redis-realtime:6379
+            NODE_ENV: 'prod'
+        networks:
+            - traefik-public
+            - default
+        healthcheck:
+            test: [ "CMD", "wget", "-qO-", "http://127.0.0.1:3001/health" ]
+            interval: 10s
+            timeout: 3s
+            retries: 10
+        depends_on:
+            - redis-realtime
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.socket.rule=Host(`app.conwix.ru`) && PathPrefix(`/socket.io`)
+            - traefik.http.routers.socket.entrypoints=https
+            - traefik.http.routers.socket.tls=true
+            - traefik.http.routers.socket.tls.certresolver=letsEncrypt
+            - traefik.http.routers.socket.priority=100
+            - traefik.http.routers.socket.service=socket
+            - traefik.http.services.socket.loadbalancer.server.port=3001
+            - traefik.docker.network=traefik-public
+
+    
+    redis-realtime:
+        image: redis:alpine
+        container_name: redis-realtime
+        restart: always
+        
+volumes:
+    traefik-certs:
+    postgres_data:
+
+networks:
+    traefik-public:
+        external: true    # должна быть создана отдельно (или убрать external для автосоздания)
+    default:
+        driver: bridge
