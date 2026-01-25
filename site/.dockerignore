@@ -1,10 +1,10 @@
-/site/.readynode_modules
-vendor
 .git
-.DS_Store
+.github
+var/cache/*
+var/log/*
+vendor
 node_modules
-var
-*.zip
-tests
+public/build
 .env.local
 .env.test
+tests
