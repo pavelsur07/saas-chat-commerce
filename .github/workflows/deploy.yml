@@ -55,21 +55,15 @@ jobs:
             # 1. Переход в рабочую директорию
             cd /srv/saas-chat/current
             
-            # 2. Проверка наличия конфига
-            if [ ! -f "docker-compose.prod.yml" ]; then
-              echo "❌ Файл docker-compose.prod.yml не найден в $(pwd)"
-              exit 1
-            fi
-
-            # 3. Авторизация в реестре
+            # 2. Авторизация в реестре
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # 4. Проброс переменных окружения
+            # 3. Настройка переменных окружения для Docker Compose
             export GITHUB_REPOSITORY="${{ github.repository }}"
             export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
             export APP_SECRET="${{ secrets.APP_SECRET }}"
             
-            # 5. Подготовка сети
+            # 4. Проверка сети
             docker network inspect traefik-public >/dev/null 2>&1 || docker network create traefik-public
 
             echo "📥 Обновление образов..."
@@ -78,21 +72,17 @@ jobs:
             echo "🏗 Перезапуск системы..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
-            echo "🔍 Ожидание стабилизации (10 сек)..."
-            sleep 10
-            
-            # 6. Логирование при падении (наш упрощенный способ мониторинга)
-            if [ $(docker ps -f name=site-nginx -q | wc -l) -eq 0 ]; then
-              echo "❌ ОШИБКА: Контейнеры упали после запуска!"
-              echo "📋 ПОСЛЕДНИЕ ЛОГИ ДЛЯ ОТЛАДКИ:"
-              docker compose -f docker-compose.prod.yml logs --tail=50
-              exit 1
-            fi
+            echo "🔍 Ожидание готовности базы (5 сек)..."
+            sleep 5
             
             echo "🧬 Запуск миграций..."
-            docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+            # Используем run --rm вместо exec, так как php-cli сервис не остается запущенным
+            docker compose -f docker-compose.prod.yml run --rm -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
             
-            echo "🧹 Очистка старых данных..."
+            echo "🧹 Очистка кэша Symfony..."
+            docker compose -f docker-compose.prod.yml run --rm -T site-php-cli bin/console cache:clear --no-interaction
+            
+            echo "🧹 Удаление старых образов..."
             docker image prune -f
             
             echo "✅ Деплой успешно завершен!"
