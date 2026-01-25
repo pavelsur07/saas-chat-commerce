@@ -4,6 +4,12 @@ on:
   push:
     branches: [ master ]
 
+# Глобальные переменные, доступные во всех Jobs
+env:
+  HOST: ${{ secrets.HOST }}
+  USERNAME: ${{ secrets.USERNAME }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+
 permissions:
   contents: read
   packages: write
@@ -59,15 +65,26 @@ jobs:
       - name: 🚀 Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ env.HOST }}
+          username: ${{ env.USERNAME }}
+          key: ${{ env.SSH_KEY }}
           envs: GITHUB_REPOSITORY,POSTGRES_PASSWORD,APP_SECRET
           script: |
             set -e
             cd /app/saas-chat-commerce
+            
+            # Авторизация в реестре на сервере
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            echo "📥 Обновление образов..."
             docker compose -f docker-compose.prod.yml pull
+            
+            echo "🏗 Перезапуск системы..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            
+            echo "🧬 Выполнение миграций..."
             docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction
-            docker image prune -af
+            
+            echo "🧹 Очистка..."
+            docker image prune -f
+            echo "✅ Деплой завершен!"
