@@ -4,6 +4,7 @@ namespace App\Tests\Build;
 
 use App\Entity\Company\Company;
 use App\Entity\Company\User as CompanyUser;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use Ramsey\Uuid\Uuid;
 
 final class CompanyBuild extends TestEntityBuilder
@@ -60,7 +61,7 @@ final class CompanyBuild extends TestEntityBuilder
         $this->setSafe($c, 'id', $this->id ?? Uuid::uuid4()->toString());
         $this->setSafe($c, 'name', $this->name ?? 'Test Co');
         $this->setSafe($c, 'slug', $this->slug ?? 'test-co');
-        $this->setSafe($c, 'owner', $this->owner ?? CompanyUserBuild::make()->build());
+        $this->setSafe($c, 'owner', $this->owner ?? CompanyUserBuilder::aCompanyUser()->build());
         $this->setSafe($c, 'createdAt', $this->createdAt ?? new \DateTimeImmutable('now'));
 
         return $c;

@@ -6,7 +6,7 @@ namespace App\Tests\Unit\Messaging;
 
 use App\Tests\Build\ClientBuild;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use App\Tests\Build\MessageBuild;
 use PHPUnit\Framework\TestCase;
 
@@ -15,7 +15,7 @@ final class MessageEntityTest extends TestCase
     public function testMessageBelongsToClientAndHasCreatedAt(): void
     {
         // Компания + владелец
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -55,7 +55,7 @@ final class MessageEntityTest extends TestCase
     public function testMessageDirectionOptional(): void
     {
         // Компания + владелец + клиент
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('d_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

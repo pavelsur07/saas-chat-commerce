@@ -9,7 +9,7 @@ use App\Entity\AI\Enum\KnowledgeType;
 use App\Entity\Company\Company;
 use App\Service\AI\KnowledgeImportService;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectRepository;
 use PHPUnit\Framework\Attributes\Group;
@@ -159,7 +159,7 @@ CSV;
     private function makeCompany(): Company
     {
         // Сборка ТОЛЬКО вашими билдерами (без DBAL):
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('imp+'.bin2hex(random_bytes(3)).'@test.local')
             ->withRoles(['ROLE_USER'])
             ->withPassword('test')
