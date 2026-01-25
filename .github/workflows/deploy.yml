@@ -25,8 +25,8 @@ jobs:
             dockerfile: site/docker/production/nginx/Dockerfile
             context: site
           - image: socket-server
-            dockerfile: site/docker/production/socket-server/Dockerfile
-            context: site
+            dockerfile: socket-server/Dockerfile
+            context: socket-server
 
     steps:
       - name: 📦 Checkout repository
@@ -49,7 +49,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ghcr.io/${{ github.repository }}/${{ matrix.image }}:latest
-          # Используем быстрый кэш GitHub
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -67,25 +66,8 @@ jobs:
           script: |
             set -e
             cd /app/saas-chat-commerce
-            
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # Настройка сети
-            docker network inspect traefik-public >/dev/null 2>&1 || docker network create traefik-public
-
-            echo "📥 Обновление образов..."
             docker compose -f docker-compose.prod.yml pull
-            
-            echo "🏗 Перезапуск системы..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
-            
-            echo "🔍 Ожидание стабилизации..."
-            sleep 10
-            
-            echo "🧬 Выполнение миграций..."
-            # Выполняем миграции только через cli контейнер
             docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction
-            
-            echo "🧹 Очистка старых данных..."
             docker image prune -af
-            echo "✅ Деплой завершен!"
