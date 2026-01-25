@@ -9,25 +9,8 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: php-fpm
-            dockerfile: site/docker/production/php-fpm/Dockerfile
-            context: site
-          - image: php-cli
-            dockerfile: site/docker/production/php-cli/Dockerfile
-            context: site
-          - image: nginx
-            dockerfile: site/docker/production/nginx/Dockerfile
-            context: site
-          - image: socket-server
-            dockerfile: socket-server/Dockerfile
-            context: socket-server
-
     steps:
       - name: 📦 Checkout repository
         uses: actions/checkout@v4
@@ -42,59 +25,74 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🛠 Build and Push Image (${{ matrix.image }})
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ghcr.io/${{ github.repository }}/${{ matrix.image }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: 🛠 Build and Push Images
+        run: |
+          # Сборка PHP-FPM
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/php-fpm:latest -f site/docker/production/php-fpm/Dockerfile site
+          
+          # Сборка PHP-CLI
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/php-cli:latest -f site/docker/production/php-cli/Dockerfile site
+          
+          # Сборка Nginx
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/nginx:latest -f site/docker/production/nginx/Dockerfile site
+          
+          # Сборка Socket Server (Node.js)
+          docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --push \
+            -t ghcr.io/${{ github.repository }}/socket-server:latest socket-server
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
       - name: 🚀 Deploy via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GITHUB_REPOSITORY,POSTGRES_PASSWORD,APP_SECRET
           script: |
             set -e
             
-            # 1. Переход в фиксированную папку
-            cd /app/saas-chat-commerce
+            # 1. Переход в рабочую директорию
+            cd /srv/saas-chat/current
             
-            # 2. Диагностика (поможет, если снова будет ошибка "no such file")
-            echo "📂 Текущая директория: $(pwd)"
-            echo "📄 Список файлов в папке:"
-            ls -F
+            # 2. Проверка наличия конфига
+            if [ ! -f "docker-compose.prod.yml" ]; then
+              echo "❌ Файл docker-compose.prod.yml не найден в $(pwd)"
+              exit 1
+            fi
+
+            # 3. Авторизация в реестре
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # 3. Авторизация
-            echo "🔐 Login to Registry..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # 4. Проброс переменных окружения
+            export GITHUB_REPOSITORY="${{ github.repository }}"
+            export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
+            export APP_SECRET="${{ secrets.APP_SECRET }}"
             
-            # 4. Сеть
-            echo "🌐 Network check..."
+            # 5. Подготовка сети
             docker network inspect traefik-public >/dev/null 2>&1 || docker network create traefik-public
 
-            # 5. Обновление и запуск
-            echo "📥 Pulling images..."
+            echo "📥 Обновление образов..."
             docker compose -f docker-compose.prod.yml pull
             
-            echo "🏗 Restarting containers..."
+            echo "🏗 Перезапуск системы..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
-            # 6. Миграции (Symfony)
-            echo "🧬 Running migrations..."
+            echo "🔍 Ожидание стабилизации (10 сек)..."
+            sleep 10
+            
+            # 6. Логирование при падении (наш упрощенный способ мониторинга)
+            if [ $(docker ps -f name=site-nginx -q | wc -l) -eq 0 ]; then
+              echo "❌ ОШИБКА: Контейнеры упали после запуска!"
+              echo "📋 ПОСЛЕДНИЕ ЛОГИ ДЛЯ ОТЛАДКИ:"
+              docker compose -f docker-compose.prod.yml logs --tail=50
+              exit 1
+            fi
+            
+            echo "🧬 Запуск миграций..."
             docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
             
-            # 7. Очистка
-            echo "🧹 Cleanup..."
+            echo "🧹 Очистка старых данных..."
             docker image prune -f
             
-            echo "✅ Deploy Finished Successfully!"
+            echo "✅ Деплой успешно завершен!"
