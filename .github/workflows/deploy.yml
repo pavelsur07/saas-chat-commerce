@@ -59,33 +59,42 @@ jobs:
       - name: 🚀 Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
-          # Используем правильные имена твоих секретов
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Передаем переменные, которые нужны внутри скрипта или Docker
           envs: GITHUB_REPOSITORY,POSTGRES_PASSWORD,APP_SECRET
           script: |
             set -e
-            # Используем переменную SERVER_DIR, если она есть, или жесткий путь
-            cd ${{ secrets.SERVER_DIR || '/app/saas-chat-commerce' }}
             
+            # 1. Переход в фиксированную папку
+            cd /app/saas-chat-commerce
+            
+            # 2. Диагностика (поможет, если снова будет ошибка "no such file")
+            echo "📂 Текущая директория: $(pwd)"
+            echo "📄 Список файлов в папке:"
+            ls -F
+            
+            # 3. Авторизация
             echo "🔐 Login to Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
+            # 4. Сеть
             echo "🌐 Network check..."
             docker network inspect traefik-public >/dev/null 2>&1 || docker network create traefik-public
 
+            # 5. Обновление и запуск
             echo "📥 Pulling images..."
             docker compose -f docker-compose.prod.yml pull
             
             echo "🏗 Restarting containers..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
+            # 6. Миграции (Symfony)
             echo "🧬 Running migrations..."
-            # Добавил флаг --allow-no-migration, чтобы деплой не падал, если миграций нет
             docker compose -f docker-compose.prod.yml exec -T site-php-cli bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
             
+            # 7. Очистка
             echo "🧹 Cleanup..."
             docker image prune -f
+            
             echo "✅ Deploy Finished Successfully!"
