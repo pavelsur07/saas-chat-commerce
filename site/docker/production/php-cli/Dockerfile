@@ -1,49 +1,29 @@
-FROM php:8.2-fpm-alpine AS builder
+FROM php:8.2-cli-alpine AS builder
 
-RUN apk add --no-cache git libpq-dev \
+RUN apk add --no-cache libpq-dev \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-install pdo_pgsql opcache
 
-RUN apk add --no-cache unzip
-
+ENV APP_ENV prod
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/bin --filename=composer --quiet
 
 WORKDIR /app
 
-COPY ./composer.json ./composer.lock ./
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-progress --no-scripts --no-autoloader
 
-RUN composer install --no-dev --prefer-dist --no-progress --no-scripts --optimize-autoloader \
+COPY ./ ./
+
+RUN composer install --no-dev --prefer-dist --no-scripts --optimize-autoloader \
     && rm -rf /root/.composer/cache
-
-### CLI ###
 
 FROM php:8.2-cli-alpine
 
-RUN apk add --no-cache bash coreutils icu-dev libpq-dev \
-    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-configure intl \
-    && docker-php-ext-install intl pdo_pgsql opcache
-
-RUN mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
-
-COPY ./docker/common/php/conf.d /usr/local/etc/php/conf.d
-COPY ./docker/production/php/conf.d /usr/local/etc/php/conf.d
-
-COPY ./docker/common/wait-for-it.sh /usr/local/bin/wait-for-it
-RUN chmod 555 /usr/local/bin/wait-for-it
-
-RUN addgroup -g 1000 app && adduser -u 1000 -G app -s /bin/sh -D app
+RUN apk add --no-cache libpq-dev \
+    && docker-php-ext-install pdo_pgsql opcache
 
 WORKDIR /app
 
 COPY --from=builder /app ./
-COPY ./ ./
-
-# ✅ Устанавливаем права перед запуском под пользователем
-RUN mkdir -p var/cache var/log \
- && chown -R app:app var \
- && chmod -R 775 var
-
-USER app

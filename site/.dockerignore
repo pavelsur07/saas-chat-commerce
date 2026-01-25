@@ -1,11 +1,8 @@
 /site/.readynode_modules
-
 vendor
 .git
 .DS_Store
-.git
 node_modules
-vendor
 var
 *.zip
 tests
