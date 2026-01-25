@@ -10,7 +10,7 @@ use App\Repository\Messaging\MessageRepository;
 use App\Repository\WebChat\WebChatThreadRepository;
 use App\Service\AI\LlmClient;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -25,7 +25,7 @@ final class WebChatHandshakeMessageTest extends WebTestCase
         /** @var EntityManagerInterface $em */
         $em = $container->get(EntityManagerInterface::class);
 
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('owner_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

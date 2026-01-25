@@ -9,7 +9,7 @@ use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;
 use App\Service\AI\LlmClient;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use App\Tests\Doubles\LlmClientSpy;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -25,7 +25,7 @@ final class RepositoriesTest extends WebTestCase
         $em = $c->get(EntityManagerInterface::class);
 
         // company A: обязателен владелец
-        $ownerA = CompanyUserBuild::make()
+        $ownerA = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ua_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -38,7 +38,7 @@ final class RepositoriesTest extends WebTestCase
         $em->persist($companyA);
 
         // company B: обязателен владелец
-        $ownerB = CompanyUserBuild::make()
+        $ownerB = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ub_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -131,7 +131,7 @@ final class RepositoriesTest extends WebTestCase
         $em = $c->get(EntityManagerInterface::class);
 
         // Компания + владелец
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

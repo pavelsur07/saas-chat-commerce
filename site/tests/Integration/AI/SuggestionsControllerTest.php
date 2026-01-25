@@ -6,7 +6,7 @@ namespace App\Tests\Integration\AI;
 
 use App\Tests\Build\ClientBuild;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use App\Tests\Traits\CompanySessionHelperTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -23,7 +23,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em = $container->get(EntityManagerInterface::class);
 
         // Владелец + Компания
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -71,7 +71,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em = $container->get(EntityManagerInterface::class);
 
         // Компания A + владелец A
-        $ownerA = CompanyUserBuild::make()
+        $ownerA = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ua_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -84,7 +84,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em->persist($companyA);
 
         // Компания B + владелец B
-        $ownerB = CompanyUserBuild::make()
+        $ownerB = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ub_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

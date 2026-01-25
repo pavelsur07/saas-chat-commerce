@@ -6,7 +6,7 @@ namespace App\Tests\Unit\Messaging;
 
 use App\Tests\Build\ClientBuild;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use PHPUnit\Framework\TestCase;
 
 final class ClientEntityTest extends TestCase
@@ -14,7 +14,7 @@ final class ClientEntityTest extends TestCase
     public function testClientHasCompanyAndExternalId(): void
     {
         // Компания с владельцем (владелец обязателен по доменной логике)
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

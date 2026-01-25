@@ -7,7 +7,7 @@ namespace App\Tests\Integration\AI;
 use App\Service\Company\CompanyContextService;
 use App\Tests\Build\ClientBuild;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
@@ -24,7 +24,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em = $container->get(EntityManagerInterface::class);
 
         // 1) владелец + компания
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -90,7 +90,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em = $container->get(EntityManagerInterface::class);
 
         // 1) владелец A + компания A
-        $ownerA = CompanyUserBuild::make()
+        $ownerA = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ua_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -103,7 +103,7 @@ final class SuggestionsControllerTest extends WebTestCase
         $em->persist($companyA);
 
         // 2) владелец B + компания B
-        $ownerB = CompanyUserBuild::make()
+        $ownerB = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ub_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Crm\Api;
 
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use App\Tests\Traits\CompanySessionHelperTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -21,7 +21,7 @@ final class PipelinesApiTest extends WebTestCase
         /** @var EntityManagerInterface $em */
         $em = $container->get(EntityManagerInterface::class);
 
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

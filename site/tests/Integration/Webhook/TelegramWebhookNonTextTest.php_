@@ -8,7 +8,7 @@ use App\Entity\Messaging\TelegramBot;
 use App\Repository\Messaging\MessageRepository;
 use App\Service\AI\LlmClient;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use App\Tests\Doubles\LlmClientSpy;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -25,7 +25,7 @@ final class TelegramWebhookNonTextTest extends WebTestCase
         $em = $c->get(EntityManagerInterface::class);
 
         // Владелец
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();

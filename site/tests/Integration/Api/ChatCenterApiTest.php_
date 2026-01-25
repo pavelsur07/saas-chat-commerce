@@ -8,7 +8,7 @@ use App\Repository\Messaging\MessageRepository;
 use App\Service\Company\CompanyContextService;
 use App\Tests\Build\ClientBuild;
 use App\Tests\Build\CompanyBuild;
-use App\Tests\Build\CompanyUserBuild;
+use App\Tests\Builders\Company\CompanyUserBuilder;
 use App\Tests\Build\MessageBuild;
 use App\Tests\Traits\CompanySessionHelperTrait;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,7 +32,7 @@ final class ChatCenterApiTest extends WebTestCase
         $em        = $c->get(EntityManagerInterface::class);
 
         // --- создаём две компании с владельцами ---
-        $ownerA = CompanyUserBuild::make()
+        $ownerA = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ua_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -44,7 +44,7 @@ final class ChatCenterApiTest extends WebTestCase
             ->build();
         $em->persist($companyA);
 
-        $ownerB = CompanyUserBuild::make()
+        $ownerB = CompanyUserBuilder::aCompanyUser()
             ->withEmail('ub_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -108,7 +108,7 @@ final class ChatCenterApiTest extends WebTestCase
         $em        = $c->get(EntityManagerInterface::class);
 
         // --- компания и владелец ---
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('u_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
@@ -194,7 +194,7 @@ final class ChatCenterApiTest extends WebTestCase
         $em        = $c->get(EntityManagerInterface::class);
 
         // --- компания + владелец + клиент ---
-        $owner = CompanyUserBuild::make()
+        $owner = CompanyUserBuilder::aCompanyUser()
             ->withEmail('s_'.bin2hex(random_bytes(4)).'@test.io')
             ->withPassword('Passw0rd!')
             ->build();
