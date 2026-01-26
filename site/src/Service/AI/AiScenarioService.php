@@ -6,7 +6,7 @@ namespace App\Service\AI;
 
 use App\Entity\AI\AiScenario;
 use App\Entity\AI\Enum\ScenarioStatus;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Repository\AI\AiScenarioRepository;
 use App\Service\Company\CompanyContextService;

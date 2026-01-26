@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Controller\Webhook;
 
 use App\Controller\Webhook\TelegramWebhookController;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\Messaging\TelegramBot;
 use App\Repository\Messaging\TelegramBotRepository;
 use App\Service\Messaging\Dto\InboundMessage;

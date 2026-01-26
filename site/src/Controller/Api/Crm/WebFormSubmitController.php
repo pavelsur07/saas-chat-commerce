@@ -2,7 +2,7 @@
 
 namespace App\Controller\Api\Crm;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Controller\Api\Crm\WebFormCorsTrait;

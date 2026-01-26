@@ -71,7 +71,7 @@ class CompanyKnowledgeFixtures extends Fixture implements DependentFixtureInterf
             ],
         ];
 
-        $company = $this->getReference(CompanyFixtures::REFERENCE_COMPANY_1, \App\Entity\Company\Company::class);
+        $company = $this->getReference(CompanyFixtures::REFERENCE_COMPANY_1, \App\Account\Entity\Company::class);
 
         foreach ($knowledge as $item) {
             $message = new CompanyKnowledge(

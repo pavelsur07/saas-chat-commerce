@@ -6,7 +6,7 @@ namespace App\Tests\Integration\AI;
 
 use App\Entity\AI\CompanyKnowledge;
 use App\Entity\AI\Enum\KnowledgeType;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Service\AI\KnowledgeImportService;
 use App\Tests\Build\CompanyBuild;
 use App\Tests\Builders\Company\CompanyUserBuilder;

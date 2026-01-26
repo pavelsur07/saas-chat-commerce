@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\DB\Knowledge;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Repository\AI\CompanyKnowledgeRepository;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\Group;

@@ -2,7 +2,7 @@
 
 namespace App\Entity\Messaging;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\WebChat\WebChatSite;
 use App\Repository\Messaging\ClientRepository;

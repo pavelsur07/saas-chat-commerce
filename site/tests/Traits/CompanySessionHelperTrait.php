@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Traits;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;

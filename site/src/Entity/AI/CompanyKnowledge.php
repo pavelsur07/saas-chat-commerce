@@ -3,7 +3,7 @@
 namespace App\Entity\AI;
 
 use App\Entity\AI\Enum\KnowledgeType;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Tools;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Service\Company\CompanyContextService;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DependencyInjection\ContainerInterface;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\AI;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Service\AI\KnowledgeSearchService;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\Group;

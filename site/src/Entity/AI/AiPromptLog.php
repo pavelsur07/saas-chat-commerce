@@ -4,7 +4,7 @@ namespace App\Entity\AI;
 
 use App\Entity\AI\Enum\PromptStatus;
 use App\Entity\AI\Traits\Timestampable;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Repository\AI\AiPromptLogRepository;
 use Doctrine\ORM\Mapping as ORM;

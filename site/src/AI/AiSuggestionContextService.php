@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\AI;
 
 use App\Entity\AI\AiCompanyProfile;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Repository\AI\AiCompanyProfileRepository;
 use App\Repository\AI\CompanyKnowledgeRepository;
 use Psr\Log\LoggerInterface;

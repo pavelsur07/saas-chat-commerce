@@ -3,7 +3,7 @@
 namespace App\Tests\Unit\AI;
 
 use App\AI\AiSuggestionContextService;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Repository\AI\AiCompanyProfileRepository;
 use App\Repository\AI\CompanyKnowledgeRepository;
 use PHPUnit\Framework\TestCase;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Channel\Entity;
 
 use App\Channel\Repository\ChannelRepository;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;

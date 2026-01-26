@@ -4,7 +4,7 @@
 
 namespace App\Tests\Unit\Entity;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;

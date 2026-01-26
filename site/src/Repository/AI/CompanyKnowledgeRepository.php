@@ -3,7 +3,7 @@
 namespace App\Repository\AI;
 
 use App\Entity\AI\CompanyKnowledge;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\ReadModel\AI\KnowledgeHit;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Exception;

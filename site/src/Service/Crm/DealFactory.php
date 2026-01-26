@@ -2,7 +2,7 @@
 
 namespace App\Service\Crm;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Entity\Crm\CrmDeal;
 use App\Entity\Crm\CrmPipeline;

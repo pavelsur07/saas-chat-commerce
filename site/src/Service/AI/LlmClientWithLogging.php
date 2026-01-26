@@ -3,7 +3,7 @@
 namespace App\Service\AI;
 
 use App\Entity\AI\Enum\PromptStatus;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 
 /**
  * Контракт payload для chat():

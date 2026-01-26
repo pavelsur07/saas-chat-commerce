@@ -2,7 +2,7 @@
 
 namespace App\Repository\Crm;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\Crm\CrmWebForm;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;

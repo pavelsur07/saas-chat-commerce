@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\AI;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\ReadModel\AI\KnowledgeHit;
 use App\Repository\AI\CompanyKnowledgeRepository;
 use Doctrine\DBAL\Exception;
