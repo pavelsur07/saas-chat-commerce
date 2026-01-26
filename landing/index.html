@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Conwix — разговорная коммерция для e-commerce</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap 5 -->
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            crossorigin="anonymous"
+    >
+
+    <style>
+        :root {
+            --conwix-primary: #0A1548;
+            --conwix-accent: #FF1F1F;
+            --conwix-bg: #F5F7FB;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--conwix-bg);
+            color: #141414;
+        }
+
+        .navbar-brand img {
+            height: 32px;
+        }
+
+        .btn-accent {
+            background-color: var(--conwix-accent);
+            border-color: var(--conwix-accent);
+        }
+        .btn-accent:hover {
+            background-color: #e21919;
+            border-color: #e21919;
+        }
+
+        .text-primary-conwix {
+            color: var(--conwix-primary) !important;
+        }
+
+        .hero-section {
+            padding: 96px 0 72px;
+        }
+
+        @media (min-width: 992px) {
+            .hero-section {
+                padding: 120px 0 96px;
+            }
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .25rem .75rem;
+            border-radius: 999px;
+            background: rgba(10, 21, 72, 0.06);
+            font-size: .85rem;
+        }
+
+        .hero-metrics {
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 14px 40px rgba(10, 21, 72, 0.12);
+            padding: 1.5rem;
+        }
+
+        .icon-pill {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            background: rgba(255, 31, 31, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .section-padding {
+            padding: 72px 0;
+        }
+
+        .card-feature {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(10, 21, 72, 0.06);
+        }
+
+        .section-title {
+            max-width: 640px;
+        }
+
+        .badge-soft {
+            background: rgba(10, 21, 72, 0.06);
+            color: var(--conwix-primary);
+            border-radius: 999px;
+            padding: .25rem .75rem;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        footer {
+            padding: 40px 0 24px;
+            font-size: .9rem;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg bg-white border-bottom fixed-top py-2">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <!-- Замените src на путь к вашему файлу логотипа -->
+            <img src="assets/img/logo-conwix.png" alt="Conwix">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainNavbar" aria-controls="mainNavbar"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link" href="#features">Функции</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#how-it-works">Как работает</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#for-whom">Для кого</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#demo">Демо</a>
+                </li>
+                <li class="nav-item ms-lg-3">
+                    <a class="btn btn-accent text-white px-3" href="#demo">
+                        Запросить демо
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="hero-badge mb-3">
+                    <span class="icon-pill">
+                        <!-- маленький пузырь с многоточием -->
+                        …
+                    </span>
+                    <span>Conwix · платформа разговорной коммерции</span>
+                </div>
+                <h1 class="display-5 fw-bold text-primary-conwix mb-3">
+                    Превращайте диалоги в мессенджерах в предсказуемые продажи
+                </h1>
+                <p class="lead mb-4">
+                    Conwix соединяет Telegram, WhatsApp и Instagram в единый чат-центр,
+                    обучает AI на ваших переписках и помогает продавать в переписке
+                    так же системно, как на сайте.
+                </p>
+                <div class="d-flex flex-column flex-sm-row gap-3">
+                    <a href="#demo" class="btn btn-accent btn-lg text-white">
+                        Запросить демо
+                    </a>
+                    <a href="#how-it-works" class="btn btn-outline-secondary btn-lg">
+                        Посмотреть, как это работает
+                    </a>
+                </div>
+                <p class="text-muted mt-3 mb-0">
+                    14 дней бесплатно · без привязки карты · запуск за 1 день
+                </p>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="hero-metrics">
+                    <h6 class="text-uppercase text-muted mb-3" style="letter-spacing:.08em;">
+                        Что даёт Conwix
+                    </h6>
+                    <div class="row g-4">
+                        <div class="col-6">
+                            <div>
+                                <div class="fw-semibold mb-1">+30–40%</div>
+                                <div class="text-muted small">
+                                    рост выручки из мессенджеров за счёт сценариев и AI-подсказок
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div>
+                                <div class="fw-semibold mb-1">-50% времени</div>
+                                <div class="text-muted small">
+                                    на ответы клиентам — AI предлагает готовые варианты сообщений
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mt-3">
+                                <div class="fw-semibold mb-1">1 окно вместо 5</div>
+                                <div class="text-muted small">
+                                    Telegram, WhatsApp, Instagram и сайт-чат в одном интерфейсе
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mt-3">
+                                <div class="fw-semibold mb-1">Готовые BotFlow</div>
+                                <div class="text-muted small">
+                                    сценарии продаж строятся прямо из вашей истории переписок
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="section-padding bg-white">
+    <div class="container">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between mb-4">
+            <div class="section-title">
+                <span class="badge-soft mb-2">Функции</span>
+                <h2 class="h2 fw-bold text-primary-conwix mb-3">
+                    Всё, что нужно для продаж через мессенджеры — в одном месте
+                </h2>
+                <p class="mb-0 text-muted">
+                    Conwix не заменяет ваши мессенджеры, а помогает превратить хаотичные диалоги
+                    в отлаженную воронку: от первого сообщения до оплаты.
+                </p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card card-feature h-100">
+                    <div class="card-body">
+                        <div class="icon-pill mb-3">💬</div>
+                        <h5 class="card-title">Единый чат-центр</h5>
+                        <p class="card-text text-muted">
+                            Сообщения из всех каналов в одном окне. История клиента, теги, заказы
+                            и заметки — под рукой у оператора.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-feature h-100">
+                    <div class="card-body">
+                        <div class="icon-pill mb-3">🤖</div>
+                        <h5 class="card-title">AI-подсказки и сценарии</h5>
+                        <p class="card-text text-muted">
+                            Модель обучается на ваших переписках, предлагает готовые ответы,
+                            выделяет успешные ветки и собирает их в BotFlow.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-feature h-100">
+                    <div class="card-body">
+                        <div class="icon-pill mb-3">📊</div>
+                        <h5 class="card-title">Аналитика и CRM-карточка</h5>
+                        <p class="card-text text-muted">
+                            Видите, из каких сценариев приходят деньги: конверсия операторов,
+                            выручка по каналам, эффективность автоворонок.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" class="section-padding">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge-soft mb-2">Как работает Conwix</span>
+            <h2 class="h2 fw-bold text-primary-conwix mb-3">
+                Запуск за 4 шага
+            </h2>
+            <p class="text-muted mb-0">
+                Не нужно менять текущие процессы — мы подключаемся к тем каналам, где уже пишут ваши клиенты.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="h-100 p-3 bg-white rounded-4 shadow-sm">
+                    <div class="fw-semibold mb-2">1. Подключаем каналы</div>
+                    <p class="text-muted small mb-0">
+                        Telegram-бот, WhatsApp Business API, Instagram Direct и чат на сайте.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="h-100 p-3 bg-white rounded-4 shadow-sm">
+                    <div class="fw-semibold mb-2">2. Загружаем историю</div>
+                    <p class="text-muted small mb-0">
+                        Импортируем существующие переписки и учим AI понимать ваши продукты и стиль общения.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="h-100 p-3 bg-white rounded-4 shadow-sm">
+                    <div class="fw-semibold mb-2">3. Собираем BotFlow</div>
+                    <p class="text-muted small mb-0">
+                        Из повторяющихся веток строим сценарии: квалификация, подбор товара, дожим к оплате.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="h-100 p-3 bg-white rounded-4 shadow-sm">
+                    <div class="fw-semibold mb-2">4. Тестируем и масштабируем</div>
+                    <p class="text-muted small mb-0">
+                        Запускаем A/B-тесты, смотрим конверсии, усиливаем лучшие сценарии и операторов.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOR WHOM -->
+<section id="for-whom" class="section-padding bg-white">
+    <div class="container">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-5">
+                <span class="badge-soft mb-2">Для кого</span>
+                <h2 class="h2 fw-bold text-primary-conwix mb-3">
+                    Командам, которые продают через мессенджеры каждый день
+                </h2>
+                <p class="text-muted mb-4">
+                    Conwix подходит e-commerce-брендам, онлайн-школам, сервисам и агентствам,
+                    где значимая часть заявок приходит в личку, а не на сайт.
+                </p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">• Бренды одежды, косметики, товаров для дома</li>
+                    <li class="mb-2">• Онлайн-курсы, наставничество, эксперты</li>
+                    <li class="mb-2">• Локальные сервисы: студии, клиники, салоны</li>
+                    <li>• Агентства и интеграторы, которые ведут клиентов в мессенджерах</li>
+                </ul>
+            </div>
+            <div class="col-lg-7">
+                <div class="p-4 rounded-4" style="background:#f0f3ff;">
+                    <h5 class="fw-semibold mb-3">Какие задачи решает Conwix</h5>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="small">
+                                <span class="fw-semibold">1. Наводит порядок в диалогах.</span><br>
+                                Больше не теряются заявки, видно все касания и статусы по каждому клиенту.
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="small">
+                                <span class="fw-semibold">2. Увеличивает конверсию в оплату.</span><br>
+                                Сценарии и подсказки помогают доводить диалог до сделки, а не бросать его на середине.
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="small">
+                                <span class="fw-semibold">3. Снижает нагрузку на операторов.</span><br>
+                                Повторяющиеся вопросы закрывают боты и заготовки, люди занимаются «сложными» кейсами.
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="small">
+                                <span class="fw-semibold">4. Даёт прозрачную аналитику.</span><br>
+                                Понимаете, какие каналы и сценарии приносят деньги, а какие просто отнимают время.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DEMO / CTA -->
+<section id="demo" class="section-padding">
+    <div class="container">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+                <h2 class="h2 fw-bold text-primary-conwix mb-3">
+                    Запросите демо Conwix
+                </h2>
+                <p class="text-muted mb-4">
+                    Оставьте контакты, и мы покажем, как Conwix может увеличить выручку из мессенджеров
+                    именно в вашей модели бизнеса. Без продажного давления: сначала считаем экономику.
+                </p>
+
+                <ul class="list-unstyled text-muted small mb-0">
+                    <li class="mb-1">✔ Обзор ключевых функций на ваших примерах</li>
+                    <li class="mb-1">✔ Расчёт потенциального роста выручки и экономии времени</li>
+                    <li>✔ Рекомендации по настройке сценариев и интеграций</li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <div class="bg-white rounded-4 shadow-sm p-4 p-lg-5">
+                    <form>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Имя</label>
+                            <input type="text" class="form-control" id="name" placeholder="Как к вам обращаться?">
+                        </div>
+                        <div class="mb-3">
+                            <label for="company" class="form-label">Компания</label>
+                            <input type="text" class="form-control" id="company" placeholder="Название бренда или проекта">
+                        </div>
+                        <div class="mb-3">
+                            <label for="channels" class="form-label">Через какие каналы вы продаёте?</label>
+                            <input type="text" class="form-control" id="channels"
+                                   placeholder="Telegram, WhatsApp, Instagram, сайт-чат…">
+                        </div>
+                        <div class="mb-3">
+                            <label for="contacts" class="form-label">Контакты</label>
+                            <input type="text" class="form-control" id="contacts"
+                                   placeholder="Телеграм @user или e-mail">
+                        </div>
+                        <button type="submit" class="btn btn-accent w-100 text-white">
+                            Отправить заявку на демо
+                        </button>
+                        <p class="text-muted small mt-2 mb-0">
+                            Нажимая на кнопку, вы соглашаетесь с обработкой персональных данных.
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-white border-top">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+            <div class="text-muted">
+                © <span id="year"></span> Conwix. Платформа разговорной коммерции.
+            </div>
+            <div class="text-muted">
+                <a href="#" class="text-muted me-3">Политика конфиденциальности</a>
+                <a href="#" class="text-muted">Договор оферты</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    document.getElementById('year').textContent = new Date().getFullYear().toString();
+</script>
+
+<script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous">
+</script>
+
+</body>
+</html>
