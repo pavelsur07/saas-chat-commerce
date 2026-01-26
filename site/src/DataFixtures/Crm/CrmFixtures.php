@@ -6,7 +6,7 @@ use App\DataFixtures\ClientFixtures;
 use App\DataFixtures\CompanyFixtures;
 use App\DataFixtures\UserFixtures;
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Entity\Crm\CrmDeal;
 use App\Entity\Crm\CrmPipeline;
 use App\Entity\Crm\CrmStage;

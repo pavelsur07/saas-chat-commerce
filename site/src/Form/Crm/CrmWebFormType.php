@@ -3,7 +3,7 @@
 namespace App\Form\Crm;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Entity\Company\UserCompany;
 use App\Entity\Crm\CrmPipeline;
 use App\Entity\Crm\CrmStage;

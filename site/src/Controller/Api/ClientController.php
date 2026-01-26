@@ -2,7 +2,7 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\Company\User as CompanyUser;
+use App\Account\Entity\User as CompanyUser;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Company\CompanyRepository;

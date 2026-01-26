@@ -5,7 +5,7 @@ namespace App\Entity\AI;
 use App\Entity\Ai\Enum\ScenarioStatus;
 use App\Entity\AI\Traits\Timestampable;
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Repository\AI\AiScenarioRepository;
 use Doctrine\ORM\Mapping as ORM;
 

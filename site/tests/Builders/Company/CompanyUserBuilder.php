@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Builders\Company;
 
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use InvalidArgumentException;
 
 final class CompanyUserBuilder

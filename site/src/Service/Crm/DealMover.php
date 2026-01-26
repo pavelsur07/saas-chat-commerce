@@ -2,7 +2,7 @@
 
 namespace App\Service\Crm;
 
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Entity\Crm\CrmDeal;
 use App\Entity\Crm\CrmStage;
 use App\Entity\Crm\CrmStageHistory;

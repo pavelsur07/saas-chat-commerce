@@ -2,6 +2,7 @@
 
 namespace App\Entity\Company;
 
+use App\Account\Entity\User;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 

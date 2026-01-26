@@ -3,7 +3,7 @@
 namespace App\Service\Company;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Entity\Company\UserCompany;
 use App\Repository\Company\UserCompanyRepository;
 use Symfony\Bundle\SecurityBundle\Security;
