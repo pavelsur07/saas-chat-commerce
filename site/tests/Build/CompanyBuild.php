@@ -3,7 +3,7 @@
 namespace App\Tests\Build;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User as CompanyUser;
+use App\Account\Entity\User as CompanyUser;
 use App\Tests\Builders\Company\CompanyUserBuilder;
 use Ramsey\Uuid\Uuid;
 

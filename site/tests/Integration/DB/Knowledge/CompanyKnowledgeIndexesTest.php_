@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\DB\Knowledge;
 
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Service\CompanyManager;
 use App\Tests\Integration\DB\Knowledge\Traits\RunsMigrationsAndSeedsTestDB;
 use Doctrine\DBAL\Connection;

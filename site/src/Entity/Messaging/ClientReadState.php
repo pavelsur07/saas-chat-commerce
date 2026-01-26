@@ -3,7 +3,7 @@
 namespace App\Entity\Messaging;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Repository\Messaging\ClientReadStateRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;

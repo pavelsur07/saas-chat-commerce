@@ -7,7 +7,7 @@ namespace App\Tests\Integration\AI;
 use App\Entity\AI\CompanyKnowledge;
 use App\Entity\AI\Enum\KnowledgeType;
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Repository\AI\CompanyKnowledgeRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;

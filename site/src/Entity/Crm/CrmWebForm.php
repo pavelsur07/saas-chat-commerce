@@ -3,7 +3,7 @@
 namespace App\Entity\Crm;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Repository\Crm\CrmWebFormRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;

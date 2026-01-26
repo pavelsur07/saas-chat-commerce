@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Messaging;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\WebChat\WebChatSite;
 use App\Service\Messaging\WebChatInboundMessageFactory;

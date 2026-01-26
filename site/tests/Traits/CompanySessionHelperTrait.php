@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Traits;
 
 use App\Entity\Company\Company;
-use App\Entity\Company\User;
+use App\Account\Entity\User;
 use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
