@@ -57,9 +57,15 @@ services:
     site-node-watch:
         image: node:18-alpine
         volumes:
-            - ./site:/app
+          - ./site:/app
         working_dir: /app
-        command: sh -c "yarn run watch"
+        # Сначала ставим пакеты, потом запускаем watch
+        #image: node:18-alpine
+        #volumes:
+        #    - ./site:/app
+        #working_dir: /app
+        #command: sh -c "yarn run watch"
+        command: sh -c "yarn install && yarn run watch"
         tty: true
         environment:
             SOCKET_URL: http://localhost:3001

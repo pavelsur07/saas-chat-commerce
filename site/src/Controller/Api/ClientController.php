@@ -6,8 +6,8 @@ use App\Entity\Company\User as CompanyUser;
 use App\Entity\Messaging\Client;
 use App\Entity\Messaging\Message;
 use App\Repository\Company\CompanyRepository;
-use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\ClientReadStateRepository;
+use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,6 +29,7 @@ class ClientController extends AbstractController
     ): JsonResponse
     {
         $activeCompanyId = $request->getSession()->get('active_company_id');
+
         if (!$activeCompanyId) {
             return new JsonResponse(['error' => 'Active company not selected'], Response::HTTP_FORBIDDEN);
         }

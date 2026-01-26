@@ -2,11 +2,11 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Company\User as CompanyUser;
 use App\Entity\Messaging\Channel\Channel;
 use App\Entity\Messaging\Client;
-use App\Entity\Messaging\Message;
-use App\Entity\Company\User as CompanyUser;
 use App\Entity\Messaging\ClientReadState;
+use App\Entity\Messaging\Message;
 use App\Repository\Messaging\ClientReadStateRepository;
 use App\Repository\Messaging\ClientRepository;
 use App\Repository\Messaging\MessageRepository;

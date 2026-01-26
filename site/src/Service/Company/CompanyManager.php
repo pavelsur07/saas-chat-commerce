@@ -9,7 +9,6 @@ use App\Entity\Company\User;
 use App\Entity\Company\UserCompany;
 use App\Event\CompanyCreatedEvent;
 use App\Repository\Company\UserCompanyRepository;
-use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;

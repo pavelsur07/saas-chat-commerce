@@ -1,9 +1,12 @@
 {
   "build/app.js": "/build/app.js",
   "build/chatCenter.js": "/build/chatCenter.js",
+  "build/crm.js": "/build/crm.js",
   "build/runtime.js": "/build/runtime.js",
-  "build/vendors-node_modules_react-dom_client_js-node_modules_react_jsx-runtime_js-node_modules_core--8afd29.js": "/build/vendors-node_modules_react-dom_client_js-node_modules_react_jsx-runtime_js-node_modules_core--8afd29.js",
-  "build/vendors-node_modules_core-js_modules_es_array_concat_js-node_modules_core-js_modules_es_array-358e39.js": "/build/vendors-node_modules_core-js_modules_es_array_concat_js-node_modules_core-js_modules_es_array-358e39.js",
-  "build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_core-js_modules_es_da-97ea9b.js": "/build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_core-js_modules_es_da-97ea9b.js",
+  "build/vendors-node_modules_react-dom_client_js-node_modules_react_jsx-runtime_js-node_modules_core--ea98fb.js": "/build/vendors-node_modules_react-dom_client_js-node_modules_react_jsx-runtime_js-node_modules_core--ea98fb.js",
+  "build/vendors-node_modules_core-js_internals_correct-is-regexp-logic_js-node_modules_core-js_intern-13c714.js": "/build/vendors-node_modules_core-js_internals_correct-is-regexp-logic_js-node_modules_core-js_intern-13c714.js",
+  "build/vendors-node_modules_core-js_modules_es_date_to-iso-string_js-node_modules_core-js_modules_es-0e41e7.js": "/build/vendors-node_modules_core-js_modules_es_date_to-iso-string_js-node_modules_core-js_modules_es-0e41e7.js",
+  "build/vendors-node_modules_core-js_modules_es_array_filter_js-node_modules_core-js_modules_es_array-564dd9.js": "/build/vendors-node_modules_core-js_modules_es_array_filter_js-node_modules_core-js_modules_es_array-564dd9.js",
+  "build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_core-js_modules_es_ar-9bf5f0.js": "/build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js-node_modules_core-js_modules_es_ar-9bf5f0.js",
   "build/assets_styles_app_css.css": "/build/assets_styles_app_css.css"
 }
