@@ -2,7 +2,7 @@
 
 namespace App\AI;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Repository\Messaging\ClientRepository;
 use App\Service\AI\AiFeature;
 use App\Service\AI\LlmClient;

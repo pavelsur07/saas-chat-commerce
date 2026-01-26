@@ -2,7 +2,7 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Form\CompanyType;
 use App\Repository\Company\CompanyRepository;
 use App\Service\Company\CompanyManager;

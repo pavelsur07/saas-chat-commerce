@@ -6,7 +6,7 @@ namespace App\Service\AI;
 
 use App\Entity\AI\AiFaq;
 use App\Entity\AI\Enum\AiFaqSource;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Repository\AI\AiFaqRepository;
 use App\Service\Company\CompanyContextService;

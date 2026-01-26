@@ -6,7 +6,7 @@ namespace App\Service\AI;
 
 use App\Entity\AI\CompanyKnowledge;
 use App\Entity\AI\Enum\KnowledgeType;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 

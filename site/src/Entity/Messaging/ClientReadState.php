@@ -2,7 +2,7 @@
 
 namespace App\Entity\Messaging;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Repository\Messaging\ClientReadStateRepository;
 use DateTimeImmutable;

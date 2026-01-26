@@ -6,7 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\AI\CompanyKnowledge;
 use App\Entity\AI\Enum\KnowledgeType;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Form\AI\CompanyKnowledgeType;
 use App\Security\CompanyAccess;
 use Doctrine\ORM\EntityManagerInterface as EM;

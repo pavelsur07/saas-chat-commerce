@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository\AI;
 
 use App\Entity\AI\AiScenario;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;

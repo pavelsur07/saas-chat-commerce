@@ -2,7 +2,7 @@
 
 namespace App\Entity\Crm;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Repository\Crm\CrmWebFormRepository;
 use DateTimeImmutable;

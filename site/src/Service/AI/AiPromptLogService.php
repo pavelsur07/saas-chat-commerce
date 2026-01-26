@@ -4,7 +4,7 @@ namespace App\Service\AI;
 
 use App\Entity\AI\AiPromptLog;
 use App\Entity\AI\Enum\PromptStatus;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 

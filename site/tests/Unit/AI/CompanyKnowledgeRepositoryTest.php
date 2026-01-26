@@ -3,7 +3,7 @@
 namespace App\Tests\Unit\AI;
 
 use App\Entity\AI\CompanyKnowledge;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

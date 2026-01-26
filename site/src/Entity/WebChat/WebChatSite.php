@@ -2,7 +2,7 @@
 
 namespace App\Entity\WebChat;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Repository\WebChat\WebChatSiteRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;

@@ -4,7 +4,7 @@
 
 namespace App\Security;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 

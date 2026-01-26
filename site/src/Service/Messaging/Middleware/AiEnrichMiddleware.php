@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Messaging\Middleware;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\Messaging\Client as DbClient;
 use App\Entity\Messaging\Message as DbMessage;
 use App\Repository\Messaging\MessageRepository;

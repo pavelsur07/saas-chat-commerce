@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Entity\Company;
+namespace App\Account\Entity;
 
 use App\Account\Entity\User;
 use App\Entity\AI\AiCompanyProfile;

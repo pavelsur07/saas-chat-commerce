@@ -2,7 +2,7 @@
 
 namespace App\AI;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 

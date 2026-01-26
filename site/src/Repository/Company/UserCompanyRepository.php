@@ -2,7 +2,7 @@
 
 namespace App\Repository\Company;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Entity\Company\UserCompany;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;

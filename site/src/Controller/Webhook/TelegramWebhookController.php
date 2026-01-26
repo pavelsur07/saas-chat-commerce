@@ -2,7 +2,7 @@
 
 namespace App\Controller\Webhook;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Repository\Messaging\TelegramBotRepository;
 use App\Service\Messaging\Dto\InboundMessage;
 use App\Service\Messaging\MessageIngressService;

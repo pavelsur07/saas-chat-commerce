@@ -4,7 +4,7 @@ namespace App\Entity\AI;
 
 use App\Entity\AI\Enum\AiFaqSource;
 use App\Entity\AI\Traits\Timestampable;
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Account\Entity\User;
 use App\Repository\AI\AiFaqRepository;
 use Doctrine\ORM\Mapping as ORM;

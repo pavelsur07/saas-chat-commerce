@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Company\Company;
+use App\Account\Entity\Company;
 use App\Entity\WebChat\WebChatSite;
 use App\Form\WebChat\WebChatSiteType;
 use App\Security\CompanyAccess;
