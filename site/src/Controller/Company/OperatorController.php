@@ -4,8 +4,8 @@ namespace App\Controller\Company;
 
 use App\Account\Entity\Company;
 use App\Account\Entity\User;
-use App\Entity\Company\UserCompany;
-use App\Repository\Company\UserCompanyRepository;
+use App\Account\Entity\UserCompany;
+use App\Account\Repository\UserCompanyRepository;
 use App\Repository\Company\UserRepository;
 use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;

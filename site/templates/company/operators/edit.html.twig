@@ -11,13 +11,13 @@
     <input type="hidden" name="_token" value="{{ csrf_token('edit_operator_' ~ link.id) }}">
     <div>
       <label for="role" class="block text-sm font-medium text-gray-700">Роль</label>
-      <select id="role" name="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" {% if link.role == constant('App\\Entity\\Company\\UserCompany::ROLE_OWNER') %}disabled{% endif %}>
-        <option value="{{ constant('App\\Entity\\Company\\UserCompany::ROLE_OPERATOR') }}" {{ link.role == constant('App\\Entity\\Company\\UserCompany::ROLE_OPERATOR') ? 'selected' : '' }}>Оператор</option>
-        {% if link.role == constant('App\\Entity\\Company\\UserCompany::ROLE_OWNER') %}
+      <select id="role" name="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" {% if link.role == constant('App\\Account\\Entity\\UserCompany::ROLE_OWNER') %}disabled{% endif %}>
+        <option value="{{ constant('App\\Account\\Entity\\UserCompany::ROLE_OPERATOR') }}" {{ link.role == constant('App\\Account\\Entity\\UserCompany::ROLE_OPERATOR') ? 'selected' : '' }}>Оператор</option>
+        {% if link.role == constant('App\\Account\\Entity\\UserCompany::ROLE_OWNER') %}
           <option selected>OWNER</option>
         {% endif %}
       </select>
-      {% if link.role == constant('App\\Entity\\Company\\UserCompany::ROLE_OWNER') %}
+      {% if link.role == constant('App\\Account\\Entity\\UserCompany::ROLE_OWNER') %}
         <p class="mt-1 text-xs text-gray-500">Роль владельца изменить нельзя.</p>
       {% endif %}
     </div>
@@ -25,9 +25,9 @@
     <div>
       <label for="status" class="block text-sm font-medium text-gray-700">Статус</label>
       <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-        <option value="{{ constant('App\\Entity\\Company\\UserCompany::STATUS_ACTIVE') }}" {{ link.status == constant('App\\Entity\\Company\\UserCompany::STATUS_ACTIVE') ? 'selected' : '' }}>Активен</option>
-        <option value="{{ constant('App\\Entity\\Company\\UserCompany::STATUS_INVITED') }}" {{ link.status == constant('App\\Entity\\Company\\UserCompany::STATUS_INVITED') ? 'selected' : '' }}>Приглашён</option>
-        <option value="{{ constant('App\\Entity\\Company\\UserCompany::STATUS_DISABLED') }}" {{ link.status == constant('App\\Entity\\Company\\UserCompany::STATUS_DISABLED') ? 'selected' : '' }}>Отключён</option>
+        <option value="{{ constant('App\\Account\\Entity\\UserCompany::STATUS_ACTIVE') }}" {{ link.status == constant('App\\Account\\Entity\\UserCompany::STATUS_ACTIVE') ? 'selected' : '' }}>Активен</option>
+        <option value="{{ constant('App\\Account\\Entity\\UserCompany::STATUS_INVITED') }}" {{ link.status == constant('App\\Account\\Entity\\UserCompany::STATUS_INVITED') ? 'selected' : '' }}>Приглашён</option>
+        <option value="{{ constant('App\\Account\\Entity\\UserCompany::STATUS_DISABLED') }}" {{ link.status == constant('App\\Account\\Entity\\UserCompany::STATUS_DISABLED') ? 'selected' : '' }}>Отключён</option>
       </select>
     </div>
 
