@@ -35,6 +35,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Account/Entity'
                 prefix: 'App\Account\Entity'
                 alias: Account
+            PlatformAdmin:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/PlatformAdmin/Entity'
+                prefix: 'App\PlatformAdmin\Entity'
+                alias: PlatformAdmin
         controller_resolver:
             auto_mapping: false
 
