@@ -1,0 +1,44 @@
+{% extends 'platform_admin/base.html.twig' %}
+
+{% block title %}Platform Admin Login{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-md rounded bg-white p-6 shadow">
+        <h2 class="mb-4 text-center text-xl font-semibold">Platform admin sign in</h2>
+
+        {% if error %}
+            <div class="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                {{ error.messageKey|trans(error.messageData, 'security') }}
+            </div>
+        {% endif %}
+
+        <form action="{{ path('platform_admin_login') }}" method="post" class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                    id="username"
+                    name="_username"
+                    type="email"
+                    autocomplete="email"
+                    required
+                    autofocus
+                    value="{{ last_username }}"
+                    class="mt-1 w-full rounded border border-gray-300 px-3 py-2"
+                >
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input
+                    id="password"
+                    name="_password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    class="mt-1 w-full rounded border border-gray-300 px-3 py-2"
+                >
+            </div>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+            <button type="submit" class="w-full rounded bg-gray-900 px-4 py-2 text-white">Sign in</button>
+        </form>
+    </div>
+{% endblock %}

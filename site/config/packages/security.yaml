@@ -9,10 +9,24 @@ security:
             entity:
                 class: App\Account\Entity\User
                 property: email
+        platform_admin_provider:
+            entity:
+                class: App\PlatformAdmin\Entity\PlatformUser
+                property: email
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+        platform_admin:
+            pattern: ^/admin
+            lazy: true
+            provider: platform_admin_provider
+            form_login:
+                login_path: platform_admin_login
+                check_path: platform_admin_login
+                enable_csrf: true
+            logout:
+                path: platform_admin_logout
         main:
             lazy: true
             provider: app_user_provider
@@ -44,6 +58,8 @@ security:
         #- { path: ^/, roles: ROLE_ADMIN }
         # - { path: ^/admin, roles: ROLE_ADMIN }
         #- { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_PLATFORM_ADMIN }
         - { path: ^/log-js-error$, roles: PUBLIC_ACCESS }
         - { path: ^/webhook/telegram/bot/, roles: PUBLIC_ACCESS }
         - { path: ^/api/embed/, roles: PUBLIC_ACCESS }
