@@ -4,7 +4,7 @@ namespace App\Controller;
 
 use App\Account\Entity\Company;
 use App\Account\Entity\User;
-use App\Repository\Company\UserCompanyRepository;
+use App\Account\Repository\UserCompanyRepository;
 use App\Service\Company\CompanyContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

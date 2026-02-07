@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repository\Company;
+namespace App\Account\Repository;
 
 use App\Account\Entity\Company;
 use App\Account\Entity\User;
-use App\Entity\Company\UserCompany;
+use App\Account\Entity\UserCompany;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -111,7 +111,7 @@ class UserCompanyRepository extends ServiceEntityRepository
     public function clearDefaultForUserExcept(User $user, UserCompany $keep): void
     {
         $this->getEntityManager()
-            ->createQuery('UPDATE App\\Entity\\Company\\UserCompany uc SET uc.isDefault = :default WHERE uc.user = :user AND uc != :keep')
+            ->createQuery('UPDATE App\\Account\\Entity\\UserCompany uc SET uc.isDefault = :default WHERE uc.user = :user AND uc != :keep')
             ->setParameter('default', false)
             ->setParameter('user', $user)
             ->setParameter('keep', $keep)
@@ -123,5 +123,4 @@ class UserCompanyRepository extends ServiceEntityRepository
         $this->clearDefaultForUserExcept($link->getUser(), $link);
         $link->setIsDefault(true);
     }
-
 }

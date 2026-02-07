@@ -1,8 +1,6 @@
 <?php
 
-namespace App\Entity\Company;
-
-use App\Account\Entity\User;
+namespace App\Account\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 

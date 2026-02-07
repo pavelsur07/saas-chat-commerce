@@ -4,7 +4,7 @@ namespace App\Form\Crm;
 
 use App\Account\Entity\Company;
 use App\Account\Entity\User;
-use App\Entity\Company\UserCompany;
+use App\Account\Entity\UserCompany;
 use App\Entity\Crm\CrmPipeline;
 use App\Entity\Crm\CrmStage;
 use App\Entity\Crm\CrmWebForm;
