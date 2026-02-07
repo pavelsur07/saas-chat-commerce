@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Platform Admin{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    {% block stylesheets %}
+        {{ encore_entry_link_tags('app') }}
+    {% endblock %}
+
+    {% block javascripts %}
+        {{ encore_entry_script_tags('app') }}
+    {% endblock %}
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900">
+    <header class="border-b border-gray-200 bg-white">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+            <div>
+                <p class="text-xs uppercase tracking-wider text-gray-500">Platform Admin</p>
+                <h1 class="text-lg font-semibold text-gray-900">Backoffice</h1>
+            </div>
+            <span class="text-xs text-gray-400">/admin</span>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-6 py-10">
+        {% block body %}{% endblock %}
+    </main>
+</body>
+</html>
