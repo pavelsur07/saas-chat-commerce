@@ -33,25 +33,25 @@
 
                     <a href="{{ path('dashboard') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'dashboard' ? 'bg-gray-800' : '' }}">
-                        🏠 Главная
+                        Главная
                     </a>
 
                     <a href="{{ path('chat_center') }}" class="block px-3 py-2 rounded hover:bg-gray-800">
-                        💬 Чат-центр
+                        Чат-центр
                     </a>
 
                     <a href="{{ path('crm_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800
                               {{ app.request.attributes.get('_route') starts with 'crm_' ? 'bg-gray-800' : '' }}">
-                        📊 CRM
+                        CRM
                     </a>
 
                     <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
-                        🧠 Сценарии <span class="text-xs text-gray-400">(в разработке)</span>
+                        Сценарии <span class="text-xs text-gray-400">(в разработке)</span>
                     </a>
 
                     <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
-                        👥 Клиенты <span class="text-xs text-gray-400">(в разработке)</span>
+                        Клиенты <span class="text-xs text-gray-400">(в разработке)</span>
                     </a>
                 </div>
 
@@ -61,21 +61,21 @@
 
                     <a href="{{ path('telegram_bot.index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'telegram_bot_' ? 'bg-gray-800' : '' }}">
-                        🤖 Telegram
+                        Telegram
                     </a>
 
                     <a href="{{ path('web_chat_site_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'web_chat_site_' ? 'bg-gray-800' : '' }}">
-                        💬 WebChat
+                        WebChat
                     </a>
 
                     <a href="{{ path('crm_forms_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.attributes.get('_route') starts with 'crm_forms_' ? 'bg-gray-800' : '' }}">
-                        📝 WebForm
+                        WebForm
                     </a>
 
                     <a href="#" class="block px-3 py-2 rounded hover:bg-gray-800">
-                        🅰️ Avito <span class="text-xs text-gray-400">(в планах)</span>
+                        Avito <span class="text-xs text-gray-400">(в планах)</span>
                     </a>
                 </div>
 
@@ -85,11 +85,11 @@
 
                     <a href="{{ path('company_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
-                        🏢 Мои компании
+                        Мои компании
                     </a>
                     <a href="{{ path('company_operators_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_operators_' ? 'bg-gray-800' : '' }}">
-                        👥 Операторы
+                        Операторы
                     </a>
                 </div>
 
@@ -98,22 +98,22 @@
                     <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Администрирование</h3>
                     <a href="{{ path('admin.ai_logs') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_switch' ? 'bg-gray-800' : '' }}">
-                        🧪 AI Logs
+                        AI Logs
                     </a>
 
-                    {# ⬆️ Импорт знаний (MD/CSV, превью/публикация) #}
+                    {# Импорт знаний (MD/CSV, превью/публикация) #}
                     <a href="{{ path('admin_knowledge_import') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.attributes.get('_route') starts with 'admin_knowledge_import' ? 'bg-gray-800' : '' }}">
-                        ⬆️ Импорт знаний
+                        Импорт знаний
                     </a>
 
                     <a href="{{ path('admin_ai_profile') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
-                        🧠 AI‑профиль
+                        AI‑профиль
                     </a>
                     <a href="{{ path('admin_ai_knowledge_index') }}"
                        class="block px-3 py-2 rounded hover:bg-gray-800 {{ app.request.get('_route') starts with 'company_' ? 'bg-gray-800' : '' }}">
-                        📚 Знания
+                        Знания
                     </a>
                 </div>
                 {#  {% endif %}#}
@@ -123,8 +123,8 @@
                     <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2">Профиль</h3>
 
                     <div class="text-xs text-gray-400 leading-tight mb-2">
-                        👤 <strong>{{ app.user.email }}</strong><br>
-                        🏢 Активная компания: <span class="text-white">{{ app.request.session.get('active_company_id') }}</span>
+                        <strong>{{ app.user.email }}</strong><br>
+                        Активная компания: <span class="text-white">{{ app.request.session.get('active_company_id') }}</span>
                     </div>
 
                     {#
